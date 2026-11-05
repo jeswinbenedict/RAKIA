@@ -1,0 +1,66 @@
+# --- Local references (design repos, palette images): never committed ---
+_reference/
+
+# --- Secrets & environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+service-account*.json
+*firebase-adminsdk*.json
+google-services.json
+GoogleService-Info.plist
+
+# --- Data: never commit health data or DB dumps ---
+*.dump
+*.sql.gz
+/data/
+/backups/
+
+# --- C / C++ / CMake ---
+build/
+out/
+cmake-build-*/
+CMakeUserPresets.json
+vcpkg_installed/
+*.obj
+*.o
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+*.pdb
+
+# --- Flutter / Dart ---
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+**/build/
+**/ios/Pods/
+**/android/.gradle/
+**/android/local.properties
+
+# --- Node tooling ---
+node_modules/
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+*.swp
+
+# --- Claude / agents local state ---
+.claude/settings.local.json
