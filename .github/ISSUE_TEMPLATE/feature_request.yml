@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a new capability or an improvement.
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Which astronaut, researcher or developer need does this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Scientific basis (if health-related)
+      description: Cite peer-reviewed or agency sources. RAKIA does not ship unsupported health logic.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

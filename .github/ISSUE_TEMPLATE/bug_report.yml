@@ -1,0 +1,41 @@
+name: Bug report
+description: Something in RAKIA does not work as documented.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include real personal health data, credentials or tokens. Use simulated data.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [App (Flutter), Analytics core (librakia), API (rakia-api), Database, Sync, Authentication, Documentation, CI]
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ...\n2. ...\n3. ..."
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "e.g. Web/Chrome 140, Android 15, Windows 11; commit SHA"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      render: shell

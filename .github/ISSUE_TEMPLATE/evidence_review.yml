@@ -1,0 +1,24 @@
+name: Evidence review
+description: Report a scientific error, an unverified claim or a better source.
+labels: ["evidence", "triage"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Where is the claim?
+      placeholder: "e.g. docs/research/RESEARCH_AND_INNOVATION_REPORT.md section 2, or an alert text"
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is wrong or unverified?
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources
+      description: DOI, PubMed ID, NASA NTRS ID or agency URL. Please confirm you have read the primary source.
+    validations:
+      required: true
