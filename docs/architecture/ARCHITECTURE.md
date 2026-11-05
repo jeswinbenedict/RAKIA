@@ -1,0 +1,117 @@
+# RAKIA — System Architecture & Database Design
+
+> Phase 3 deliverable · Status: **DRAFT FOR APPROVAL**
+
+## 1. Overview
+
+```text
+┌──────────────────────── Crew device (onboard, offline-first) ────────────────────────┐
+│ Flutter app (Android · iOS · Web · Windows/macOS/Linux)                               │
+│  UI ─ Riverpod state ─ Repository ─┬─ Local store: SQLite via Drift (web: sqlite3.wasm)│
+│                                    ├─ librakia (C11) via dart:ffi  | via WASM on web  │
+│                                    └─ Sync agent (ledger, outbox, retries)            │
+└───────────────┬───────────────────────────────────────────────────────────────────────┘
+                │ HTTPS/TLS 1.3 · Firebase ID token · idempotent batches (delay-tolerant)
+┌───────────────▼──────────── Ground / habitat server ──────────────────────────────────┐
+│ rakia-api (C++20, Drogon)                                                             │
+│  auth (Firebase ID-token verify, RBAC) · turnstile verify · ingest/sync · query API   │
+│  analytics worker → librakia (same C core) · SSE stream for live updates · /healthz   │
+└───────────────┬───────────────────────────────────────────────────────────────────────┘
+                │ libpq, TLS, least-privilege role
+┌───────────────▼───────────────┐      ┌────────────────────┐   ┌──────────────────────┐
+│ PostgreSQL 18 (dev: local)    │      │ Firebase Auth      │   │ Cloudflare Turnstile │
+│ prod: Supabase Postgres + RLS │      │ Google/email/phone │   │ siteverify           │
+└───────────────────────────────┘      └────────────────────┘   └──────────────────────┘
+```
+
+## 2. Components and why each language
+
+| Component | Language | Responsibility | Why |
+|---|---|---|---|
+| `core/librakia` | **C11** | Baselines, robust statistics, CUSUM onset, Theil–Sen trend, multivariate robust distance + per-feature contributions, quality gates, hash chaining | Must run *identically* on servers, phones, browsers (WASM) and potentially embedded habitat hardware. C gives the smallest, most portable ABI for `dart:ffi` and Emscripten. No allocation in hot paths; caller-owned buffers; fuzzed. |
+| `server/rakia-api` | **C++20** (Drogon, MIT) | REST API, auth, RBAC, ingest/sync, query, SSE, analytics jobs | Performance and the challenge's C/C++ requirement where it fits; RAII for resource safety. |
+| `app/` | **Dart/Flutter** | All UI, offline store, sync agent | Required stack; one codebase for 6 targets. |
+| `db/migrations` | SQL | Versioned schema, RLS, audit triggers | Plain SQL, tool-agnostic (applied by a small migration runner + compatible with `supabase db push`). |
+| `tools/simulator` | C++ (CLI) | Generates labelled SIMULATED scenarios with known ground truth (step, drift, artefact, missing data) | Same engine for validation tests. |
+
+**Not forced into C/C++:** UI, auth UX, and the web host stay in their natural stacks.
+
+Key C++/C deps (all permissive): Drogon, libpq, jwt-cpp, OpenSSL, nlohmann/json, GoogleTest. Managed with vcpkg manifest. Flutter deps kept minimal: riverpod, go_router, drift, firebase_auth, google_sign_in, ffi, a charting approach decided in Phase 5 (custom painters preferred for the baseline-band chart).
+
+## 3. Communication
+
+- **REST/JSON over HTTPS** (OpenAPI 3.1 spec in `docs/api/openapi.yaml`). gRPC rejected for v1: poor browser support without a proxy and no benefit at our data rates.
+- **Live updates:** Server-Sent Events from `rakia-api` (dev/self-hosted); in production, Supabase Realtime may be added as an optimisation, not a dependency.
+- **Sync protocol:** client sends `POST /v1/sync/batches` with `{client_id, batch_id (UUIDv7), records[] (each with client_seq, prev_hash, hash)}`. Server verifies chain continuity, is idempotent on `batch_id`, and returns `acked_through_seq` + server-side changes since cursor. Conflict rules: measurements are immutable (no conflicts; corrections are new records that supersede by `supersedes_id`); mutable entities (alert status, profile) use last-writer-wins on hybrid logical clock with full history in audit log.
+
+## 4. Authentication & authorisation
+
+- **Firebase Auth** on the client: Google Sign-In, email/password (+ verification, password reset), phone OTP (web requires Firebase's reCAPTCHA verifier), persistence, logout with token revocation.
+- **Backend verification without a service account:** `rakia-api` verifies Firebase ID tokens (RS256) against Google's public certificates, checking `iss`, `aud` (project id), `exp`, `iat`, `auth_time`. No Firebase admin secret is needed by the API or ever shipped to the client.
+- **RBAC:** roles per mission — `astronaut`, `crew_medical_officer`, `flight_surgeon`, `researcher` (de-identified read only), `mission_admin`. Checked in the API *and* enforced again in Postgres with Row-Level Security (defence in depth). An astronaut sees only their own data; behavioural data obeys consent scopes.
+- **Turnstile:** on sign-up, password reset, phone-OTP request (prevents SMS-cost abuse) and any public form. Server-side `siteverify` with secret; reject on failure/`timeout-or-duplicate`; store SHA-256 of token for 10 min to block replay; check `action`/`hostname`; fail closed on public forms, with a clear retry message. Turnstile is bot friction, not identity.
+
+## 5. Supabase integration — honest assessment
+
+Your local PostgreSQL 18 is vanilla Postgres. Supabase's PostgREST, Realtime, Storage and Auth are **separate services** and do not exist on it. Therefore:
+
+- **Dev:** `rakia-api` talks directly to local Postgres. Migrations are written to be Supabase-compatible (no superuser-only extensions; RLS reads the caller identity from `current_setting('request.jwt.claims')`, the same mechanism Supabase uses).
+- **Prod:** Supabase-hosted Postgres; Supabase supports Firebase Auth as a *third-party auth provider*, so RLS can trust Firebase JWTs directly if we later expose PostgREST/Realtime. *(To re-verify against current Supabase docs at Phase 3 start.)*
+- **Optional local Supabase stack** (`supabase start`) needs Docker Desktop running — it is installed but the daemon is currently off.
+
+## 6. Database design (PostgreSQL, schema `rakia`)
+
+```text
+missions ─┬─< mission_phases
+          ├─< mission_members >── app_users (firebase_uid, role)
+          ├─< crew_members ──┬─< measurements (partitioned monthly) >── metric_definitions
+          │                  ├─< baselines                              devices >── data_sources
+          │                  ├─< context_events (exercise, EVA, sleep episode, workload)
+          │                  ├─< self_assessments (private by default) ── consent_grants
+          │                  ├─< alerts ─< alert_events ; alerts >─< alert_contributions
+          │                  └─< confirmatory_checks
+          ├─< habitat_modules ─< environment_readings (CO₂, ppO₂, T, RH, dose rate)
+          └─< radiation_dose_records (per crew, per period, cumulative view)
+evidence_references (citation, DOI, url, verified bool) >─< recommendation_templates
+sync_batches · audit_log (append-only, hash-chained) · turnstile_replay (token_hash, expires_at)
+```
+
+Key rules:
+
+- `measurements`: `id uuid (v7)`, `crew_member_id`, `metric_code` → `metric_definitions`, `value double precision`, `unit` (UCUM, must equal definition's canonical unit after conversion), `observed_at timestamptz`, `received_at`, `device_id`, `source_id`, `method enum(measured, manual, estimated, derived)`, `provenance enum(real, imported, simulated)`, `quality_score real CHECK 0..1`, `quality_flags text[]`, `client_id`, `client_seq bigint`, `prev_hash bytea`, `hash bytea`, `supersedes_id`. Unique `(client_id, client_seq)`. Partitioned by month on `observed_at`; B-tree `(crew_member_id, metric_code, observed_at DESC)`, BRIN on `observed_at`.
+- **Simulation firewall:** `missions.is_simulation boolean`; a trigger rejects `provenance='simulated'` rows in non-simulation missions and real rows in simulation missions.
+- `alerts.explanation jsonb` stores the six-question payload (indicator, deviation vs baseline, onset time, contributing measurement ids, rationale, recommended next step + evidence ids) produced by librakia, plus `engine_version` for reproducibility.
+- `audit_log`: every insert/update/delete on sensitive tables via trigger, with actor, action, before/after diff, and `hash = sha256(prev_hash || row)`.
+- Roles: `rakia_migrator` (DDL), `rakia_api` (DML only, RLS enforced), `rakia_readonly` (research views of de-identified data).
+- Backups: nightly `pg_dump -Fc` with retention + monthly restore test script; prod relies on Supabase backups (PITR depends on plan — documented).
+
+## 7. Analytics engine (librakia) — documented as EXPERIMENTAL
+
+1. **Quality gate:** plausibility range per metric, wear-time/completeness, sensor flags → `quality_score`. Below threshold: no health alert, a data-quality notice instead.
+2. **Baseline:** robust centre (median) and spread (MAD×1.4826) over a configurable reference window (default: pre-flight + first 14 flight days excluded for adaptation); time-of-day stratified for circadian metrics; minimum n before any alert ("Not enough data").
+3. **Point deviation:** robust z-score.
+4. **Sustained change + onset:** two-sided CUSUM on standardised residuals; onset = last zero-crossing of the triggered sum.
+5. **Trend:** Theil–Sen slope with Mann–Kendall test.
+6. **Multivariate:** robust Mahalanobis distance across co-varying metrics (RHR, HRV, sleep, skin temp, respiration) with per-feature contribution decomposition for the explanation.
+7. **Prioritisation:** severity = f(magnitude, persistence, number of concordant indicators, data quality) — rules are transparent and listed in docs; no opaque ML in v1.
+Validation: synthetic scenarios with known ground truth (sensitivity, false alarms per 30 days, onset error) — reported as engineering metrics, **not** clinical validation.
+
+## 8. Security
+
+TLS everywhere; secrets only in env/secret manager (`.env.example` documents names only); parameterised SQL only; input validation at API boundary (schema + unit + range); rate limiting; CORS allow-list; security headers on web host; encryption at rest via Postgres host/disk (Supabase encrypts at rest) and on-device SQLite encryption (SQLCipher) for native targets — on web, browser storage cannot be strongly encrypted at rest, which is documented as a limitation; dependency scanning (Dependabot), CodeQL (C/C++, JS), secret scanning + push protection.
+
+## 9. Deployment
+
+| Piece | Host | Why |
+|---|---|---|
+| Flutter web | **Cloudflare Pages** (alt: Vercel) | Static assets, global CDN, HTTPS, preview deploys; same vendor as Turnstile. |
+| `rakia-api` (native C++) | **Container on Google Cloud Run** (alt: Fly.io / Render) | Vercel Functions and Cloudflare Workers cannot run arbitrary native long-running C++ servers; Cloud Run runs our Docker image, scales to zero, HTTPS, health checks, logs. |
+| Database | Supabase Postgres (prod), local PG 18 (dev) | |
+| Auth | Firebase | |
+| Monitoring | Cloud Run logs/metrics + `/healthz` + `/readyz`, uptime check, structured JSON logs; client errors to a self-hosted-capable sink (decided in Phase 8) | |
+
+Environments: **dev** (local PG, Firebase dev project, Turnstile test keys), **staging** (`staging` Pages branch + Cloud Run revision + Supabase staging project), **prod**. CI/CD: GitHub Actions — format/lint/test on PR; build web, Android, iOS (macOS runner, unsigned), C/C++ on Windows (MSVC) and Linux (GCC/Clang + ASan/UBSan + clang-tidy); deploy on tag.
+
+## 10. Testing strategy
+
+C core: unit + property tests + fuzzing (libFuzzer on Linux CI) + ASan/UBSan. API: integration tests against a disposable Postgres (CI service container). DB: migration up/down, RLS tests per role, simulation-firewall tests. Flutter: unit, widget, golden (per breakpoint), integration (offline → sync), accessibility checks (`meetsGuideline` for tap targets, contrast, labels). Cross-platform golden tests prove engine determinism.
