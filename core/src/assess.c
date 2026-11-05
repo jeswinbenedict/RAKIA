@@ -165,13 +165,13 @@ rakia_status rakia_assess(const double *values, const double *quality, size_t n,
     /* Trailing consecutive extreme values with the same sign. */
     {
         size_t run = 0;
-        double sign = 0.0;
+        int sign = 0;
         for (size_t i = n; i-- > 0;) {
             const double z = z_scratch[i];
             if (!rk_finite(z)) {
                 continue;
             }
-            const double s = (z > 0.0) ? 1.0 : -1.0;
+            const int s = (z > 0.0) ? 1 : -1;
             if (fabs(z) >= cfg->act_z && (run == 0 || s == sign)) {
                 sign = s;
                 ++run;

@@ -76,7 +76,8 @@ rakia_status rakia_trend_compute(const double *t, const double *y, size_t n, dou
     size_t i = 0;
     while (i < n) {
         size_t j = i + 1;
-        while (j < n && scratch[j] == scratch[i]) {
+        /* scratch is sorted ascending and finite, so "not greater" means tied. */
+        while (j < n && !(scratch[j] > scratch[i])) {
             ++j;
         }
         const double g = (double)(j - i);
