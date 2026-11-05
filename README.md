@@ -11,7 +11,11 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 
 ## Project status
 
-🚧 **Phase 4 (repository foundation).** No application code has been merged yet. Live progress is in [PROJECT_STATUS.md](PROJECT_STATUS.md).
+🚧 **Phase 5 (core implementation).** The `librakia` analytics core is merged; the Flutter app shell is in review. No health data is displayed yet. Live progress is in [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
+| Phone | Tablet | Desktop |
+|---|---|---|
+| ![Mission overview on a 390 px phone](docs/screenshots/app-shell-phone-390.png) | ![Sleep module on an 800 px tablet](docs/screenshots/app-shell-tablet-800.png) | ![Cardiovascular module on a 1600 px desktop](docs/screenshots/app-shell-desktop-1600.png) |
 
 ## What makes RAKIA different
 

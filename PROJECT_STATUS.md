@@ -1,6 +1,6 @@
 # RAKIA — Project Status
 
-**Current phase:** Phase 5, core implementation. Phase 4 is complete; `feature/librakia-core` is in review.
+**Current phase:** Phase 5, core implementation. `librakia` is merged; `feature/app-shell` is in review.
 **Last updated:** 2026-11-06
 
 ## Completed
@@ -16,14 +16,17 @@
 - [x] Repository settings: description, 14 topics, squash-merge only, delete branch on merge, wiki/projects off, discussions on
 - [x] Foundation docs, issue and PR templates, CODEOWNERS, Dependabot (GitHub Actions) and repo-hygiene CI: [jeswinbenedict/RAKIA#1](https://github.com/jeswinbenedict/RAKIA/pull/1), merged
 - [x] `main` ruleset requires the `Secret scan` and `Markdown and YAML lint` checks
-- [x] Phase 5: `librakia` 0.1.0 C analytics core with tests, sanitizers, fuzzing and CodeQL (`feature/librakia-core`, in review)
+- [x] Phase 5: `librakia` 0.1.0 C analytics core with tests, sanitizers, fuzzing and CodeQL: [jeswinbenedict/RAKIA#2](https://github.com/jeswinbenedict/RAKIA/pull/2), merged
+- [x] `main` ruleset requires all 10 checks (repo hygiene, 7 core jobs, CodeQL c-cpp)
+- [x] Phase 5: Flutter app shell (design system, adaptive navigation, module routes, accessibility tests) (`feature/app-shell`, in review)
 
 ## Pending
 
-- [ ] Review and merge `feature/librakia-core` (owner approval required)
-- [ ] After it merges, add the `core *` checks and `CodeQL c-cpp` to the required checks
+- [ ] Review and merge `feature/app-shell` (owner approval required)
+- [ ] After it merges, add the `app *` checks to the required checks
 - [ ] `feature/db-schema` (needs local PostgreSQL credentials in `.env`)
-- [ ] `feature/api-skeleton`, `feature/app-shell`, `feature/auth`, `feature/ingest`, `feature/dashboard`
+- [ ] `feature/auth` (needs a Firebase project and Turnstile keys)
+- [ ] `feature/api-skeleton`, `feature/ingest`, `feature/ffi-wasm` (librakia in the app), `feature/dashboard`
 
 ## Environment
 
@@ -63,6 +66,7 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 ## Implemented features
 
 - `librakia` 0.1.0 (experimental, not clinically validated): data-quality gate, robust personal baselines, CUSUM sustained-change detection with onset estimate, Theil–Sen/Mann–Kendall trend, Mahalanobis distance with per-feature contributions, SHA-256 hash-chained ledger, and quality-gated assessment levels. Details: `docs/algorithms/LIBRAKIA.md`.
+- Flutter app shell (in review): tokens and light/dark themes from the reference palette; bundled Geist fonts; adaptive navigation (bottom bar + More / icon rail / labelled sidebar); routes for all 9 modules with factual empty states; About page with disclaimer, theme choice and licences; status chip, simulated-data badge and empty-state components. No health data is displayed yet.
 
 ## Testing results
 
@@ -74,12 +78,16 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 | librakia: clang-tidy 19 over `core/src` (local) | 0 findings |
 | librakia: Clang strict warnings (`-Wconversion -Wsign-conversion …`) via clang-tidy (local) | 0 findings in `src/` and `tests/` |
 | librakia: synthetic validation (2,000 runs per scenario) | no-change `ACT` 1.7 %; +1.5 SD step detected 97.2 %, `ACT` 98.3 % |
-| librakia: GCC, Clang ASan+UBSan, macOS ARM64, fuzzing, CodeQL | run in CI on the PR (not available locally) |
+| librakia CI on PR #2 (11 checks, incl. GCC, Clang ASan+UBSan, macOS ARM64, fuzzing, CodeQL) | all passed; determinism digest identical on every platform |
+| app: `flutter analyze` (strict) | no issues |
+| app: `flutter test` | 143/143 passed (contrast of every token pair in both themes, navigation per breakpoint, Android/iOS tap-target, labelled-target and text-contrast guidelines at 4 viewports × 2 themes × 3 pages, 200 % text scale, components) |
+| app: `flutter build web --release`, `flutter build apk --debug` (local) | built |
+| app: Windows and iOS builds | CI only (local Windows SDK lacks the debug CRT; iOS needs macOS) |
 
 ## Open pull requests
 
-- `feature/librakia-core`: librakia C analytics core (see GitHub)
+- `feature/app-shell`: Flutter app shell (see GitHub)
 
 ## Next actions
 
-After `feature/librakia-core` merges: `feature/db-schema` (needs PostgreSQL credentials) or `feature/app-shell` (no external input needed).
+After `feature/app-shell` merges: `feature/ffi-wasm` (librakia in the app, no external input needed), or `feature/db-schema` / `feature/auth` once credentials and keys are provided.

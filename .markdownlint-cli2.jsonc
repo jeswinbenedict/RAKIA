@@ -7,5 +7,15 @@
     "MD024": { "siblings_only": true },
     "MD060": false
   },
-  "ignores": ["node_modules/**", "_reference/**", "**/build/**"]
+  "ignores": [
+    "node_modules/**",
+    "_reference/**",
+    "**/build/**",
+    "app/android/**",
+    "app/ios/**",
+    "app/linux/**",
+    "app/macos/**",
+    "app/web/**",
+    "app/windows/**"
+  ]
 }

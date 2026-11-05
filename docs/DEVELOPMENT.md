@@ -19,7 +19,7 @@
 ## Repository layout (target)
 
 ```text
-app/          Flutter application (planned)
+app/          Flutter application
 core/         librakia — C11 analytics core
 server/       rakia-api — C++20 service (planned)
 db/           SQL migrations, RLS policies, tests (planned)
@@ -44,6 +44,16 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
+### Flutter app (`app/`)
+
+```bash
+cd app
+flutter pub get
+flutter run -d chrome        # or: windows, an Android device or emulator
+flutter test
+flutter build web --release
+```
+
 Other components add their commands here as they land.
 
 ## Testing
@@ -54,7 +64,7 @@ Other components add their commands here as they land.
 | C core | `ctest --test-dir build` (add `-DRAKIA_SANITIZE=ON` for sanitizers); `clang-tidy -p build core/src/*.c` | active |
 | API | integration tests against disposable Postgres | planned |
 | Database | migration + RLS tests | planned |
-| Flutter | `flutter analyze`, `flutter test`, golden + integration tests | planned |
+| Flutter | `dart format --set-exit-if-changed lib test`, `flutter analyze`, `flutter test` (tokens, navigation, accessibility guidelines, 200% text scale, components) | active |
 
 ## Environments
 

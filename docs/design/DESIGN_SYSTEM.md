@@ -37,7 +37,7 @@ All four images independently converge on the same four-colour system. Values we
 | `bg.surface2` | `#16121F` | ref 4 family | Cards, inputs |
 | `bg.surface3` | `#1F1A2B` | ref 4 `#1C1927`/`#241E31` | Raised / hover |
 | `border.subtle` | `#2A2438` | ref 4 | Dividers (decorative) |
-| `border.control` | `#6E6585` *(to verify ≥ 3:1 in CI)* | ref 4 `#554A69` lightened | Input/control outlines (WCAG 1.4.11) |
+| `border.control` | `#7A7192` | ref 4 `#554A69` lightened | Input/control outlines (WCAG 1.4.11): 3.7–4.4:1 on every dark surface. The earlier candidate `#6E6585` passed on `surface2` only (3.4:1) with no margin. |
 | `text.primary` | `#F5F3FA` | ref 3 `#FEFFFC` tinted | 18.3:1 on canvas |
 | `text.secondary` | `#A69FB8` | ref 1 `#ADA4BF` | 7.3:1 on surface2 |
 | `brand.violet` | `#7D39EB` | ref 2 | Brand fills, selected nav, chart series 1. **Not for text on dark** (3.5:1); white on violet = 5.7:1 ✅ |
@@ -56,13 +56,14 @@ Status is always **colour + glyph shape + word**, so it survives colour-blindnes
 | Watch | `#FFB547` amber *(functional, not in refs)* | ▲ triangle | "Watch" | 10.5:1 |
 | Act | `#FF6B78` coral *(functional, not in refs)* | ◆ diamond | "Act now" | 6.7:1 |
 | Insufficient data | `#A69FB8` | ◌ dashed circle | "Not enough data" | 7.3:1 |
+| Data quality | `#5FB8C6` teal (ref 1) | ■ square | "Check data quality" | 8.0:1 |
 | Simulated | `#B79CFF` + diagonal hatch | ⧄ | "SIMULATED DATA" | 8.1:1 |
 
 Amber and coral are not present in the references; they are added deliberately because safety semantics require them, and tuned to sit with the violet/lime palette.
 
 ### 2.3 Light theme ("Ground")
 
-Canvas `#F4F2F8`, surface `#FFFFFF`, lilac band `#ADA4BF` (ref 1), text `#14101C` (16.9:1), secondary `#6B6480` (5.0:1), violet text `#5B2BC4` (7.3:1), lime becomes a **fill only** with dark text; lime-as-text uses `#4E5F00` (6.4:1); amber text `#8A5A00` (5.3:1), coral text `#C2283A` (5.2:1).
+Canvas `#F4F2F8`, surface `#FFFFFF`, lilac band `#ADA4BF` (ref 1), text `#14101C` (16.9:1), secondary `#6B6480` (5.0:1), violet text `#5B2BC4` (7.3:1), lime becomes a **fill only** with dark text; lime-as-text uses `#4E5F00` (6.4:1); amber text `#8A5A00` (5.3:1), coral text `#C2283A` (5.2:1), teal text `#1F6B78` (5.5:1), control border `#7A7290` (≥ 3.7:1 on every light surface). The light theme's primary action is violet `#5B2BC4` with white text (8.1:1), because a lime fill has no visible edge on white.
 
 ### 2.4 Gradients (used sparingly)
 
