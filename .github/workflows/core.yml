@@ -1,0 +1,91 @@
+name: librakia core
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: core ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: msvc
+            os: windows-latest
+            build_type: Release
+            cmake_args: -A x64
+          - name: msvc-asan
+            os: windows-latest
+            build_type: RelWithDebInfo
+            cmake_args: -A x64 -DRAKIA_SANITIZE=ON
+          - name: gcc
+            os: ubuntu-latest
+            build_type: Release
+            cmake_args: -DCMAKE_C_COMPILER=gcc
+          - name: clang-asan-ubsan
+            os: ubuntu-latest
+            build_type: RelWithDebInfo
+            cmake_args: -DCMAKE_C_COMPILER=clang -DRAKIA_SANITIZE=ON
+          - name: macos-arm64
+            os: macos-latest
+            build_type: Release
+            cmake_args: -DCMAKE_C_COMPILER=clang
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Put the MSVC ASan runtime on PATH
+        if: matrix.name == 'msvc-asan'
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $msvc = Get-ChildItem "$vs\VC\Tools\MSVC" | Sort-Object Name | Select-Object -Last 1
+          "$($msvc.FullName)\bin\Hostx64\x64" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Configure
+        run: cmake -S core -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} ${{ matrix.cmake_args }}
+
+      - name: Build (warnings are errors)
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.build_type }} --output-on-failure
+
+      - name: Validation metrics and determinism digest
+        run: ctest --test-dir build -C ${{ matrix.build_type }} -R test_validation -V
+
+  clang-tidy:
+    name: core clang-tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+      - name: Configure
+        run: cmake -S core -B build -DCMAKE_C_COMPILER=clang -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Run clang-tidy
+        run: clang-tidy -p build core/src/*.c
+
+  fuzz:
+    name: core fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build fuzz target
+        run: |
+          cmake -S core -B build -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DRAKIA_FUZZ=ON -DRAKIA_BUILD_TESTS=OFF
+          cmake --build build --target fuzz_core --parallel
+      - name: Fuzz for 60 seconds
+        run: |
+          mkdir -p corpus
+          ./build/fuzz_core corpus -max_total_time=60 -max_len=4096 -timeout=10

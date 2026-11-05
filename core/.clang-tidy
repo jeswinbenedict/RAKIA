@@ -1,0 +1,23 @@
+# clang-tidy configuration for librakia (C11).
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-misleading-indentation,
+  readability-non-const-parameter,
+  -bugprone-easily-swappable-parameters,
+  -misc-include-cleaner,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp,
+  -bugprone-reserved-identifier,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+# DeprecatedOrUnsafeBufferHandling is disabled because its fix (memcpy_s etc.)
+# is optional C11 Annex K, unavailable in glibc and macOS libc. Every copy in
+# librakia is preceded by an explicit length/capacity check instead.
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/core/(include|src)/.*'
+FormatStyle: none

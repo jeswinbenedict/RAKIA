@@ -20,7 +20,7 @@
 
 ```text
 app/          Flutter application (planned)
-core/         librakia — C11 analytics core (planned)
+core/         librakia — C11 analytics core
 server/       rakia-api — C++20 service (planned)
 db/           SQL migrations, RLS policies, tests (planned)
 tools/        simulator and developer scripts (planned)
@@ -32,16 +32,26 @@ docs/         research, architecture, design, guides
 1. Copy `.env.example` to `.env` and fill in values locally. `.env` is git-ignored.
 2. Local PostgreSQL: create a `rakia` database and the `rakia_migrator` / `rakia_api` roles **(planned: script in `db/`)**.
 
-## Building and running **(planned)**
+## Building and running
 
-Each component PR adds its exact build, run and test commands here.
+### librakia (`core/`)
+
+See [core/README.md](../core/README.md). Summary:
+
+```bash
+cmake -S core -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+Other components add their commands here as they land.
 
 ## Testing
 
 | Layer | Command | Status |
 |---|---|---|
 | Repository hygiene | runs in CI (`.github/workflows/repo-hygiene.yml`); locally: `npx markdownlint-cli2 "**/*.md"` | active |
-| C core | `ctest` with sanitizers | planned |
+| C core | `ctest --test-dir build` (add `-DRAKIA_SANITIZE=ON` for sanitizers); `clang-tidy -p build core/src/*.c` | active |
 | API | integration tests against disposable Postgres | planned |
 | Database | migration + RLS tests | planned |
 | Flutter | `flutter analyze`, `flutter test`, golden + integration tests | planned |
