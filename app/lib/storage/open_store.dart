@@ -1,29 +1,34 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'database.dart';
 import 'local_store.dart';
+import 'native_store_stub.dart'
+    if (dart.library.io) 'native_store_io.dart'
+    as native;
+import 'store_key.dart';
 
-/// Web assets fetched by tool/fetch_web_sqlite.sh, served next to the app.
+/// Web assets fetched by tool/build_web_sqlite.sh, served next to the app.
 /// Resolved against the page: the worker would otherwise resolve a relative
 /// module URL against its own location.
 Uri get kSqliteWasmUri => Uri.base.resolve('sqlite3/sqlite3.wasm');
 Uri get kDriftWorkerUri => Uri.base.resolve('sqlite3/drift_worker.js');
 
-/// Opens the platform's persistent store: a SQLite file in the app's private
-/// support directory on native targets (not the documents folder, which some
-/// systems sync to the cloud), or SQLite WebAssembly on OPFS or IndexedDB in
-/// a browser.
+/// Opens the platform's persistent store: on native targets an encrypted
+/// SQLite file in the app's private support directory, keyed from the
+/// system keystore; in a browser, SQLite WebAssembly on OPFS or IndexedDB.
 Future<LocalStore> openLocalStore() async {
-  var kind = kIsWeb ? StorageKind.memory : StorageKind.nativeFile;
+  if (!kIsWeb) {
+    return native.openNativeStore(
+      path: await native.nativeDatabasePath(),
+      vault: SecureStoreKeyVault(),
+    );
+  }
+  var kind = StorageKind.memory;
   final db = RakiaDatabase(
     driftDatabase(
       name: 'rakia',
-      native: const DriftNativeOptions(
-        databaseDirectory: getApplicationSupportDirectory,
-      ),
       web: DriftWebOptions(
         sqlite3Wasm: kSqliteWasmUri,
         driftWorker: kDriftWorkerUri,

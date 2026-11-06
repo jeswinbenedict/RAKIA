@@ -8,6 +8,7 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../mission/mission_controller.dart';
 import '../navigation/modules.dart';
+import '../storage/local_store.dart';
 import '../storage/store_controller.dart';
 import 'module_page.dart';
 import 'page_frame.dart';
@@ -180,6 +181,11 @@ class _StorageCard extends StatelessWidget {
     };
     final ledger = p?.ledger;
     final verified = ledger?.verified ?? false;
+    final encryption = switch (store) {
+      StoreReady(:final store) when p != null && p.kind.persistent =>
+        store.encryption,
+      _ => const StoreEncryption.notApplicable(),
+    };
 
     return SurfaceCard(
       key: const Key('storage-card'),
@@ -201,7 +207,7 @@ class _StorageCard extends StatelessWidget {
                     ? 'Verified'
                     : 'Failed at record ${ledger.failedAtSeq}',
               ),
-              ('Encryption at rest', 'Not enabled yet'),
+              ('Encryption at rest', encryption.label),
             ],
           ),
           const SizedBox(height: RakiaSpacing.md),
@@ -213,7 +219,11 @@ class _StorageCard extends StatelessWidget {
             ),
             const SizedBox(height: RakiaSpacing.sm),
           ],
-          Text(note, style: t.bodySmall?.copyWith(color: c.textSecondary)),
+          Text(
+            '$note ${encryption.note}',
+            key: const Key('storage-note'),
+            style: t.bodySmall?.copyWith(color: c.textSecondary),
+          ),
         ],
       ),
     );

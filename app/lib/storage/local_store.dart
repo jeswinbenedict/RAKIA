@@ -31,6 +31,54 @@ enum StorageKind {
   final bool persistent;
 }
 
+/// How the database is protected at rest, as found when it was opened.
+@immutable
+class StoreEncryption {
+  /// Encrypted with [cipher], as reported by the SQLite library itself.
+  const StoreEncryption.cipher(String this.cipher)
+    : label = cipher == 'chacha20' ? 'ChaCha20-Poly1305' : cipher,
+      note =
+          'The database file is encrypted. Its 256-bit key was generated on '
+          "this device and is kept in the system's secure keystore, never in "
+          "the file or in RAKIA's code.";
+
+  /// A browser database: browsers give RAKIA no protected place for a key.
+  const StoreEncryption.browser()
+    : cipher = null,
+      label = 'Not available in browsers',
+      note =
+          'A browser offers no protected place to keep an encryption key, so '
+          'RAKIA does not encrypt data stored in a browser. The desktop and '
+          'mobile apps encrypt it.';
+
+  /// A database file written without encryption.
+  const StoreEncryption.none()
+    : cipher = null,
+      label = 'Not encrypted',
+      note = 'The database file is not encrypted.';
+
+  /// Nothing is written to disk.
+  const StoreEncryption.notApplicable()
+    : cipher = null,
+      label = 'Not applicable',
+      note = 'Nothing is written to disk.';
+
+  factory StoreEncryption.forUnencrypted(StorageKind kind) => switch (kind) {
+    StorageKind.browserOpfs ||
+    StorageKind.browserIndexedDb => const StoreEncryption.browser(),
+    StorageKind.memory => const StoreEncryption.notApplicable(),
+    StorageKind.nativeFile => const StoreEncryption.none(),
+  };
+
+  /// SQLite3 Multiple Ciphers' name for the cipher, or null when the
+  /// database is not encrypted.
+  final String? cipher;
+  final String label;
+  final String note;
+
+  bool get encrypted => cipher != null;
+}
+
 /// Bit 0 of `measurements.quality_flags`.
 const int kSensorFaultFlag = 1;
 
@@ -81,10 +129,12 @@ class StoreIntegrityError extends StateError {
 /// measurement ledger. Integrity rules are enforced by SQLite triggers
 /// (schema.drift); record hashes come from librakia.
 class LocalStore {
-  LocalStore(this.db, {required this.kind});
+  LocalStore(this.db, {required this.kind, StoreEncryption? encryption})
+    : encryption = encryption ?? StoreEncryption.forUnencrypted(kind);
 
   final RakiaDatabase db;
   final StorageKind kind;
+  final StoreEncryption encryption;
 
   int get schemaVersion => db.schemaVersion;
 

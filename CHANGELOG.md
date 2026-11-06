@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Encryption at rest for the native on-device store:
+  - The database file is encrypted with ChaCha20-Poly1305 (SQLite3 Multiple Ciphers, the checksum-verified build shipped by the `sqlite3` package).
+  - A 256-bit key is generated on the device, saved in the system keystore (Keychain, Android Keystore, DPAPI, libsecret) and read back before any data is written. It is never stored in the file, the repository or the app.
+  - A database written before encryption is encrypted in place, keeping every record and setting.
+  - A missing or wrong key leaves the data untouched and is reported; the key is never silently replaced. Opening fails if the loaded SQLite cannot encrypt or the file on disk is not encrypted.
+  - Data management shows the cipher in use, or that browser storage is not encrypted.
+  - Android cloud backup and device transfer of the app's data are turned off.
+  - 11 new tests, against the real cipher: ciphertext on disk, key reuse, wrong and missing keys, a keystore that does not keep the key, a malformed key, in-place encryption of an existing database, and the storage card.
+
 - On-device store (`app/lib/storage`), the offline-first foundation:
   - SQLite through Drift on every platform: a file in the app's private support directory on Android, iOS, Windows, macOS and Linux; SQLite WebAssembly on OPFS or IndexedDB in a browser.
   - Schema version 1 in plain SQL (`schema.drift`), with integrity rules enforced by SQLite triggers: immutable measurements, the simulation firewall (simulated records only in simulation missions and vice versa), subject consistency, a continuous hash chain per mission, and deletion allowed only for simulation data.
@@ -15,7 +24,7 @@ All notable changes to this project are documented here. The format follows [Kee
   - Web assets: `tool/build_web_sqlite.sh` downloads `sqlite3.wasm` from the locked package release (SHA-256 pinned) and compiles the database worker from source.
   - 29 new tests: every schema rule, an exact round trip of the simulation, reopening a database file, refusal of a newer schema, tamper and deletion detection, restart and theme persistence in the app, the unavailable-storage fallback, and layout at 200% text.
   - CI checks that generated database code and the schema export are up to date, and that the web build ships the store.
-- Data management shows where the mission is kept, how many records are stored, whether the hash chain verified, and that encryption at rest is not enabled yet. The reading count now excludes days without a recording (509, not 525).
+- Data management shows where the mission is kept, how many records are stored, and whether the hash chain verified. The reading count now excludes days without a recording (509, not 525).
 - Mission dashboard on a clearly labelled, opt-in simulation mission (`app/lib/simulation`, `app/lib/analytics`, `app/lib/mission`):
   - Deterministic scenario with known ground truth: a step change in resting heart rate, a gradual HRV decline, stable SpO2 and exercise, and a sleep-sensor outage.
   - Every status, baseline, onset, trend and quality figure computed by librakia (quality gate, robust baseline, assessment, Theil-Sen trend).
