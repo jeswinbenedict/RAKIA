@@ -1,6 +1,6 @@
 # RAKIA — Project Status
 
-**Current phase:** Phase 5, core implementation. `librakia`, the app shell and bindings, the mission dashboard, the encrypted on-device store and the database bootstrap are merged; the PostgreSQL schema is in review.
+**Current phase:** Phase 5, core implementation. `librakia`, the app shell and bindings, the mission dashboard, the encrypted on-device store and the database bootstrap and the PostgreSQL schema are merged; the API skeleton is in review.
 **Last updated:** 2026-11-06
 
 ## Completed
@@ -27,14 +27,15 @@
 - [x] Phase 5/6: on-device store (SQLite via Drift, hash-chained ledger, persistence of the simulation and preferences): [jeswinbenedict/RAKIA#7](https://github.com/jeswinbenedict/RAKIA/pull/7), merged
 - [x] Phase 5/6: encryption at rest for the native store: [jeswinbenedict/RAKIA#8](https://github.com/jeswinbenedict/RAKIA/pull/8), merged
 - [x] Local database bootstrap script (roles, database, `.env`): [jeswinbenedict/RAKIA#9](https://github.com/jeswinbenedict/RAKIA/pull/9), merged
-- [ ] Phase 5: PostgreSQL schema, migrations, row-level security and tests: `feature/db-schema`, in review
+- [x] Phase 5: PostgreSQL schema, migrations, row-level security and tests: [jeswinbenedict/RAKIA#10](https://github.com/jeswinbenedict/RAKIA/pull/10), merged
+- [ ] Phase 5: C++ API skeleton (configuration, health and readiness, reference data, security headers, CORS, rate limiting, database pool): `feature/api-skeleton`, in review
 
 ## Pending
 
-- [ ] Review and merge `feature/db-schema` (owner approval required)
+- [ ] Review and merge `feature/api-skeleton` (owner approval required)
 - [ ] Run `db/bootstrap/bootstrap-local.ps1`, then `dart run bin/migrate.dart up` in `db/`, on your machine (owner: needs the PostgreSQL superuser password)
 - [ ] `feature/auth` (needs a Firebase project and Turnstile keys)
-- [ ] `feature/api-skeleton`, `feature/ingest`
+- [ ] `feature/ingest` (after `feature/auth`)
 
 ## Environment
 
@@ -79,7 +80,8 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 - librakia in the app: struct-free flat C ABI; Dart package `core/dart` with a native backend (build hook + `dart:ffi`) and a web backend (Emscripten WebAssembly + `dart:js_interop`); the app loads the core at startup and the About page reports the backend and a known-answer self-test.
 - Mission dashboard: opt-in, deterministic simulation mission with known ground truth; Mission overview, Action center with six-part explainable alerts, detailed Cardiovascular / Sleep / Physical modules with baseline-band charts, and Data management with provenance and quality. Every status and number comes from librakia. Real data appears only after ingest and is never mixed with simulated data.
 - On-device store: SQLite through Drift on every platform (private app directory natively; OPFS or IndexedDB in a browser). SQLite triggers enforce immutable measurements, the simulation firewall, subject consistency, a continuous per-mission hash chain and simulation-only deletion; librakia re-verifies the chain on every load. The simulation mission and the theme choice survive restarts; without storage the app runs in memory and says why.
-- PostgreSQL schema (in review): migration `0001_core` with the simulation firewall, per-client hash chains, immutable measurements, row-level security for every role and a hash-chained audit log; a Dart migration runner; 54 tests against PostgreSQL 18.
+- C++ API skeleton (in review): health, readiness and reference-data endpoints; validated configuration; security headers, CORS, rate limiting, request ids, JSON errors and logs; libpq pool as `rakia_api` with per-request caller claims.
+- PostgreSQL schema: migration `0001_core` with the simulation firewall, per-client hash chains, immutable measurements, row-level security for every role and a hash-chained audit log; a Dart migration runner; 54 tests against PostgreSQL 18.
 - Encryption at rest: native database files are encrypted with ChaCha20-Poly1305 (SQLite3 Multiple Ciphers) and a 256-bit key from the system keystore; existing databases are encrypted in place; a missing or wrong key never destroys data. Browser storage is not encrypted, and the app says so.
 
 ## Testing results
@@ -116,12 +118,16 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 | PR #8 CI | all 20 checks passed; merged; `main` CI green |
 | PR #9 CI | all 22 checks passed; merged; `main` CI green |
 | db schema: `dart test` against a throwaway local PostgreSQL 18.6 | 54/54 passed; migrations round-trip down and up |
+| PR #10 CI | all 23 checks passed; merged; `main` CI green |
+| API: MSVC 19.44 `/W4 /WX` Release (local) | built; config 10/10, cors 8/8, rate_limit 6/6, http 11/11 |
+| API: PostgreSQL integration against a throwaway local PostgreSQL 18.6 | 9/9; db tests 55/55 with migration 0002 |
+| API: binary against that database (local) | health, ready (schema 2), metric definitions, JSON 404, CORS preflight 204; 503 while the database was stopped, ready again after it restarted; no password in the log |
 | db bootstrap: both scripts against a throwaway local PostgreSQL 18.6 (local) | roles and database created and verified; outside role refused CONNECT; `rakia_api` refused CREATE; SCRAM verifiers only; rerun refused to overwrite `.env`; rotation invalidated the old password |
 
 ## Open pull requests
 
-- `feature/db-schema`: PostgreSQL schema, migrations and tests (see GitHub)
+- `feature/api-skeleton`: C++ API skeleton (see GitHub)
 
 ## Next actions
 
-After the schema merges: `feature/api-skeleton` (C++ API: configuration from `.env`, health endpoint, security headers, CORS, database access as `rakia_api` with the caller's claims). `feature/auth` waits for a Firebase project and Turnstile keys.
+After the API skeleton merges: `feature/auth` (Firebase ID-token verification in the API, sign-in in the app, Turnstile) needs a Firebase project and Turnstile keys; then `feature/ingest` and sync.

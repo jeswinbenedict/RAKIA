@@ -1,0 +1,189 @@
+// SPDX-License-Identifier: Apache-2.0
+#include "app.hpp"
+
+#include <chrono>
+#include <exception>
+#include <nlohmann/json.hpp>
+#include <string>
+
+#include "log.hpp"
+#include "security.hpp"
+
+namespace rakia {
+namespace {
+
+using json = nlohmann::json;
+constexpr const char* kJson = "application/json; charset=utf-8";
+
+// Per worker thread: when the current request started, for the access log.
+thread_local std::chrono::steady_clock::time_point t_started;
+
+std::string request_id(const httplib::Response& res) {
+  return res.get_header_value("X-Request-Id");
+}
+
+void send(httplib::Response& res, int status, const json& body) {
+  res.status = status;
+  res.set_content(body.dump(), kJson);
+}
+
+void send_error(httplib::Response& res, int status, const std::string& code,
+                const std::string& message) {
+  send(res, status,
+       {{"error", {{"code", code}, {"message", message}, {"request_id", request_id(res)}}}});
+}
+
+bool is_probe(const std::string& path) { return path == "/v1/health" || path == "/v1/ready"; }
+
+}  // namespace
+
+App::App(const Config& config, Store& store, RateLimiter::Clock clock)
+    : config_(config),
+      store_(store),
+      cors_(config.cors_origins),
+      limiter_(config.rate_limit_per_minute, std::move(clock)) {
+  server_.set_payload_max_length(kMaxBodyBytes);
+  server_.set_read_timeout(10, 0);
+  server_.set_write_timeout(10, 0);
+  server_.set_keep_alive_max_count(100);
+
+  server_.set_pre_routing_handler([this](const httplib::Request& req, httplib::Response& res) {
+    t_started = std::chrono::steady_clock::now();
+    const auto incoming = req.get_header_value("X-Request-Id");
+    res.set_header("X-Request-Id", is_safe_request_id(incoming) ? incoming : new_request_id());
+    for (const auto& [k, v] : security_headers(config_.environment)) res.set_header(k, v);
+
+    const auto origin = req.has_header("Origin")
+                            ? std::optional<std::string>(req.get_header_value("Origin"))
+                            : std::nullopt;
+
+    if (req.method == "OPTIONS") {
+      const auto allowed =
+          origin ? cors_.preflight(*origin, req.get_header_value("Access-Control-Request-Method"),
+                                   req.get_header_value("Access-Control-Request-Headers"))
+                 : std::nullopt;
+      if (!allowed) {
+        res.set_header("Vary", "Origin");
+        send_error(res, 403, "cors_refused", "This origin, method or header is not allowed.");
+        return httplib::Server::HandlerResponse::Handled;
+      }
+      for (const auto& [k, v] : *allowed) res.set_header(k, v);
+      res.status = 204;
+      return httplib::Server::HandlerResponse::Handled;
+    }
+    for (const auto& [k, v] : cors_.response_headers(origin)) res.set_header(k, v);
+
+    if (!is_probe(req.path)) {
+      const auto key = client_address(req.remote_addr, req.get_header_value("X-Forwarded-For"),
+                                      config_.trusted_proxy_hops);
+      const auto d = limiter_.check(key);
+      if (!d.allowed) {
+        res.set_header("Retry-After", std::to_string(d.retry_after_s));
+        send_error(res, 429, "rate_limited", "Too many requests. Try again shortly.");
+        return httplib::Server::HandlerResponse::Handled;
+      }
+    }
+    return httplib::Server::HandlerResponse::Unhandled;
+  });
+
+  // Fills in a JSON body for errors raised by the server itself (no route,
+  // body too large, and so on). Handlers' own errors already have one.
+  server_.set_error_handler([](const httplib::Request&, httplib::Response& res) {
+    if (!res.body.empty()) return;
+    switch (res.status) {
+      case 404:
+        send_error(res, 404, "not_found", "No such endpoint.");
+        break;
+      case 413:
+        send_error(res, 413, "payload_too_large", "The request body is too large.");
+        break;
+      case 400:
+        send_error(res, 400, "bad_request", "The request could not be read.");
+        break;
+      default:
+        send_error(res, res.status, "error", "The request failed.");
+    }
+  });
+
+  server_.set_exception_handler(
+      [](const httplib::Request& req, httplib::Response& res, std::exception_ptr ep) {
+        std::string kind = "exception";
+        try {
+          if (ep) std::rethrow_exception(ep);
+        } catch (const StoreUnavailable&) {
+          send_error(res, 503, "database_unavailable",
+                     "The database is unavailable. Try again shortly.");
+          log::warn("database unavailable", {{"request_id", request_id(res)}, {"path", req.path}});
+          return;
+        } catch (const QueryError& e) {
+          // The server's message may quote data; only the SQLSTATE is logged.
+          kind = "sqlstate " + e.sqlstate;
+        } catch (const std::exception& e) {
+          kind = e.what();
+        } catch (...) {
+        }
+        log::error("unhandled error", {{"request_id", request_id(res)}, {"path", req.path},
+                                       {"kind", kind}});
+        send_error(res, 500, "internal_error", "Something went wrong on the server.");
+      });
+
+  server_.set_logger([](const httplib::Request& req, const httplib::Response& res) {
+    const auto ms =
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t_started)
+            .count();
+    // No addresses, query strings, headers or bodies: they can identify
+    // people or carry tokens.
+    log::info("request", {{"request_id", request_id(res)},
+                          {"method", req.method},
+                          {"path", req.path},
+                          {"status", res.status},
+                          {"duration_ms", static_cast<long long>(ms + 0.5)}});
+  });
+
+  routes();
+}
+
+void App::routes() {
+  server_.Get("/v1/health", [](const httplib::Request&, httplib::Response& res) {
+    send(res, 200, {{"status", "ok"}, {"version", RAKIA_API_VERSION}});
+  });
+
+  server_.Get("/v1/ready", [this](const httplib::Request&, httplib::Response& res) {
+    int version = 0;
+    try {
+      version = store_.schema_version();
+    } catch (const StoreUnavailable&) {
+      send_error(res, 503, "database_unavailable", "The database is unavailable.");
+      return;
+    } catch (const QueryError& e) {
+      // Most likely the schema is missing (migrations not applied).
+      log::warn("readiness query failed", {{"sqlstate", e.sqlstate}});
+      send_error(res, 503, "schema_unavailable",
+                 "The database schema is missing or not readable by the API role.");
+      return;
+    }
+    if (version != kExpectedSchemaVersion) {
+      send_error(res, 503, "schema_mismatch",
+                 "The database is at schema version " + std::to_string(version) +
+                     "; this build of the API needs version " +
+                     std::to_string(kExpectedSchemaVersion) + ".");
+      return;
+    }
+    send(res, 200, {{"status", "ready"}, {"schema_version", version}});
+  });
+
+  server_.Get("/v1/metric-definitions", [this](const httplib::Request&, httplib::Response& res) {
+    json items = json::array();
+    for (const auto& m : store_.metric_definitions()) {
+      items.push_back({{"code", m.code},
+                       {"name", m.name},
+                       {"unit", m.unit},
+                       {"ucum", m.ucum},
+                       {"plausible_min", m.plausible_min},
+                       {"plausible_max", m.plausible_max}});
+    }
+    send(res, 200, {{"metric_definitions", items}});
+  });
+}
+
+}  // namespace rakia

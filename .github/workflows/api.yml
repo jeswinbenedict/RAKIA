@@ -1,0 +1,134 @@
+name: API
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+jobs:
+  build-test:
+    name: api ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc
+            os: ubuntu-latest
+            cc: g++
+            cmake_args: -DCMAKE_BUILD_TYPE=Release
+          - name: clang-asan-ubsan
+            os: ubuntu-latest
+            cc: clang++
+            cmake_args: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DRAKIA_SANITIZE=ON
+          - name: msvc
+            os: windows-latest
+            cmake_args: -A x64
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: libpq (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        env:
+          CXX: ${{ matrix.cc }}
+        run: cmake -S . -B build ${{ matrix.cmake_args }}
+      - name: Configure (Windows, preinstalled PostgreSQL client)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: cmake -S . -B build ${{ matrix.cmake_args }} "-DPostgreSQL_ROOT=$env:PGROOT"
+      - name: Build (warnings are errors)
+        run: cmake --build build --config Release --parallel
+      - name: Unit and HTTP tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  spec:
+    name: api OpenAPI lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Lint docs/api/openapi.yaml
+        run: npx --yes @redocly/cli@2.65.0 lint --config docs/api/redocly.yaml docs/api/openapi.yaml
+
+  integration:
+    name: api integration (PostgreSQL 18)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: libpq
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev
+      - name: Build
+        working-directory: server
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+      - name: Disposable PostgreSQL 18 with a password generated for this run
+        run: |
+          pw=$(openssl rand -hex 24)
+          echo "::add-mask::$pw"
+          echo "PGPASSWORD=$pw" >> "$GITHUB_ENV"
+          docker run -d --name pg -p 127.0.0.1:5432:5432 \
+            -e POSTGRES_PASSWORD="$pw" \
+            -e POSTGRES_INITDB_ARGS=--auth=scram-sha-256 \
+            -e POSTGRES_HOST_AUTH_METHOD=scram-sha-256 \
+            postgres:18
+          for _ in $(seq 60); do
+            pg_isready -h localhost -p 5432 && break
+            sleep 1
+          done
+      - name: Roles, database, .env and migrations
+        run: |
+          sh db/bootstrap/bootstrap-local.sh
+          cd db
+          dart pub get
+          dart run bin/migrate.dart up
+      - name: PostgreSQL integration tests (as rakia_api)
+        working-directory: server
+        env:
+          RAKIA_API_PG_TESTS: '1'
+          RAKIA_ENV_FILE: ${{ github.workspace }}/.env
+        run: ./build/test_pg
+      - name: The binary serves, reports ready and stops cleanly on SIGTERM
+        # Run from the repository root: the binary reads ./.env there.
+        env:
+          RAKIA_API_PORT: '18080'
+        run: |
+          ./server/build/rakia-api 2> api.log &
+          pid=$!
+          for _ in $(seq 30); do
+            curl -sf http://127.0.0.1:18080/v1/health >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:18080/v1/ready | grep -q '"status":"ready"'
+          curl -sf http://127.0.0.1:18080/v1/metric-definitions | grep -q 'heart_rate.resting'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/v1/nope)" = 404
+          kill -TERM "$pid"
+          wait "$pid"
+          grep -q '"message":"stopped"' api.log
+          # The log never contains a password.
+          for key in RAKIA_DB_PASSWORD RAKIA_DB_MIGRATOR_PASSWORD; do
+            value=$(grep "^$key=" .env | cut -d= -f2)
+            if grep -qF "$value" api.log; then echo "$key appears in the log" >&2; exit 1; fi
+          done

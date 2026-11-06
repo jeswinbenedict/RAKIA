@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- C++ API skeleton (`server/`, `rakia-api` 0.1.0):
+  - Endpoints `GET /v1/health`, `GET /v1/ready` (database reachable and schema at the version this build expects) and `GET /v1/metric-definitions`, described in `docs/api/openapi.yaml`.
+  - Configuration from environment variables, validated at start-up: TLS to the database (`verify-full`) and public https CORS origins outside development; refuses to connect as the migrator or a superuser; secrets never logged.
+  - Security headers and `Cache-Control: no-store` on every response, exact-match CORS allow-list with preflight limits, per-address rate limiting with `Retry-After` (health probes exempt), request ids, JSON errors that never include database messages, JSON access logs without addresses or bodies, a 1 MiB body limit and a clean stop on SIGTERM.
+  - libpq connection pool as `rakia_api`: lazy connections that recover after an outage, bound parameters only, one transaction per request with the caller in `request.jwt.claims`, statement and idle-transaction timeouts.
+  - cpp-httplib 0.62.0 and nlohmann/json 3.12.0, fetched at configure time and checked against pinned SHA-256 hashes.
+  - 44 tests: configuration, CORS, rate limiting, HTTP behaviour over a real socket, and PostgreSQL integration; CI builds with GCC, Clang (ASan and UBSan) and MSVC, runs the binary end to end and lints the OpenAPI description.
+- Migration `0002_schema_version`: `rakia.schema_version()` lets the API check the schema without reading the migration history.
+
 - PostgreSQL schema, migrations and their tests (`db/`):
   - Migration `0001_core`: users, missions and membership with five roles, crew members, the app's five indicators, data sources, devices, app installations (`clients`), measurements, sync batches, alerts and their status history, an append-only audit log and Turnstile replay protection.
   - Integrity rules enforced by the database whoever writes: the simulation firewall in both directions, units that must match the indicator, finite values, crew members of the same mission, a continuous hash chain per client and mission, immutable measurements with corrections that supersede a record of the same series, deletion only of simulation data, alert status changed only through recorded events.

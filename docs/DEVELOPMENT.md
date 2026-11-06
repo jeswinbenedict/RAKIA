@@ -22,8 +22,8 @@
 ```text
 app/          Flutter application
 core/         librakia — C11 analytics core (core/dart: Dart bindings)
-server/       rakia-api — C++20 service (planned)
-db/           SQL migrations, RLS policies, tests (planned)
+server/       rakia-api — C++20 HTTP API
+db/           SQL migrations, migration runner, bootstrap scripts, tests
 tools/        simulator and developer scripts (planned)
 docs/         research, architecture, design, guides
 ```
@@ -86,6 +86,24 @@ sh tool/build_web_sqlite.sh    # from app/; output in app/web/sqlite3/ (git-igno
 
 It downloads `sqlite3.wasm` from the official release of the locked `sqlite3` package, checks the pinned SHA-256, and compiles `drift_worker.js` from `tool/web/drift_worker.dart`. Without these files the web app still runs, but says local storage is unavailable and keeps nothing after closing.
 
+### API (`server/`)
+
+C++20 with CMake 3.24+. cpp-httplib and nlohmann/json are fetched at configure time and checked against pinned SHA-256 hashes (`server/cmake/dependencies.cmake`); libpq comes from the PostgreSQL installation (`libpq-dev` on Debian and Ubuntu).
+
+```bash
+cmake -S server -B server/build -DCMAKE_BUILD_TYPE=Release   # Windows: add -DPostgreSQL_ROOT="C:/Program Files/PostgreSQL/18"
+cmake --build server/build --parallel
+ctest --test-dir server/build --output-on-failure
+```
+
+On Windows, configure from a Visual Studio developer shell (`vcvars64.bat`). In development the binary reads `./.env` from its working directory, and the process environment wins; with `RAKIA_ENV` set to `staging` or `production` it reads no file and takes every setting from the environment. Run it from the repository root after the bootstrap and migrations:
+
+```bash
+./server/build/rakia-api      # then: curl http://127.0.0.1:8080/v1/ready
+```
+
+`RAKIA_DB_USER` must be `rakia_api`; the API refuses the migrator and superusers. The PostgreSQL integration tests are read-only and run with `RAKIA_API_PG_TESTS=1` against a migrated database (`RAKIA_ENV_FILE` selects the settings). The endpoints are described in `docs/api/openapi.yaml`; lint it with `npx @redocly/cli@2.65.0 lint --config docs/api/redocly.yaml docs/api/openapi.yaml`.
+
 ### Database (`db/`)
 
 Migrations are numbered SQL files in `db/migrations/` (`NNNN_name.up.sql` and `NNNN_name.down.sql`), applied as `rakia_migrator` by a small Dart runner with the settings in `.env`. Run from `db/`:
@@ -131,7 +149,7 @@ Other components add their commands here as they land.
 |---|---|---|
 | Repository hygiene | runs in CI (`.github/workflows/repo-hygiene.yml`); locally: `npx markdownlint-cli2 "**/*.md"` | active |
 | C core | `ctest --test-dir build` (add `-DRAKIA_SANITIZE=ON` for sanitizers); `clang-tidy -p build core/src/*.c` | active |
-| API | integration tests against disposable Postgres | planned |
+| API | CI (`.github/workflows/api.yml`): GCC, Clang with ASan and UBSan, and MSVC builds with warnings as errors; unit tests (configuration, CORS, security headers, request ids, rate limiting, proxy addresses) and HTTP tests over a real socket (routes, readiness states, JSON errors without database messages, CORS preflight, 429 with `Retry-After`, body limit); integration against a disposable PostgreSQL 18 as `rakia_api` (schema version, reference data, transaction-local caller claims, bound parameters, rollback, SQLSTATEs, privileges, unreachable database); the binary end to end with a clean SIGTERM stop and no password in its log; OpenAPI lint | active |
 | Database bootstrap | CI (`.github/workflows/db.yml`): ShellCheck and PSScriptAnalyzer, then both scripts against a disposable PostgreSQL with a per-run password, checking privileges, refusal to overwrite `.env`, and password rotation | active |
 | Database | CI (`db schema` job): `dart format`, `dart analyze --fatal-infos`, migrations up, status and idempotency, then `dart test` (round trip, refusal of edited or unknown migrations, row-level security for every role, privileges of `rakia_api`, simulation firewall, units, hash-chain continuity, immutability, corrections, alert transitions, audit chain and tamper detection, Turnstile replay) | active |
 | Dart bindings | `dart test` (native), `dart test -p chrome` and `--compiler dart2wasm` (WebAssembly); both reproduce the C determinism digest | active |
