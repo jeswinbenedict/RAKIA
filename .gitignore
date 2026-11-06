@@ -67,3 +67,5 @@ desktop.ini
 
 # librakia WebAssembly module copied into the web app (built by core/dart/tool/build_wasm.sh)
 app/web/rakia/
+# SQLite WebAssembly and Drift worker for the web store (app/tool/fetch_web_sqlite.sh)
+app/web/sqlite3/

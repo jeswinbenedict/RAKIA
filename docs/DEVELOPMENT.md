@@ -1,6 +1,6 @@
 # Development Guide
 
-> Status: librakia, its Dart bindings and the Flutter app shell exist. The server and database are planned; sections marked **(planned)** are filled in as each component lands.
+> Status: librakia, its Dart bindings, the Flutter app with its mission dashboard, and the on-device store exist. The server and database are planned; sections marked **(planned)** are filled in as each component lands.
 
 ## Prerequisites
 
@@ -68,6 +68,25 @@ flutter test
 flutter build web --release
 ```
 
+The web build also needs the SQLite WebAssembly module and the database worker for the local store, prepared once (and again after updating `drift` or `sqlite3`):
+
+```bash
+sh tool/build_web_sqlite.sh    # from app/; output in app/web/sqlite3/ (git-ignored)
+```
+
+It downloads `sqlite3.wasm` from the official release of the locked `sqlite3` package, checks the pinned SHA-256, and compiles `drift_worker.js` from `tool/web/drift_worker.dart`. Without these files the web app still runs, but says local storage is unavailable and keeps nothing after closing.
+
+### Local store (`app/lib/storage/`)
+
+The schema, including the triggers that enforce immutability, the simulation firewall and hash-chain continuity, is plain SQL in `lib/storage/schema.drift`. After changing it:
+
+```bash
+dart run build_runner build --delete-conflicting-outputs     # regenerates database.g.dart
+dart run drift_dev schema dump lib/storage/database.dart drift_schemas/
+```
+
+Bump `RakiaDatabase.currentSchemaVersion`, add a migration step, and commit the regenerated code and the new schema export; CI fails if either is stale. Native databases live in the app's private support directory (`rakia.sqlite`), never in the documents folder.
+
 App icons for every platform are generated from one design: `python -I tool/generate_icons.py` (run from `app/`, needs Pillow). It redraws each existing icon file at its current size.
 
 The Mission overview offers a **simulation mission** when no real mission exists. It is deterministic, clearly labelled and opt-in; use it to explore and test the dashboard.
@@ -83,7 +102,7 @@ Other components add their commands here as they land.
 | API | integration tests against disposable Postgres | planned |
 | Database | migration + RLS tests | planned |
 | Dart bindings | `dart test` (native), `dart test -p chrome` and `--compiler dart2wasm` (WebAssembly); both reproduce the C determinism digest | active |
-| Flutter | `dart format --set-exit-if-changed lib test`, `flutter analyze`, `flutter test` (tokens, navigation, accessibility guidelines, 200% text scale, components, analytics core loading) | active |
+| Flutter | `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test` (tokens, navigation, accessibility guidelines, 200% text scale, components, analytics core loading, dashboard, local store rules and persistence) | active |
 
 ## Environments
 

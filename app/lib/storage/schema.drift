@@ -1,0 +1,117 @@
+-- RAKIA on-device store, schema version 1.
+--
+-- The rules that protect data integrity are enforced by SQLite itself, not
+-- only by Dart code, so no caller can bypass them:
+--   * measurements are immutable (corrections are new records that supersede
+--     an earlier one);
+--   * the simulation firewall: simulated records only in simulation missions,
+--     real or imported records only in real missions;
+--   * each mission's records form one continuous hash chain (client_seq
+--     1, 2, 3 ... with prev_hash equal to the previous record's hash);
+--   * only simulation data can be deleted.
+-- Record hashes are computed and verified by librakia (rakia_record_hash).
+
+CREATE TABLE settings (
+  "key" TEXT NOT NULL PRIMARY KEY,
+  value TEXT NOT NULL
+) STRICT;
+
+CREATE TABLE missions (
+  id TEXT NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
+  is_simulation INTEGER NOT NULL CHECK (is_simulation IN (0, 1)),
+  -- Generator seed; present exactly when the mission is a simulation.
+  simulation_seed INTEGER,
+  -- Current day of a simulation's clock; real missions derive it from time.
+  simulated_day INTEGER,
+  subject_id BLOB NOT NULL CHECK (length(subject_id) = 16),
+  subject_label TEXT NOT NULL,
+  -- 00:00 UTC on mission day 1, microseconds since the Unix epoch.
+  start_at_us INTEGER NOT NULL,
+  reference_days INTEGER NOT NULL CHECK (reference_days >= 0),
+  planned_days INTEGER NOT NULL CHECK (planned_days > 0),
+  created_at_us INTEGER NOT NULL,
+  CHECK ((is_simulation = 1) = (simulation_seed IS NOT NULL)),
+  CHECK (is_simulation = 1 OR simulated_day IS NULL)
+) STRICT;
+
+CREATE TABLE measurements (
+  id BLOB NOT NULL PRIMARY KEY CHECK (length(id) = 16),
+  mission_id TEXT NOT NULL REFERENCES missions (id) ON DELETE CASCADE,
+  subject_id BLOB NOT NULL CHECK (length(subject_id) = 16),
+  metric_code TEXT NOT NULL CHECK (length(metric_code) BETWEEN 1 AND 64),
+  value REAL NOT NULL,
+  unit TEXT NOT NULL CHECK (length(unit) BETWEEN 1 AND 32),
+  observed_at_us INTEGER NOT NULL,
+  -- rakia_method: 1 measured, 2 manual, 3 estimated, 4 derived.
+  method INTEGER NOT NULL CHECK (method BETWEEN 1 AND 4),
+  -- rakia_provenance: 1 real, 2 imported, 3 simulated.
+  provenance INTEGER NOT NULL CHECK (provenance BETWEEN 1 AND 3),
+  -- Bit 0: the device reported a sensor fault for this reading.
+  quality_flags INTEGER NOT NULL DEFAULT 0 CHECK (quality_flags >= 0),
+  supersedes_id BLOB REFERENCES measurements (id),
+  client_seq INTEGER NOT NULL CHECK (client_seq >= 1),
+  prev_hash BLOB NOT NULL CHECK (length(prev_hash) = 32),
+  hash BLOB NOT NULL CHECK (length(hash) = 32),
+  UNIQUE (mission_id, client_seq)
+) STRICT;
+
+CREATE INDEX measurements_by_metric
+  ON measurements (mission_id, metric_code, observed_at_us);
+
+CREATE TRIGGER measurements_immutable
+BEFORE UPDATE ON measurements
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: measurements are immutable');
+END;
+
+CREATE TRIGGER measurements_simulation_firewall
+BEFORE INSERT ON measurements
+WHEN (NEW.provenance = 3) <>
+     (SELECT is_simulation = 1 FROM missions WHERE id = NEW.mission_id)
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: simulation firewall');
+END;
+
+CREATE TRIGGER measurements_subject_matches_mission
+BEFORE INSERT ON measurements
+WHEN NEW.subject_id IS NOT
+     (SELECT subject_id FROM missions WHERE id = NEW.mission_id)
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: subject does not match the mission');
+END;
+
+CREATE TRIGGER measurements_chain_continuity
+BEFORE INSERT ON measurements
+WHEN NEW.client_seq <> COALESCE(
+       (SELECT MAX(client_seq) FROM measurements
+        WHERE mission_id = NEW.mission_id), 0) + 1
+  OR NEW.prev_hash IS NOT COALESCE(
+       (SELECT hash FROM measurements
+        WHERE mission_id = NEW.mission_id
+          AND client_seq = NEW.client_seq - 1),
+       zeroblob(32))
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: ledger chain is not continuous');
+END;
+
+CREATE TRIGGER measurements_delete_simulation_only
+BEFORE DELETE ON measurements
+WHEN (SELECT is_simulation FROM missions WHERE id = OLD.mission_id) = 0
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: only simulation data can be deleted');
+END;
+
+CREATE TRIGGER missions_identity_immutable
+BEFORE UPDATE OF id, is_simulation, simulation_seed, subject_id, start_at_us
+ON missions
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: a mission''s identity cannot change');
+END;
+
+CREATE TRIGGER missions_delete_simulation_only
+BEFORE DELETE ON missions
+WHEN OLD.is_simulation = 0
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: only simulation missions can be deleted');
+END;

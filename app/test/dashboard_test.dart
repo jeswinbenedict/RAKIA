@@ -11,7 +11,9 @@ import 'helpers.dart';
 
 Future<MissionController> _running(WidgetTester tester) async {
   final core = await tester.runAsync(loadRakiaCore);
-  return MissionController()..startSimulation(core!);
+  final mission = MissionController();
+  await mission.startSimulation(core!);
+  return mission;
 }
 
 void main() {
@@ -126,6 +128,8 @@ void main() {
     );
     expect(find.text('RAKIA simulator (on this device)'), findsOneWidget);
     expect(find.text('Provenance: simulated'), findsOneWidget);
+    // 525 mission and reference days, 16 of them without a recording.
+    expect(find.text('509 daily readings across 5 indicators'), findsOneWidget);
     expect(find.text('27 / 45'), findsOneWidget); // sleep, below the gate
     await tester.tap(find.byKey(const Key('end-simulation')));
     await tester.pumpAndSettle();

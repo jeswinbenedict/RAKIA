@@ -35,10 +35,19 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: dart format --output=none --set-exit-if-changed lib test tool
+      - name: Generated database code is up to date
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          git diff --exit-code -- lib
+      - name: Database schema export is up to date
+        run: |
+          dart run drift_dev schema dump lib/storage/database.dart drift_schemas/
+          git diff --exit-code -- drift_schemas
+          test -z "$(git status --porcelain -- drift_schemas)"
       - name: Static analysis
         run: flutter analyze
-      - name: Tests (tokens, navigation, accessibility, components)
+      - name: Tests (design system, navigation, accessibility, analytics, local store)
         run: flutter test
 
   bindings-native:
@@ -152,8 +161,14 @@ jobs:
           source "$EMSDK_DIR/emsdk_env.sh"
           sh tool/build_wasm.sh ../../app/web/rakia/rakia.wasm
       - run: flutter pub get
+      - if: matrix.target == 'web'
+        name: SQLite WebAssembly (pinned, checksum-verified) and the store worker
+        run: sh tool/build_web_sqlite.sh
       - name: Build
         run: ${{ matrix.command }}
       - if: matrix.target == 'web'
-        name: The web build ships the analytics core
-        run: test -s build/web/rakia/rakia.wasm
+        name: The web build ships the analytics core and the local store
+        run: |
+          test -s build/web/rakia/rakia.wasm
+          test -s build/web/sqlite3/sqlite3.wasm
+          test -s build/web/sqlite3/drift_worker.js

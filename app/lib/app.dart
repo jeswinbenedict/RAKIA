@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +8,7 @@ import 'core/analytics_core.dart';
 import 'design/theme.dart';
 import 'mission/mission_controller.dart';
 import 'navigation/router.dart';
+import 'storage/store_controller.dart';
 
 class RakiaApp extends StatefulWidget {
   const RakiaApp({
@@ -14,6 +17,7 @@ class RakiaApp extends StatefulWidget {
     this.settings,
     this.coreLoader,
     this.mission,
+    this.storeOpener,
   });
 
   final String initialLocation;
@@ -24,6 +28,10 @@ class RakiaApp extends StatefulWidget {
 
   /// Mission state; created by the app when not supplied (tests supply it).
   final MissionController? mission;
+
+  /// Opens the on-device store; defaults to the platform store (a SQLite file
+  /// natively, SQLite WebAssembly in a browser).
+  final LocalStoreOpener? storeOpener;
 
   @override
   State<RakiaApp> createState() => _RakiaAppState();
@@ -39,14 +47,47 @@ class _RakiaAppState extends State<RakiaApp> {
     loader: widget.coreLoader,
   )..load();
   late final MissionController _mission = widget.mission ?? MissionController();
+  late final StoreController _store = StoreController(
+    opener: widget.storeOpener,
+  )..open();
+  bool _settingsAttached = false;
+  bool _missionAttached = false;
   final ThemeData _dark = buildRakiaTheme(Brightness.dark);
   final ThemeData _light = buildRakiaTheme(Brightness.light);
 
   @override
+  void initState() {
+    super.initState();
+    _core.addListener(_attachStore);
+    _store.addListener(_attachStore);
+  }
+
+  /// Once both the store and the analytics core are ready, preferences and
+  /// the saved mission are restored from the store.
+  void _attachStore() {
+    final store = _store.store;
+    if (store == null) return;
+    // Preferences do not need the analytics core.
+    if (!_settingsAttached) {
+      _settingsAttached = true;
+      unawaited(_settings.attach(store));
+    }
+    if (!_missionAttached) {
+      if (_core.state case AnalyticsCoreReady(:final core)) {
+        _missionAttached = true;
+        unawaited(_mission.attach(store, core));
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    _core.removeListener(_attachStore);
+    _store.removeListener(_attachStore);
     _router.dispose();
     if (widget.settings == null) _settings.dispose();
     _core.dispose();
+    _store.dispose();
     if (widget.mission == null) _mission.dispose();
     super.dispose();
   }
@@ -55,20 +96,23 @@ class _RakiaAppState extends State<RakiaApp> {
   Widget build(BuildContext context) {
     return AnalyticsCoreScope(
       controller: _core,
-      child: MissionScope(
-        controller: _mission,
-        child: AppSettings(
-          controller: _settings,
-          child: ListenableBuilder(
-            listenable: _settings,
-            builder: (context, _) => MaterialApp.router(
-              title: 'RAKIA',
-              debugShowCheckedModeBanner: false,
-              theme: _light,
-              darkTheme: _dark,
-              themeMode: _settings.themeMode,
-              themeAnimationDuration: Duration.zero,
-              routerConfig: _router,
+      child: StoreScope(
+        controller: _store,
+        child: MissionScope(
+          controller: _mission,
+          child: AppSettings(
+            controller: _settings,
+            child: ListenableBuilder(
+              listenable: _settings,
+              builder: (context, _) => MaterialApp.router(
+                title: 'RAKIA',
+                debugShowCheckedModeBanner: false,
+                theme: _light,
+                darkTheme: _dark,
+                themeMode: _settings.themeMode,
+                themeAnimationDuration: Duration.zero,
+                routerConfig: _router,
+              ),
             ),
           ),
         ),

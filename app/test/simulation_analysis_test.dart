@@ -15,7 +15,9 @@ void main() {
 
   setUpAll(() async {
     core = await loadRakiaCore();
-    snapshot = (MissionController()..startSimulation(core)).snapshot!;
+    final mission = MissionController();
+    await mission.startSimulation(core);
+    snapshot = mission.snapshot!;
   });
 
   MetricInsight insight(String code) =>
@@ -127,10 +129,11 @@ void main() {
     expect(rhr.since, contains('day 28'));
   });
 
-  test('ending the simulation clears every simulated value', () {
-    final c = MissionController()..startSimulation(core);
+  test('ending the simulation clears every simulated value', () async {
+    final c = MissionController();
+    await c.startSimulation(core);
     expect(c.isActive, isTrue);
-    c.endSimulation();
+    await c.endSimulation();
     expect(c.isActive, isFalse);
     expect(c.snapshot, isNull);
   });
