@@ -75,6 +75,39 @@ void main() {
     expect(find.text('No active mission'), findsOneWidget);
   });
 
+  testWidgets('the storage card states how the data is protected at rest', (
+    tester,
+  ) async {
+    final file = File('${tmp.path}/encryption-label.sqlite');
+    await pumpRakia(
+      tester,
+      size: const Size(1440, 1000),
+      // The encrypted open itself is covered by store_encryption_test.dart;
+      // this checks what the user is told about it.
+      storeOpener: () async => LocalStore(
+        RakiaDatabase(NativeDatabase(file)),
+        kind: StorageKind.nativeFile,
+        encryption: const StoreEncryption.cipher('chacha20'),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('start-simulation')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Data management').first);
+    await tester.pumpAndSettle();
+    final storage = find.byKey(const Key('storage-card'));
+    expect(
+      find.descendant(of: storage, matching: find.text('ChaCha20-Poly1305')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: storage,
+        matching: find.textContaining('secure keystore'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('the theme choice is remembered', (tester) async {
     final opener = fileStore('theme');
     await pumpRakia(tester, location: '/about', storeOpener: opener);
@@ -111,6 +144,10 @@ void main() {
     );
     expect(
       find.descendant(of: storage, matching: find.textContaining('disk full')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: storage, matching: find.text('Not applicable')),
       findsOneWidget,
     );
   });

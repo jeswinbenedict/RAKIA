@@ -24,12 +24,12 @@
 - [x] `main` ruleset requires 19 checks (adds the 4 `app bindings *` jobs)
 - [x] Repository-wide emoji removal and CI guard: [jeswinbenedict/RAKIA#5](https://github.com/jeswinbenedict/RAKIA/pull/5), merged
 - [x] Phase 5: mission dashboard on the opt-in simulation mission, plus UI polish: [jeswinbenedict/RAKIA#6](https://github.com/jeswinbenedict/RAKIA/pull/6), merged
-- [ ] Phase 5/6: on-device store (SQLite via Drift, hash-chained ledger, persistence of the simulation and preferences): `feature/offline-store`, in review
+- [x] Phase 5/6: on-device store (SQLite via Drift, hash-chained ledger, persistence of the simulation and preferences): [jeswinbenedict/RAKIA#7](https://github.com/jeswinbenedict/RAKIA/pull/7), merged
+- [ ] Phase 5/6: encryption at rest for the native store: `feature/store-encryption`, in review
 
 ## Pending
 
-- [ ] Review and merge `feature/offline-store` (owner approval required)
-- [ ] `feature/store-encryption`: encryption at rest for the native store (must land before ingest stores real data)
+- [ ] Review and merge `feature/store-encryption` (owner approval required)
 - [ ] `feature/db-schema` (needs local PostgreSQL credentials in `.env`)
 - [ ] `feature/auth` (needs a Firebase project and Turnstile keys)
 - [ ] `feature/api-skeleton`, `feature/ingest`
@@ -76,7 +76,8 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 - Flutter app shell: tokens and light/dark themes from the reference palette; bundled Geist fonts; adaptive navigation (bottom bar + More / icon rail / labelled sidebar); routes for all 9 modules with factual empty states; About page with disclaimer, theme choice and licences; status chip, simulated-data badge and empty-state components.
 - librakia in the app: struct-free flat C ABI; Dart package `core/dart` with a native backend (build hook + `dart:ffi`) and a web backend (Emscripten WebAssembly + `dart:js_interop`); the app loads the core at startup and the About page reports the backend and a known-answer self-test.
 - Mission dashboard: opt-in, deterministic simulation mission with known ground truth; Mission overview, Action center with six-part explainable alerts, detailed Cardiovascular / Sleep / Physical modules with baseline-band charts, and Data management with provenance and quality. Every status and number comes from librakia. Real data appears only after ingest and is never mixed with simulated data.
-- On-device store (in review): SQLite through Drift on every platform (private app directory natively; OPFS or IndexedDB in a browser). SQLite triggers enforce immutable measurements, the simulation firewall, subject consistency, a continuous per-mission hash chain and simulation-only deletion; librakia re-verifies the chain on every load. The simulation mission and the theme choice survive restarts; without storage the app runs in memory and says why. Not yet encrypted at rest.
+- On-device store: SQLite through Drift on every platform (private app directory natively; OPFS or IndexedDB in a browser). SQLite triggers enforce immutable measurements, the simulation firewall, subject consistency, a continuous per-mission hash chain and simulation-only deletion; librakia re-verifies the chain on every load. The simulation mission and the theme choice survive restarts; without storage the app runs in memory and says why.
+- Encryption at rest (in review): native database files are encrypted with ChaCha20-Poly1305 (SQLite3 Multiple Ciphers) and a 256-bit key from the system keystore; existing databases are encrypted in place; a missing or wrong key never destroys data. Browser storage is not encrypted, and the app says so.
 
 ## Testing results
 
@@ -107,11 +108,13 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 | PR #5 and PR #6 CI | all checks passed; merged; `main` CI green after both merges |
 | offline store: `flutter test` (local) | 205/205 passed (29 new: schema rules, exact round trip, reopen, newer-schema refusal, tamper and deletion detection, restart and theme persistence, unavailable-storage fallback, 200% text layout) |
 | offline store: web release in headless Chrome | stored 509 records in IndexedDB, chain verified; mission restored after a full browser restart |
+| PR #7 CI | all 20 checks passed; merged; `main` CI green |
+| store encryption: `flutter test` (local, real SQLite3 Multiple Ciphers) | 216/216 passed (11 new) |
 
 ## Open pull requests
 
-- `feature/offline-store`: on-device store (see GitHub)
+- `feature/store-encryption`: encryption at rest for the native store (see GitHub)
 
 ## Next actions
 
-After the store merges: `feature/store-encryption` needs no external input; `feature/db-schema` and `feature/auth` wait for credentials and keys.
+After encryption merges: `feature/db-schema` and `feature/auth` wait for credentials and keys; until then, work that needs no external input continues on the app.
