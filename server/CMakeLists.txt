@@ -77,6 +77,11 @@ if(RAKIA_API_BUILD_TESTS)
     add_executable(${t} tests/${t}.cpp)
     target_link_libraries(${t} PRIVATE rakia_api_core)
     rakia_api_harden(${t})
+    if(NOT MSVC)
+      # Tests read httplib::Result through operator->, which GCC cannot
+      # prove non-null at -O2; production code keeps the warning.
+      target_compile_options(${t} PRIVATE -Wno-null-dereference)
+    endif()
     add_test(NAME ${t} COMMAND ${t})
   endforeach()
   if(WIN32)

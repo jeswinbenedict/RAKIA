@@ -29,8 +29,8 @@ class StoreUnavailable : public std::runtime_error {
 /// kept for logs only and never sent to clients.
 class QueryError : public std::runtime_error {
  public:
-  QueryError(std::string sqlstate, const std::string& message)
-      : std::runtime_error(message), sqlstate(std::move(sqlstate)) {}
+  QueryError(std::string state, const std::string& message)
+      : std::runtime_error(message), sqlstate(std::move(state)) {}
   std::string sqlstate;
 };
 
