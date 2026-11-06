@@ -30,8 +30,18 @@ docs/         research, architecture, design, guides
 
 ## Local configuration
 
-1. Copy `.env.example` to `.env` and fill in values locally. `.env` is git-ignored.
-2. Local PostgreSQL: create a `rakia` database and the `rakia_migrator` / `rakia_api` roles **(planned: script in `db/`)**.
+1. Local PostgreSQL (18): run the bootstrap script from the repository root. It asks for your PostgreSQL superuser password at a hidden prompt, generates random passwords for `rakia_migrator` and `rakia_api`, creates both roles and the `rakia` database and schema, signs in as each role to check its privileges, and writes `.env` readable only by you. It never prints a password and never overwrites an existing `.env`.
+
+   ```bash
+   powershell -ExecutionPolicy Bypass -File db\bootstrap\bootstrap-local.ps1   # Windows
+   ```
+
+   ```bash
+   sh db/bootstrap/bootstrap-local.sh                                         # Linux, macOS
+   ```
+
+   Options: `-SuperUser`, `-DbHost`, `-Port`, `-Psql` (PowerShell) or `--superuser`, `--host`, `--port` (shell). To get new passwords, move `.env` away and run it again; the old passwords stop working.
+2. Other values in `.env` (Firebase, Turnstile, Supabase) are filled in by hand when those services are set up. `.env` is git-ignored; never commit it or paste its values anywhere.
 
 ## Building and running
 
@@ -102,6 +112,7 @@ Other components add their commands here as they land.
 | Repository hygiene | runs in CI (`.github/workflows/repo-hygiene.yml`); locally: `npx markdownlint-cli2 "**/*.md"` | active |
 | C core | `ctest --test-dir build` (add `-DRAKIA_SANITIZE=ON` for sanitizers); `clang-tidy -p build core/src/*.c` | active |
 | API | integration tests against disposable Postgres | planned |
+| Database bootstrap | CI (`.github/workflows/db.yml`): ShellCheck and PSScriptAnalyzer, then both scripts against a disposable PostgreSQL with a per-run password, checking privileges, refusal to overwrite `.env`, and password rotation | active |
 | Database | migration + RLS tests | planned |
 | Dart bindings | `dart test` (native), `dart test -p chrome` and `--compiler dart2wasm` (WebAssembly); both reproduce the C determinism digest | active |
 | Flutter | `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test` (tokens, navigation, accessibility guidelines, 200% text scale, components, analytics core loading, dashboard, local store rules and persistence) | active |
