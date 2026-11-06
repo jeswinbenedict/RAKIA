@@ -52,7 +52,7 @@ if (-not $Psql -or -not (Test-Path -LiteralPath $Psql)) {
   throw 'psql was not found. Add PostgreSQL''s bin directory to PATH or pass -Psql <path to psql.exe>.'
 }
 
-function New-Password {
+function Get-RandomSecret {
   # 32 characters from [A-Za-z0-9] (about 190 bits), by rejection sampling
   # so every character is equally likely.
   $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -72,67 +72,77 @@ function New-Password {
   }
 }
 
-function Invoke-Psql {
+function ConvertTo-Credential {
   param(
     [Parameter(Mandatory)][string]$User,
-    [Parameter(Mandatory)][string]$Password,
+    [Parameter(Mandatory)][string]$Secret
+  )
+  $secure = New-Object System.Security.SecureString
+  foreach ($c in $Secret.ToCharArray()) { $secure.AppendChar($c) }
+  $secure.MakeReadOnly()
+  return New-Object System.Management.Automation.PSCredential($User, $secure)
+}
+
+function Invoke-Psql {
+  param(
+    [Parameter(Mandatory)][System.Management.Automation.PSCredential]$Credential,
     [Parameter(Mandatory)][string]$Database,
     [string]$File,
     [string]$Stdin
   )
+  $user = $Credential.UserName
   $psqlArgs = @('-X', '-q', '-v', 'ON_ERROR_STOP=1', '-h', $DbHost, '-p', "$Port",
-    '-U', $User, '-d', $Database, '-w')
+    '-U', $user, '-d', $Database, '-w')
   if ($File) { $psqlArgs += @('-t', '-A', '-f', $File) }
   # The password reaches psql through its environment only, for this call.
-  $env:PGPASSWORD = $Password
+  $env:PGPASSWORD = $Credential.GetNetworkCredential().Password
   try {
     if ($Stdin) {
       $out = $Stdin | & $Psql @psqlArgs
     } else {
       $out = & $Psql @psqlArgs
     }
-    if ($LASTEXITCODE -ne 0) { throw "psql failed as $User (exit $LASTEXITCODE)." }
+    if ($LASTEXITCODE -ne 0) { throw "psql failed as $user (exit $LASTEXITCODE)." }
     return $out
   } finally {
     Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
   }
 }
 
-$superPassword = $env:PGPASSWORD
-if (-not $superPassword) {
-  $secure = Read-Host -AsSecureString "Password for PostgreSQL superuser '$SuperUser' on ${DbHost}:$Port"
-  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-  try {
-    $superPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
-  } finally {
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
-  }
+if ($env:PGPASSWORD) {
+  $super = ConvertTo-Credential -User $SuperUser -Secret $env:PGPASSWORD
+} else {
+  $prompt = "Password for PostgreSQL superuser '$SuperUser' on ${DbHost}:$Port"
+  $super = New-Object System.Management.Automation.PSCredential(
+    $SuperUser, (Read-Host -AsSecureString $prompt))
 }
 
-$migratorPassword = New-Password
-$apiPassword = New-Password
+$migratorSecret = Get-RandomSecret
+$apiSecret = Get-RandomSecret
 $OutputEncoding = New-Object System.Text.UTF8Encoding($false)
 
 $bootstrap = (Join-Path $PSScriptRoot 'bootstrap.sql') -replace '\\', '/'
 $verify = Join-Path $PSScriptRoot 'verify.sql'
 
 Write-Host "Creating roles and database on ${DbHost}:$Port ..."
-$script = "\set migrator_password '$migratorPassword'`n\set api_password '$apiPassword'`n\i '$bootstrap'`n"
-Invoke-Psql -User $SuperUser -Password $superPassword -Database postgres -Stdin $script | Out-Null
-$superPassword = $null
+$script = "\set migrator_password '$migratorSecret'`n\set api_password '$apiSecret'`n\i '$bootstrap'`n"
+Invoke-Psql -Credential $super -Database postgres -Stdin $script | Out-Null
+$super = $null
 
 Write-Host 'Checking both roles ...'
-Invoke-Psql -User rakia_migrator -Password $migratorPassword -Database rakia -File $verify | Write-Host
-Invoke-Psql -User rakia_api -Password $apiPassword -Database rakia -File $verify | Write-Host
+Invoke-Psql -Credential (ConvertTo-Credential -User rakia_migrator -Secret $migratorSecret) `
+  -Database rakia -File $verify | Write-Host
+Invoke-Psql -Credential (ConvertTo-Credential -User rakia_api -Secret $apiSecret) `
+  -Database rakia -File $verify | Write-Host
 
 $values = @{
   'RAKIA_DB_HOST'              = $DbHost
   'RAKIA_DB_PORT'              = "$Port"
   'RAKIA_DB_NAME'              = 'rakia'
   'RAKIA_DB_USER'              = 'rakia_api'
-  'RAKIA_DB_PASSWORD'          = $apiPassword
+  'RAKIA_DB_PASSWORD'          = $apiSecret
   'RAKIA_DB_MIGRATOR_USER'     = 'rakia_migrator'
-  'RAKIA_DB_MIGRATOR_PASSWORD' = $migratorPassword
+  'RAKIA_DB_MIGRATOR_PASSWORD' = $migratorSecret
 }
 $lines = foreach ($line in Get-Content -LiteralPath $example -Encoding UTF8) {
   if ($line -match '^([A-Z0-9_]+)=' -and $values.ContainsKey($Matches[1])) {
@@ -151,7 +161,7 @@ if ($LASTEXITCODE -ne 0) {
   throw "Could not restrict access to $EnvFile; nothing was written."
 }
 [System.IO.File]::WriteAllText($EnvFile, (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
-$migratorPassword = $null
-$apiPassword = $null
+$migratorSecret = $null
+$apiSecret = $null
 
 Write-Host "Wrote $EnvFile (readable only by $me). Passwords were not displayed."
