@@ -40,7 +40,7 @@ All four images independently converge on the same four-colour system. Values we
 | `border.control` | `#7A7192` | ref 4 `#554A69` lightened | Input/control outlines (WCAG 1.4.11): 3.7–4.4:1 on every dark surface. The earlier candidate `#6E6585` passed on `surface2` only (3.4:1) with no margin. |
 | `text.primary` | `#F5F3FA` | ref 3 `#FEFFFC` tinted | 18.3:1 on canvas |
 | `text.secondary` | `#A69FB8` | ref 1 `#ADA4BF` | 7.3:1 on surface2 |
-| `brand.violet` | `#7D39EB` | ref 2 | Brand fills, selected nav, chart series 1. **Not for text on dark** (3.5:1); white on violet = 5.7:1 ✅ |
+| `brand.violet` | `#7D39EB` | ref 2 | Brand fills, selected nav, chart series 1. **Not for text on dark** (3.5:1); white on violet = 5.7:1 (passes) |
 | `brand.violetSoft` | `#B79CFF` | ref 4 `#B997D8`/`#DAB0FD` | Violet *text*/icons on dark (8.1:1) |
 | `accent.lime` | `#C6FF33` | ref 2 | Primary CTA fill (text on it `#08060E`, 17:1), focus ring, nominal |
 | `accent.limeDeep` | `#D0FF00` | ref 3 | Pressed state |

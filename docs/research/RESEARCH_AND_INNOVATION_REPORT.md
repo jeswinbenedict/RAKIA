@@ -56,7 +56,7 @@ Research gaps still open (to close in Phase 6 before any number reaches the UI):
 
 ### 3.1 GitHub (searched 2026-11-06, `gh search repos`, 11 queries)
 
-The landscape is **crowded with 2026 Space Apps entries for this exact challenge**, almost all 0–4★ and weeks old:
+The landscape is **crowded with 2026 Space Apps entries for this exact challenge**, almost all 0–4 stars and weeks old:
 
 | Project | What it does | Gap |
 |---|---|---|
@@ -101,13 +101,13 @@ Plus a hard **simulation firewall**: simulated data may exist only inside missio
 
 | Capability | Feasible now | Notes |
 |---|---|---|
-| Cardio (HR, RHR, HRV, SpO₂, BP when supplied), sleep, activity, environment, radiation dose ingest | ✅ | Via simulator, CSV/JSON import, Open mHealth/FHIR mapping. Real astronaut data is not publicly available at this granularity; public datasets (NASA OSDR, analog studies) will be evaluated per licence. |
-| Personal baselines, robust z, EWMA/CUSUM onset, Theil–Sen trend, multivariate robust distance with per-feature contribution | ✅ | Implemented in C, unit-tested with synthetic ground truth. **Experimental, not clinically validated.** |
-| Offline-first app + delay-tolerant sync | ✅ | Local SQLite (Drift) + ledger sync protocol. |
-| Bone / immune / SANS | ⚠️ context only | Imported clinical/lab records + mission-duration context; never inferred from wearables. |
-| 72-h health "prediction" | ❌ not proposed | No validated data to support it; would be misleading. |
-| LLM medical assistant | ❌ not proposed for v1 | Hallucination risk in a health context; may be revisited as a retrieval-only explainer over verified evidence. |
-| iOS build | ⚠️ | No macOS here; build verified in GitHub Actions macOS runner (unsigned). |
+| Cardio (HR, RHR, HRV, SpO₂, BP when supplied), sleep, activity, environment, radiation dose ingest | Yes | Via simulator, CSV/JSON import, Open mHealth/FHIR mapping. Real astronaut data is not publicly available at this granularity; public datasets (NASA OSDR, analog studies) will be evaluated per licence. |
+| Personal baselines, robust z, EWMA/CUSUM onset, Theil–Sen trend, multivariate robust distance with per-feature contribution | Yes | Implemented in C, unit-tested with synthetic ground truth. **Experimental, not clinically validated.** |
+| Offline-first app + delay-tolerant sync | Yes | Local SQLite (Drift) + ledger sync protocol. |
+| Bone / immune / SANS | Context only | Imported clinical/lab records + mission-duration context; never inferred from wearables. |
+| 72-h health "prediction" | Not proposed | No validated data to support it; would be misleading. |
+| LLM medical assistant | Not proposed for v1 | Hallucination risk in a health context; may be revisited as a retrieval-only explainer over verified evidence. |
+| iOS build | Partly | No macOS here; build verified in GitHub Actions macOS runner (unsigned). |
 
 ## 6. Measurable project objectives
 
