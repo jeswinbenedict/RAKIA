@@ -13,6 +13,10 @@ RAKIA is research software. These limitations are deliberate, documented, and sh
 
 ## Technical
 
+- **The API has no authenticated endpoints yet.** The skeleton serves health, readiness and reference data. Firebase ID-token verification, Turnstile checks, sync and ingest come next; the database layer already runs each request as the verified caller, ready for them.
+- **Rate limits are per API instance.** Each instance keeps its own in-memory counters, so N instances allow up to N times the configured rate. Cloud Run's own limits and Cloudflare in front of the web app add coarser protection. A shared limiter is needed only if abuse appears.
+- **The API does not terminate TLS itself.** It is meant to run behind a TLS-terminating front end (Cloud Run, or a local reverse proxy); it sends HSTS outside development and requires TLS (`verify-full`) to the database.
+
 - **The server database checks the hash chain's links, not the hashes.** PostgreSQL enforces that each client's records continue the sequence and that every `prev_hash` equals the previous record's `hash`. Recomputing each record's SHA-256 from its fields is the API's job (with librakia, as on the device), which is not built yet.
 - **Only part of the database design exists yet.** Migration `0001_core` holds identities, missions and membership, measurements, alerts, sync batches, the audit log and Turnstile replay protection. Mission phases, context events, self-assessments and consent, baselines, habitat and radiation records, evidence references and de-identified research views arrive with the features that use them.
 

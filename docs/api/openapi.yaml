@@ -1,0 +1,136 @@
+openapi: 3.1.0
+info:
+  title: RAKIA API
+  version: 0.1.0
+  summary: Offline-first astronaut health monitoring. Research software, not a medical device.
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+  description: |
+    The endpoints implemented so far. Authenticated endpoints (sign-in with
+    Firebase ID tokens, sync, ingest) are added by later releases; this file
+    is updated with each.
+
+    Every response carries `X-Request-Id` (a caller may supply one of 8 to
+    64 characters of `[A-Za-z0-9-]`), security headers, and
+    `Cache-Control: no-store`. Requests from origins on the configured
+    allow-list receive CORS headers. Errors use the `Error` schema. Requests
+    other than the health and readiness probes are rate-limited per client
+    address.
+security:
+  - firebase: []
+servers:
+  - url: http://127.0.0.1:8080
+    description: Local development
+paths:
+  /v1/health:
+    get:
+      summary: Liveness
+      description: The process is up. Does not touch the database.
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Alive.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, version]
+                properties:
+                  status: {const: ok}
+                  version: {type: string, examples: ['0.1.0']}
+  /v1/ready:
+    get:
+      summary: Readiness
+      description: |
+        The database is reachable as the API role and its schema is the
+        version this build expects.
+      operationId: getReady
+      security: []
+      responses:
+        '200':
+          description: Ready to serve.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, schema_version]
+                properties:
+                  status: {const: ready}
+                  schema_version: {type: integer, examples: [2]}
+        '503':
+          description: |
+            Not ready: `database_unavailable`, `schema_unavailable` (not
+            migrated) or `schema_mismatch`.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+  /v1/metric-definitions:
+    get:
+      summary: Indicators RAKIA understands
+      description: Reference data; contains no personal or health data.
+      operationId: listMetricDefinitions
+      security: []
+      responses:
+        '200':
+          description: All indicators, ordered by code.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [metric_definitions]
+                properties:
+                  metric_definitions:
+                    type: array
+                    items: {$ref: '#/components/schemas/MetricDefinition'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503':
+          description: The database is unavailable.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+components:
+  securitySchemes:
+    firebase:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        A Firebase ID token, verified by the API against Google's public
+        keys. Used by the authenticated endpoints added in later releases;
+        the endpoints in this release are public (`security: []`).
+  schemas:
+    MetricDefinition:
+      type: object
+      required: [code, name, unit, ucum, plausible_min, plausible_max]
+      properties:
+        code: {type: string, examples: [heart_rate.resting]}
+        name: {type: string, examples: [Resting heart rate]}
+        unit: {type: string, description: Unit as recorded and displayed, examples: [bpm]}
+        ucum: {type: string, description: UCUM code of the unit, examples: [/min]}
+        plausible_min: {type: number}
+        plausible_max: {type: number}
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code:
+              type: string
+              examples: [not_found, rate_limited, database_unavailable, internal_error]
+            message: {type: string}
+            request_id: {type: string}
+  responses:
+    RateLimited:
+      description: Too many requests from this client address.
+      headers:
+        Retry-After:
+          description: Seconds until a request will be accepted.
+          schema: {type: integer}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}

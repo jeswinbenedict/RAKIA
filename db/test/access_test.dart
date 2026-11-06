@@ -343,6 +343,11 @@ void main() {
       );
     });
 
+    test('learns the schema version, and only that', () async {
+      final r = await api.execute('SELECT rakia.schema_version()');
+      expect(r.single.single, migrations.length);
+    });
+
     test('cannot read or change the migration history', () async {
       await expectLater(
         api.execute('SELECT * FROM rakia.schema_migrations'),
