@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- On-device store (`app/lib/storage`), the offline-first foundation:
+  - SQLite through Drift on every platform: a file in the app's private support directory on Android, iOS, Windows, macOS and Linux; SQLite WebAssembly on OPFS or IndexedDB in a browser.
+  - Schema version 1 in plain SQL (`schema.drift`), with integrity rules enforced by SQLite triggers: immutable measurements, the simulation firewall (simulated records only in simulation missions and vice versa), subject consistency, a continuous hash chain per mission, and deletion allowed only for simulation data.
+  - Each record is hashed with librakia (`rakia_flat_record_hash`) and linked to the previous one; the chain is re-verified on every load, and a failure is shown on the Data management page.
+  - The simulation mission is saved, analysed as read back, restored after a restart and deleted when ended. The theme choice is remembered.
+  - If storage cannot be opened, the app keeps working in memory and says so, with the reason.
+  - Web assets: `tool/build_web_sqlite.sh` downloads `sqlite3.wasm` from the locked package release (SHA-256 pinned) and compiles the database worker from source.
+  - 29 new tests: every schema rule, an exact round trip of the simulation, reopening a database file, refusal of a newer schema, tamper and deletion detection, restart and theme persistence in the app, the unavailable-storage fallback, and layout at 200% text.
+  - CI checks that generated database code and the schema export are up to date, and that the web build ships the store.
+- Data management shows where the mission is kept, how many records are stored, whether the hash chain verified, and that encryption at rest is not enabled yet. The reading count now excludes days without a recording (509, not 525).
 - Mission dashboard on a clearly labelled, opt-in simulation mission (`app/lib/simulation`, `app/lib/analytics`, `app/lib/mission`):
   - Deterministic scenario with known ground truth: a step change in resting heart rate, a gradual HRV decline, stable SpO2 and exercise, and a sleep-sensor outage.
   - Every status, baseline, onset, trend and quality figure computed by librakia (quality gate, robust baseline, assessment, Theil-Sen trend).

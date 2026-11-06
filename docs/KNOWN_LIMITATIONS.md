@@ -13,10 +13,12 @@ RAKIA is research software. These limitations are deliberate, documented, and sh
 
 ## Technical
 
-- **Simulation state is not persisted.** Starting the simulation mission is per session; it ends when the app restarts. Persistence arrives with the local store.
+- **The local store is not encrypted at rest yet.** The on-device SQLite database relies on the operating system's app sandbox (and, in a browser, the origin's storage) for protection. Today it holds only the simulation mission and preferences. Encryption at rest (SQLCipher-compatible SQLite on native targets, with the key in the platform keystore) must land before data ingestion stores any real measurement. The Data management page states this.
+- **Browser storage depends on the browser.** The web store uses SQLite WebAssembly on the Origin Private File System where available, otherwise IndexedDB. If neither is available (some private-browsing modes), RAKIA keeps data in memory only and says so. Browser storage can be cleared by the user or evicted by the browser, and cannot be strongly encrypted at rest.
+- **One hash chain per mission on the device.** Each mission's measurements form their own chain, so deleting a simulation mission never breaks the chain of a real one. The sync protocol (planned) will key server-side uniqueness on client, mission and sequence number.
+- **Simulated readings are dated relative to the day the simulation starts**, so the latest simulated mission day is today. The values themselves are deterministic for a given seed; timestamps and record identifiers are not.
 - **iOS** builds are verified only in CI on macOS runners (unsigned); the primary development machine is Windows.
-- **Dart bindings:** `rakia_chain_verify` and `rakia_record_encode` are not exposed to Dart yet. Ledger timestamps and sequence numbers passed from Dart must lie within ±(2^53 − 1) to stay exact on the web.
+- **Dart bindings:** `rakia_chain_verify` and `rakia_record_encode` are not exposed to Dart yet; the app verifies a stored chain by recomputing each record hash with `rakia_flat_record_hash` and checking the links. Ledger timestamps and sequence numbers passed from Dart must lie within ±(2^53 − 1) to stay exact on the web.
 - **Web analytics core:** the web build depends on a WebAssembly module that must be compiled with Emscripten. If the module is missing or fails to load, the app says so on the About page and runs no analytics.
-- **Web storage** cannot be strongly encrypted at rest in the browser. Native targets use encrypted SQLite.
 - **Local PostgreSQL is not Supabase.** Supabase-specific services (PostgREST, Realtime, Storage) are not available in local development unless the optional Docker-based Supabase stack is running.
 - **Phone OTP on web** requires Firebase's reCAPTCHA verifier in addition to Cloudflare Turnstile.

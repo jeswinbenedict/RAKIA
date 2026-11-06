@@ -1,6 +1,6 @@
 # RAKIA — Project Status
 
-**Current phase:** Phase 5, core implementation. `librakia`, the app shell and the librakia bindings are merged; `feature/dashboard` is in review.
+**Current phase:** Phase 5, core implementation. `librakia`, the app shell, the librakia bindings and the mission dashboard are merged; `feature/offline-store` is in review.
 **Last updated:** 2026-11-06
 
 ## Completed
@@ -22,12 +22,14 @@
 - [x] `main` ruleset requires 15 checks (adds `app analyze and test` and the 4 `app build *` jobs)
 - [x] Phase 5/6: librakia in the app via `dart:ffi` and WebAssembly: [jeswinbenedict/RAKIA#4](https://github.com/jeswinbenedict/RAKIA/pull/4), merged
 - [x] `main` ruleset requires 19 checks (adds the 4 `app bindings *` jobs)
-- [ ] Repository-wide emoji removal and CI guard: [jeswinbenedict/RAKIA#5](https://github.com/jeswinbenedict/RAKIA/pull/5), in review
-- [ ] Phase 5: mission dashboard on the opt-in simulation mission, plus UI polish (`feature/dashboard`, in review)
+- [x] Repository-wide emoji removal and CI guard: [jeswinbenedict/RAKIA#5](https://github.com/jeswinbenedict/RAKIA/pull/5), merged
+- [x] Phase 5: mission dashboard on the opt-in simulation mission, plus UI polish: [jeswinbenedict/RAKIA#6](https://github.com/jeswinbenedict/RAKIA/pull/6), merged
+- [ ] Phase 5/6: on-device store (SQLite via Drift, hash-chained ledger, persistence of the simulation and preferences): `feature/offline-store`, in review
 
 ## Pending
 
-- [ ] Review and merge PR #5 and `feature/dashboard` (owner approval required)
+- [ ] Review and merge `feature/offline-store` (owner approval required)
+- [ ] `feature/store-encryption`: encryption at rest for the native store (must land before ingest stores real data)
 - [ ] `feature/db-schema` (needs local PostgreSQL credentials in `.env`)
 - [ ] `feature/auth` (needs a Firebase project and Turnstile keys)
 - [ ] `feature/api-skeleton`, `feature/ingest`
@@ -73,7 +75,8 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 - `librakia` 0.1.0 (experimental, not clinically validated): data-quality gate, robust personal baselines, CUSUM sustained-change detection with onset estimate, Theil–Sen/Mann–Kendall trend, Mahalanobis distance with per-feature contributions, SHA-256 hash-chained ledger, and quality-gated assessment levels. Details: `docs/algorithms/LIBRAKIA.md`.
 - Flutter app shell: tokens and light/dark themes from the reference palette; bundled Geist fonts; adaptive navigation (bottom bar + More / icon rail / labelled sidebar); routes for all 9 modules with factual empty states; About page with disclaimer, theme choice and licences; status chip, simulated-data badge and empty-state components.
 - librakia in the app: struct-free flat C ABI; Dart package `core/dart` with a native backend (build hook + `dart:ffi`) and a web backend (Emscripten WebAssembly + `dart:js_interop`); the app loads the core at startup and the About page reports the backend and a known-answer self-test.
-- Mission dashboard (in review): opt-in, deterministic simulation mission with known ground truth; Mission overview, Action center with six-part explainable alerts, detailed Cardiovascular / Sleep / Physical modules with baseline-band charts, and Data management with provenance and quality. Every status and number comes from librakia. Real data appears only after ingest and is never mixed with simulated data.
+- Mission dashboard: opt-in, deterministic simulation mission with known ground truth; Mission overview, Action center with six-part explainable alerts, detailed Cardiovascular / Sleep / Physical modules with baseline-band charts, and Data management with provenance and quality. Every status and number comes from librakia. Real data appears only after ingest and is never mixed with simulated data.
+- On-device store (in review): SQLite through Drift on every platform (private app directory natively; OPFS or IndexedDB in a browser). SQLite triggers enforce immutable measurements, the simulation firewall, subject consistency, a continuous per-mission hash chain and simulation-only deletion; librakia re-verifies the chain on every load. The simulation mission and the theme choice survive restarts; without storage the app runs in memory and says why. Not yet encrypted at rest.
 
 ## Testing results
 
@@ -101,12 +104,14 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 | dashboard: `flutter test` (local) | 176/176 passed (29 new: determinism, outcomes vs ground truth, layout at 4 viewports, a11y guidelines in both themes, 200% text) |
 | dashboard: simulated outcomes (librakia) | resting HR: Act, onset day 28 = injected day; sleep: data quality (27/45 usable); HRV: within baseline with significant declining trend (p = 1.4e-4); SpO2, exercise: within baseline |
 | dashboard: visual review (web release, headless Chrome) | 1440 and 1280 px desktop in dark and light, 390 px phone |
+| PR #5 and PR #6 CI | all checks passed; merged; `main` CI green after both merges |
+| offline store: `flutter test` (local) | 205/205 passed (29 new: schema rules, exact round trip, reopen, newer-schema refusal, tamper and deletion detection, restart and theme persistence, unavailable-storage fallback, 200% text layout) |
+| offline store: web release in headless Chrome | stored 509 records in IndexedDB, chain verified; mission restored after a full browser restart |
 
 ## Open pull requests
 
-- [jeswinbenedict/RAKIA#5](https://github.com/jeswinbenedict/RAKIA/pull/5): remove emoji and guard against them (CI green)
-- `feature/dashboard`: mission dashboard and UI polish (see GitHub)
+- `feature/offline-store`: on-device store (see GitHub)
 
 ## Next actions
 
-After the dashboard merges: `feature/db-schema` and `feature/auth` once credentials and keys are provided; without them, `feature/offline-store` (local persistence) needs no external input.
+After the store merges: `feature/store-encryption` needs no external input; `feature/db-schema` and `feature/auth` wait for credentials and keys.

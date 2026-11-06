@@ -55,7 +55,7 @@ class SimulationBanner extends StatelessWidget {
                 Expanded(child: message),
                 const SizedBox(width: RakiaSpacing.md),
                 TextButton(
-                  onPressed: controller.endSimulation,
+                  onPressed: controller.busy ? null : controller.endSimulation,
                   child: Text(compact ? 'End' : 'End simulation'),
                 ),
               ],
