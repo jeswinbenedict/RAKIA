@@ -4,7 +4,7 @@ Portable C11 analytics core for RAKIA. It covers data-quality gating, personal b
 
 > Experimental research software. Not clinically validated. Not a medical device.
 
-Algorithms, assumptions and validation results: [docs/algorithms/LIBRAKIA.md](../docs/algorithms/LIBRAKIA.md). Public API: [include/rakia/rakia.h](include/rakia/rakia.h).
+Algorithms, assumptions and validation results: [docs/algorithms/LIBRAKIA.md](../docs/algorithms/LIBRAKIA.md). Public API: [include/rakia/rakia.h](include/rakia/rakia.h). Struct-free API for foreign-function callers: [include/rakia/rakia_flat.h](include/rakia/rakia_flat.h). Dart bindings (native and WebAssembly): [dart/](dart/README.md).
 
 ## Build and test
 

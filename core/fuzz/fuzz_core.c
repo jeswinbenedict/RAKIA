@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "rakia/rakia.h"
+#include "rakia/rakia_flat.h"
 
 #define MAX_N 256
 
@@ -87,5 +88,23 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     uint8_t h[RAKIA_HASH_SIZE];
     (void)rakia_record_hash(&rec, h);
     (void)rakia_sha256(data, size, h);
+
+    /* Flat ABI: arbitrary doubles as packed configs and baselines, which
+     * exercises the count conversion (NaN, negative, fractional, huge). */
+    if (n >= RAKIA_FLAT_AC_LEN + RAKIA_FLAT_B_LEN) {
+        double fb[RAKIA_FLAT_B_LEN];
+        double fa[RAKIA_FLAT_A_LEN];
+        double fs[RAKIA_FLAT_QS_LEN];
+        double fz = 0.0;
+        (void)rakia_flat_baseline_compute(x, NULL, n, x, scratch, fb);
+        (void)rakia_flat_robust_z(x[0], x + RAKIA_FLAT_AC_LEN, &fz);
+        (void)rakia_flat_assess(x, NULL, n, x + RAKIA_FLAT_AC_LEN, x, zbuf, fa);
+        (void)rakia_flat_quality_assess(x, NULL, n, x[0], x[1], x[2], q, flags, fs);
+        (void)rakia_flat_cusum(x, n, x[0], x[1], fa);
+    }
+    const int64_t ints[RAKIA_FLAT_R_LEN] = {n > 0 ? (int64_t)size : 0,
+                                            size > 2 ? (int64_t)data[2] - 1 : 1};
+    (void)rakia_flat_record_hash(h, h, code, rec.value, unit, ints, rec.method, rec.provenance,
+                                 h, h);
     return 0;
 }

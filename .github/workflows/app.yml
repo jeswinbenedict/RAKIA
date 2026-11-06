@@ -14,6 +14,9 @@ concurrency:
 
 env:
   FLUTTER_VERSION: "3.47.7"
+  # Emscripten for the librakia WebAssembly module (core/dart/tool/build_wasm.sh).
+  EMSDK_COMMIT: d7b4130688bfa348392b921ab04015aa15c4f154
+  EMSCRIPTEN_VERSION: "6.0.13"
 
 defaults:
   run:
@@ -37,6 +40,69 @@ jobs:
         run: flutter analyze
       - name: Tests (tokens, navigation, accessibility, components)
         run: flutter test
+
+  bindings-native:
+    name: app bindings ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: core/dart
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: dart pub get
+      - name: Formatting
+        run: dart format --output=none --set-exit-if-changed lib test hook
+      - name: Static analysis
+        run: dart analyze --fatal-infos
+      - name: Tests (librakia via dart:ffi, built by the build hook)
+        run: dart test
+
+  bindings-web:
+    name: app bindings web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core/dart
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install Emscripten
+        working-directory: ${{ runner.temp }}
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          git checkout "$EMSDK_COMMIT"
+          ./emsdk install "$EMSCRIPTEN_VERSION"
+          ./emsdk activate "$EMSCRIPTEN_VERSION"
+          echo "EMSDK_DIR=$PWD" >> "$GITHUB_ENV"
+      - name: Build librakia WebAssembly (warnings are errors)
+        run: |
+          source "$EMSDK_DIR/emsdk_env.sh"
+          sh tool/build_wasm.sh
+          node tool/check_wasm.mjs build/wasm/rakia.wasm
+      - run: dart pub get
+      - name: Tests in Chrome, compiled to JavaScript
+        run: dart test -p chrome
+      - name: Tests in Chrome, compiled to WebAssembly
+        run: dart test -p chrome --compiler dart2wasm
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rakia-wasm
+          path: core/dart/build/wasm/rakia.wasm
+          if-no-files-found: error
 
   build:
     name: app build ${{ matrix.target }}
@@ -69,6 +135,25 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - if: matrix.target == 'web'
+        name: Install Emscripten
+        working-directory: ${{ runner.temp }}
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          git checkout "$EMSDK_COMMIT"
+          ./emsdk install "$EMSCRIPTEN_VERSION"
+          ./emsdk activate "$EMSCRIPTEN_VERSION"
+          echo "EMSDK_DIR=$PWD" >> "$GITHUB_ENV"
+      - if: matrix.target == 'web'
+        name: Build librakia WebAssembly into the web app
+        working-directory: core/dart
+        run: |
+          source "$EMSDK_DIR/emsdk_env.sh"
+          sh tool/build_wasm.sh ../../app/web/rakia/rakia.wasm
       - run: flutter pub get
       - name: Build
         run: ${{ matrix.command }}
+      - if: matrix.target == 'web'
+        name: The web build ships the analytics core
+        run: test -s build/web/rakia/rakia.wasm

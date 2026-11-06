@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
   go_router: ^18.1.3
+  rakia_core:
+    path: ../core/dart
 
 dev_dependencies:
   flutter_lints: ^6.0.0

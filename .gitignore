@@ -64,3 +64,6 @@ desktop.ini
 
 # --- Claude / agents local state ---
 .claude/settings.local.json
+
+# librakia WebAssembly module copied into the web app (built by core/dart/tool/build_wasm.sh)
+app/web/rakia/

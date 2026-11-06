@@ -1,6 +1,6 @@
 # RAKIA — Project Status
 
-**Current phase:** Phase 5, core implementation. `librakia` is merged; `feature/app-shell` is in review.
+**Current phase:** Phase 5, core implementation. `librakia` and the app shell are merged; `feature/ffi-wasm` (librakia in the app) is in review.
 **Last updated:** 2026-11-06
 
 ## Completed
@@ -18,15 +18,16 @@
 - [x] `main` ruleset requires the `Secret scan` and `Markdown and YAML lint` checks
 - [x] Phase 5: `librakia` 0.1.0 C analytics core with tests, sanitizers, fuzzing and CodeQL: [jeswinbenedict/RAKIA#2](https://github.com/jeswinbenedict/RAKIA/pull/2), merged
 - [x] `main` ruleset requires all 10 checks (repo hygiene, 7 core jobs, CodeQL c-cpp)
-- [x] Phase 5: Flutter app shell (design system, adaptive navigation, module routes, accessibility tests) (`feature/app-shell`, in review)
+- [x] Phase 5: Flutter app shell (design system, adaptive navigation, module routes, accessibility tests): [jeswinbenedict/RAKIA#3](https://github.com/jeswinbenedict/RAKIA/pull/3), merged
+- [x] `main` ruleset requires 15 checks (adds `app analyze and test` and the 4 `app build *` jobs)
+- [ ] Phase 5/6: librakia in the app via `dart:ffi` and WebAssembly (`feature/ffi-wasm`, in review)
 
 ## Pending
 
-- [ ] Review and merge `feature/app-shell` (owner approval required)
-- [ ] After it merges, add the `app *` checks to the required checks
+- [ ] Review and merge `feature/ffi-wasm` (owner approval required); then add the `app bindings *` checks to the required checks
 - [ ] `feature/db-schema` (needs local PostgreSQL credentials in `.env`)
 - [ ] `feature/auth` (needs a Firebase project and Turnstile keys)
-- [ ] `feature/api-skeleton`, `feature/ingest`, `feature/ffi-wasm` (librakia in the app), `feature/dashboard`
+- [ ] `feature/api-skeleton`, `feature/ingest`, `feature/dashboard`
 
 ## Environment
 
@@ -39,6 +40,7 @@
 | MSVC 14.44 (VS Build Tools 2022) + bundled CMake, clang-tidy | ✅ (not on PATH; will use a Developer shell or CMake presets) |
 | PostgreSQL 18.6 | ✅ service running; libpq headers present |
 | Docker 29.7 | ⚠️ installed, daemon not running |
+| Emscripten 6.0.13 (emsdk) | ✅ installed in `C:\Users\jeswi\tools\emsdk` (outside the repo and OneDrive); same version pinned in CI |
 | Supabase CLI 2.114, Firebase CLI 15.8, Node 25, Python 3.11 | ✅ |
 | Perplexity | ⚠️ connected tool is dashboard-import only, with no search API |
 
@@ -66,7 +68,8 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 ## Implemented features
 
 - `librakia` 0.1.0 (experimental, not clinically validated): data-quality gate, robust personal baselines, CUSUM sustained-change detection with onset estimate, Theil–Sen/Mann–Kendall trend, Mahalanobis distance with per-feature contributions, SHA-256 hash-chained ledger, and quality-gated assessment levels. Details: `docs/algorithms/LIBRAKIA.md`.
-- Flutter app shell (in review): tokens and light/dark themes from the reference palette; bundled Geist fonts; adaptive navigation (bottom bar + More / icon rail / labelled sidebar); routes for all 9 modules with factual empty states; About page with disclaimer, theme choice and licences; status chip, simulated-data badge and empty-state components. No health data is displayed yet.
+- Flutter app shell: tokens and light/dark themes from the reference palette; bundled Geist fonts; adaptive navigation (bottom bar + More / icon rail / labelled sidebar); routes for all 9 modules with factual empty states; About page with disclaimer, theme choice and licences; status chip, simulated-data badge and empty-state components. No health data is displayed yet.
+- librakia in the app (in review): struct-free flat C ABI; Dart package `core/dart` with a native backend (build hook + `dart:ffi`) and a web backend (Emscripten WebAssembly + `dart:js_interop`); the app loads the core at startup and the About page reports the backend and a known-answer self-test.
 
 ## Testing results
 
@@ -83,11 +86,19 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 | app: `flutter test` | 143/143 passed (contrast of every token pair in both themes, navigation per breakpoint, Android/iOS tap-target, labelled-target and text-contrast guidelines at 4 viewports × 2 themes × 3 pages, 200 % text scale, components) |
 | app: `flutter build web --release`, `flutter build apk --debug` (local) | built |
 | app: Windows and iOS builds | CI only (local Windows SDK lacks the debug CRT; iOS needs macOS) |
+| librakia flat ABI: `test_flat` (MSVC `/W4 /WX`, local) | passed; all 9 C suites pass |
+| librakia: all C sources, tests and fuzz harness with strict Clang warnings (Emscripten clang, local) | 0 warnings |
+| rakia_core: `dart test` (native via build hook, MSVC, local) | 14/14 passed, including the C determinism digest |
+| rakia_core: `dart test -p chrome` (WebAssembly, dart2js and dart2wasm, local) | 14/14 passed in each, same digest |
+| librakia WebAssembly module (`check_wasm.mjs`, local) | 24,615 bytes; only import is the memory-growth notification; known answers OK |
+| app: `flutter test` with the native core (local) | 147/147 passed |
+| app: `flutter build apk --debug` (local) | built; `librakia.so` for arm64-v8a, armeabi-v7a, x86_64 |
+| app: `flutter build web --release` served locally | About page shows librakia 0.1.0 running as WebAssembly, self-test passed |
 
 ## Open pull requests
 
-- `feature/app-shell`: Flutter app shell (see GitHub)
+- `feature/ffi-wasm`: librakia in the app via `dart:ffi` and WebAssembly (see GitHub)
 
 ## Next actions
 
-After `feature/app-shell` merges: `feature/ffi-wasm` (librakia in the app, no external input needed), or `feature/db-schema` / `feature/auth` once credentials and keys are provided.
+After `feature/ffi-wasm` merges: `feature/dashboard` (first module views on real librakia output, no external input needed), or `feature/db-schema` / `feature/auth` once credentials and keys are provided.

@@ -12,6 +12,8 @@ RAKIA is research software. These limitations are deliberate, documented, and sh
 ## Technical
 
 - **iOS** builds are verified only in CI on macOS runners (unsigned); the primary development machine is Windows.
+- **Dart bindings:** `rakia_chain_verify` and `rakia_record_encode` are not exposed to Dart yet. Ledger timestamps and sequence numbers passed from Dart must lie within ±(2^53 − 1) to stay exact on the web.
+- **Web analytics core:** the web build depends on a WebAssembly module that must be compiled with Emscripten. If the module is missing or fails to load, the app says so on the About page and runs no analytics.
 - **Web storage** cannot be strongly encrypted at rest in the browser. Native targets use encrypted SQLite.
 - **Local PostgreSQL is not Supabase.** Supabase-specific services (PostgREST, Realtime, Storage) are not available in local development unless the optional Docker-based Supabase stack is running.
 - **Phone OTP on web** requires Firebase's reCAPTCHA verifier in addition to Cloudflare Turnstile.

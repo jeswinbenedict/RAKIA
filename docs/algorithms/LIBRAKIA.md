@@ -110,5 +110,17 @@ The hash chain is **tamper-evident, not tamper-proof.** It detects edits to stor
 | `test_ledger` | NIST vectors, golden chain, tamper/gap/genesis detection, encoding validation |
 | `test_assess` | Every level and reason, including a reverted shift and the quality gate |
 | `test_validation` | Synthetic scenarios and the cross-platform determinism digest |
+| `test_flat` | The flat ABI gives bit-identical results to the struct API and rejects counts that are not exact integers |
 
 CI also runs AddressSanitizer (MSVC), ASan + UBSan (Clang), clang-tidy, a 60-second libFuzzer run, and CodeQL.
+
+## 12. Flat ABI and language bindings — `rakia_flat.h`
+
+The structs in `rakia.h` contain `size_t` and pointer fields, so their layout differs between 64-bit targets, 32-bit Android (`armeabi-v7a`) and wasm32. `rakia_flat.h` adds struct-free wrappers for foreign-function callers: configurations and results are packed into `double` arrays with documented indices, and counts travel as doubles (exact up to 2^53). A count that is negative, fractional or non-finite returns `RAKIA_E_RANGE` or `RAKIA_E_NONFINITE` instead of being truncated. The wrappers only convert arguments, so they inherit the validation, determinism and no-allocation rules above. `RAKIA_FLAT_ABI_VERSION` is checked by the bindings at load time.
+
+The Dart package [`core/dart`](../../core/dart/README.md) (`rakia_core`) uses this ABI:
+
+- **Native.** A Dart build hook compiles librakia for Android, iOS, macOS, Linux and Windows, and the package calls it through `dart:ffi`.
+- **Web.** Emscripten compiles librakia to a standalone WebAssembly module, which the package calls through `dart:js_interop`.
+
+Both builds use the same floating-point flags as CMake. The Dart test suite ports `test_validation` and must reproduce the same determinism digest on the Dart VM and in Chrome. That shows the app gets bit-identical results from the same data on native and web builds.

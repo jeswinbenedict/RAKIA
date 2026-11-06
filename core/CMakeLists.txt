@@ -43,6 +43,7 @@ add_library(rakia
   src/assess.c
   src/baseline.c
   src/cusum.c
+  src/flat.c
   src/ledger.c
   src/multivariate.c
   src/quality.c
@@ -73,7 +74,7 @@ if(RAKIA_BUILD_TESTS)
   enable_testing()
   set(RAKIA_TESTS
     test_stats test_quality_baseline test_cusum test_trend test_multivariate
-    test_ledger test_assess test_validation)
+    test_ledger test_assess test_validation test_flat)
   foreach(t IN LISTS RAKIA_TESTS)
     add_executable(${t} tests/${t}.c)
     target_link_libraries(${t} PRIVATE rakia)

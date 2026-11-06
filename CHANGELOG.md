@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- librakia in the app (`core/dart`, package `rakia_core`):
+  - Struct-free flat ABI (`rakia_flat.h`, `src/flat.c`) so one marshalling layout serves 64-bit, 32-bit Android and wasm32 callers; new C test suite `test_flat` and fuzzing of the flat entry points.
+  - Native backend: a Dart build hook compiles librakia for Android, iOS, macOS, Linux and Windows with the same floating-point flags as CMake; called through `dart:ffi`.
+  - Web backend: librakia compiled to a standalone WebAssembly module with Emscripten (`tool/build_wasm.sh`, verified by `tool/check_wasm.mjs`); called through `dart:js_interop` under dart2js and dart2wasm.
+  - The Dart tests reproduce the C suite's cross-platform determinism digest on native and in Chrome.
+  - The app loads the core at startup, and the About page shows which backend is running and the result of a known-answer self-test, or the real error if it cannot load.
+  - CI: binding tests on Linux, Windows and macOS, browser tests under dart2js and dart2wasm, and the web build now ships the module.
 - Flutter app shell (`app/`):
   - Design tokens and light ("Ground") and dark ("Mission") themes from the reference palette; bundled Geist and Geist Mono fonts (OFL).
   - Adaptive navigation: bottom bar plus "More" sheet on phones, icon rail on tablets, labelled sidebar on laptops and desktops.
