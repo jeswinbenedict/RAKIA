@@ -2,14 +2,14 @@
 
 | Phase | Goal | Status |
 |---|---|---|
-| 1 | Research and innovation report | ✅ drafted |
-| 2 | Design system and UI/UX specification | ✅ drafted |
-| 3 | Architecture and database design | ✅ drafted |
-| 4 | Repository foundation, governance, CI | 🔄 in progress |
-| 5 | Core: database schema, `librakia`, API skeleton, app shell, authentication, ingest, dashboard | ⏳ |
-| 6 | Intelligence: baselines, anomaly and onset detection, explainable alerts, offline sync, monitoring modules | ⏳ |
-| 7 | Hardening: security review, accessibility audit, responsive and sync tests | ⏳ |
-| 8 | Deployment, documentation and hackathon demonstration | ⏳ |
+| 1 | Research and innovation report | Approved |
+| 2 | Design system and UI/UX specification | Approved |
+| 3 | Architecture and database design | Approved |
+| 4 | Repository foundation, governance, CI | Done |
+| 5 | Core: database schema, `librakia`, API skeleton, app shell, authentication, ingest, dashboard | In progress: `librakia`, app shell and bindings merged |
+| 6 | Intelligence: baselines, anomaly and onset detection, explainable alerts, offline sync, monitoring modules | Planned |
+| 7 | Hardening: security review, accessibility audit, responsive and sync tests | Planned |
+| 8 | Deployment, documentation and hackathon demonstration | Planned |
 
 ## Beyond the hackathon
 
