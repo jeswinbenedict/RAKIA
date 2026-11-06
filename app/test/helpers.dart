@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rakia/app.dart';
 import 'package:rakia/app_settings.dart';
+import 'package:rakia/mission/mission_controller.dart';
 
 /// Representative viewport per window class (logical pixels).
 const Map<String, Size> kViewports = {
@@ -18,6 +19,7 @@ Future<void> pumpRakia(
   ThemeMode themeMode = ThemeMode.dark,
   double textScale = 1.0,
   String location = '/mission',
+  MissionController? mission,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -28,6 +30,7 @@ Future<void> pumpRakia(
     RakiaApp(
       initialLocation: location,
       settings: AppSettingsController(themeMode),
+      mission: mission,
     ),
   );
   await tester.pumpAndSettle();

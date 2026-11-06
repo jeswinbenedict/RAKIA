@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Mission dashboard on a clearly labelled, opt-in simulation mission (`app/lib/simulation`, `app/lib/analytics`, `app/lib/mission`):
+  - Deterministic scenario with known ground truth: a step change in resting heart rate, a gradual HRV decline, stable SpO2 and exercise, and a sleep-sensor outage.
+  - Every status, baseline, onset, trend and quality figure computed by librakia (quality gate, robust baseline, assessment, Theil-Sen trend).
+  - Mission overview: mission context, status counts, what needs attention, indicator cards with sparklines.
+  - Action center: explainable alerts in six parts (what changed, by how much, since when, from which readings, why it matters, what to check next).
+  - Cardiovascular, Sleep and Physical modules: baseline-band charts with onset markers, statistics, trend and the simulation ground truth.
+  - Data management: provenance and per-indicator quality against the 70% gate.
+  - Persistent simulation banner, hatched and watermarked charts, and an explicit "End simulation".
+- UI polish: shared `SurfaceCard`, responsive card headers, brand mark in the navigation, RAKIA app icons for every platform (`app/tool/generate_icons.py`), branded web loading screen without a white flash, manifest and platform display names set to "RAKIA".
+- 29 new tests: simulation determinism, analysis outcomes against ground truth, alert ranking, explanations, page content, layout containment at every viewport, accessibility guidelines in both themes and at 200% text.
+
 - librakia in the app (`core/dart`, package `rakia_core`):
   - Struct-free flat ABI (`rakia_flat.h`, `src/flat.c`) so one marshalling layout serves 64-bit, 32-bit Android and wasm32 callers; new C test suite `test_flat` and fuzzing of the flat entry points.
   - Native backend: a Dart build hook compiles librakia for Android, iOS, macOS, Linux and Windows with the same floating-point flags as CMake; called through `dart:ffi`.

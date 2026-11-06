@@ -68,6 +68,10 @@ flutter test
 flutter build web --release
 ```
 
+App icons for every platform are generated from one design: `python -I tool/generate_icons.py` (run from `app/`, needs Pillow). It redraws each existing icon file at its current size.
+
+The Mission overview offers a **simulation mission** when no real mission exists. It is deterministic, clearly labelled and opt-in; use it to explore and test the dashboard.
+
 Other components add their commands here as they land.
 
 ## Testing

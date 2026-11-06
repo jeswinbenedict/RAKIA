@@ -3,7 +3,11 @@ import 'package:go_router/go_router.dart';
 
 import '../components/empty_state.dart';
 import '../features/about_page.dart';
+import '../features/actions_page.dart';
+import '../features/data_page.dart';
+import '../features/mission_page.dart';
 import '../features/module_page.dart';
+import '../features/monitoring_page.dart';
 import '../features/page_frame.dart';
 import 'adaptive_shell.dart';
 import 'modules.dart';
@@ -19,10 +23,8 @@ GoRouter buildRouter({String initialLocation = '/mission'}) => GoRouter(
         for (final m in kModules)
           GoRoute(
             path: m.path,
-            pageBuilder: (context, state) => NoTransitionPage(
-              key: state.pageKey,
-              child: ModulePage(module: m),
-            ),
+            pageBuilder: (context, state) =>
+                NoTransitionPage(key: state.pageKey, child: pageFor(m)),
           ),
         GoRoute(
           path: kAboutPath,
@@ -50,3 +52,13 @@ GoRouter buildRouter({String initialLocation = '/mission'}) => GoRouter(
     ),
   ),
 );
+
+/// The page for a module. Modules without a dedicated view yet show their
+/// factual empty state.
+Widget pageFor(ModuleSpec m) => switch (m.id) {
+  'mission' => MissionPage(module: m),
+  'actions' => ActionsPage(module: m),
+  'data' => DataPage(module: m),
+  _ when m.group == ModuleGroup.monitoring => MonitoringPage(module: m),
+  _ => ModulePage(module: m),
+};

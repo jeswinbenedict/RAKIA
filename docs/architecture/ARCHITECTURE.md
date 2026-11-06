@@ -32,7 +32,7 @@
 | `server/rakia-api` | **C++20** (Drogon, MIT) | REST API, auth, RBAC, ingest/sync, query, SSE, analytics jobs | Performance and the challenge's C/C++ requirement where it fits; RAII for resource safety. |
 | `app/` | **Dart/Flutter** | All UI, offline store, sync agent | Required stack; one codebase for 6 targets. |
 | `db/migrations` | SQL | Versioned schema, RLS, audit triggers | Plain SQL, tool-agnostic (applied by a small migration runner + compatible with `supabase db push`). |
-| `tools/simulator` | C++ (CLI) | Generates labelled SIMULATED scenarios with known ground truth (step, drift, artefact, missing data) | Same engine for validation tests. |
+| `tools/simulator` | C++ (CLI) | Generates labelled SIMULATED scenarios with known ground truth (step, drift, artefact, missing data) | Same engine for validation tests. **Status:** the in-app simulation mission (`app/lib/simulation`) implements the same scenario types in Dart today, with the same deterministic generator as the C test suite; the CLI is still planned for server-side seeding. |
 
 **Not forced into C/C++:** UI, auth UX, and the web host stay in their natural stacks.
 

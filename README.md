@@ -13,9 +13,17 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 
 🚧 **Phase 5 (core implementation).** The `librakia` analytics core is merged; the Flutter app shell is in review. No health data is displayed yet. Live progress is in [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
-| Phone | Tablet | Desktop |
-|---|---|---|
-| ![Mission overview on a 390 px phone](docs/screenshots/app-shell-phone-390.png) | ![Sleep module on an 800 px tablet](docs/screenshots/app-shell-tablet-800.png) | ![Cardiovascular module on a 1600 px desktop](docs/screenshots/app-shell-desktop-1600.png) |
+The screenshots show the built-in **simulation mission**. Every value in it is simulated and labelled as such, and every status, baseline, onset and trend is computed by `librakia`.
+
+![Mission overview on a 1440 px desktop, simulation mission](docs/screenshots/dashboard-desktop-1440-mission.png)
+
+| Action center | Cardiovascular, light theme |
+|---|---|
+| ![Action center with explainable alerts](docs/screenshots/dashboard-desktop-1440-actions.png) | ![Cardiovascular module in the light theme](docs/screenshots/dashboard-light-1280-cardio.png) |
+
+| Phone: mission overview | Phone: cardiovascular |
+|---|---|
+| ![Mission overview on a 390 px phone](docs/screenshots/dashboard-phone-390-mission.png) | ![Cardiovascular module on a 390 px phone](docs/screenshots/dashboard-phone-390-cardio.png) |
 
 ## What makes RAKIA different
 

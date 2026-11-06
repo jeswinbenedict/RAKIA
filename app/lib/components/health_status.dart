@@ -143,10 +143,13 @@ class StatusChip extends StatelessWidget {
           children: [
             StatusGlyph(status: status),
             const SizedBox(width: RakiaSpacing.sm),
-            Text(
-              status.label,
-              style: Theme.of(context).textTheme.labelMedium
-                  ?.copyWith(color: color),
+            // Flexible so very large text sizes wrap instead of overflowing.
+            Flexible(
+              child: Text(
+                status.label,
+                style: Theme.of(context).textTheme.labelMedium
+                    ?.copyWith(color: color),
+              ),
             ),
           ],
         ),

@@ -1,46 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
+  <!-- Replaced by the value of `flutter build --base-href`. -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="RAKIA astronaut health intelligence">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RAKIA: open-source, offline-first, explainable astronaut health intelligence. Research software, not a medical device.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#08060E" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F4F2F8" media="(prefers-color-scheme: light)">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="rakia">
+  <meta name="apple-mobile-web-app-title" content="RAKIA">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>rakia</title>
+  <title>RAKIA</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Shown until Flutter renders its first frame, in the app's colours, so
+       the page never flashes white. Follows the system light/dark setting. */
+    :root { --canvas: #08060E; --text: #A69FB8; --track: #1F1A2B; --bar: #B79CFF; }
+    @media (prefers-color-scheme: light) {
+      :root { --canvas: #F4F2F8; --text: #6B6480; --track: #ECE9F2; --bar: #5B2BC4; }
+    }
+    html, body { margin: 0; height: 100%; background: var(--canvas); }
+    #splash {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px;
+      font: 600 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+      letter-spacing: 0.2em; color: var(--text);
+    }
+    #splash img { width: 56px; height: 56px; border-radius: 13px; }
+    #splash .track { width: 120px; height: 3px; border-radius: 3px; background: var(--track); overflow: hidden; }
+    #splash .bar { width: 40%; height: 100%; border-radius: 3px; background: var(--bar); animation: slide 1.2s ease-in-out infinite; }
+    @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+    @media (prefers-reduced-motion: reduce) { #splash .bar { animation: none; width: 100%; opacity: 0.5; } }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <div id="splash" role="status" aria-label="Loading RAKIA">
+    <img src="icons/Icon-192.png" alt="">
+    <span>RAKIA</span>
+    <div class="track"><div class="bar"></div></div>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var s = document.getElementById('splash');
+      if (s) s.remove();
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
