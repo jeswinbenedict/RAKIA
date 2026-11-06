@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FLUTTER_VERSION: '3.47.7'
+
 jobs:
   bootstrap-posix:
     name: db bootstrap (shell, PostgreSQL 18)
@@ -62,6 +65,47 @@ jobs:
             exit 1
           fi
           rm -f old.env .env
+
+  schema:
+    name: db schema (migrations, RLS, integrity, PostgreSQL 18)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: db
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Dependencies
+        run: dart pub get
+      - name: Formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Static analysis
+        run: dart analyze --fatal-infos
+      - name: Disposable PostgreSQL 18 with a password generated for this run
+        run: |
+          pw=$(openssl rand -hex 24)
+          echo "::add-mask::$pw"
+          echo "PGPASSWORD=$pw" >> "$GITHUB_ENV"
+          docker run -d --name pg -p 127.0.0.1:5432:5432             -e POSTGRES_PASSWORD="$pw"             -e POSTGRES_INITDB_ARGS=--auth=scram-sha-256             -e POSTGRES_HOST_AUTH_METHOD=scram-sha-256             postgres:18
+          for _ in $(seq 60); do
+            pg_isready -h localhost -p 5432 && break
+            sleep 1
+          done
+      - name: Roles, database and .env (bootstrap)
+        run: sh bootstrap/bootstrap-local.sh
+      - name: Migrations apply, report status and are idempotent
+        run: |
+          dart run bin/migrate.dart up
+          dart run bin/migrate.dart status
+          test "$(dart run bin/migrate.dart up)" = "Up to date."
+      - name: Tests (round trip, row-level security, integrity rules, audit chain)
+        env:
+          RAKIA_DB_ALLOW_RESET: '1'
+        run: dart test --reporter expanded
 
   bootstrap-windows:
     name: db bootstrap (PowerShell, Windows)

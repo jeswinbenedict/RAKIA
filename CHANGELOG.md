@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- PostgreSQL schema, migrations and their tests (`db/`):
+  - Migration `0001_core`: users, missions and membership with five roles, crew members, the app's five indicators, data sources, devices, app installations (`clients`), measurements, sync batches, alerts and their status history, an append-only audit log and Turnstile replay protection.
+  - Integrity rules enforced by the database whoever writes: the simulation firewall in both directions, units that must match the indicator, finite values, crew members of the same mission, a continuous hash chain per client and mission, immutable measurements with corrections that supersede a record of the same series, deletion only of simulation data, alert status changed only through recorded events.
+  - Row-level security for `rakia_api`, keyed on the verified Firebase uid in `request.jwt.claims`: astronauts see only their own health data, medical staff the whole crew's, the mission admin none; outsiders and unauthenticated requests see nothing.
+  - The audit log is hash-chained (SHA-256), append-only even for the owner role, and verifiable with `rakia.verify_audit_chain()`.
+  - A Dart migration runner (`dart run bin/migrate.dart status | up | down`) that applies each migration in a transaction under an advisory lock and refuses edited or unknown migrations.
+  - 54 tests, run in CI against a disposable PostgreSQL 18.
+
 - Local database bootstrap (`db/bootstrap/`): `bootstrap-local.ps1` (Windows PowerShell 5.1+) and `bootstrap-local.sh` (Linux, macOS) create the `rakia_migrator` and `rakia_api` roles, the `rakia` database and schema, and `.env`:
   - The superuser password is asked at a hidden prompt; role passwords are 32 random characters from the system's secure generator and are never printed or passed on a command line.
   - Least privilege: neither role is a superuser or can create roles or databases or bypass row-level security; only these two roles may connect; `rakia_api` cannot create objects; passwords are stored as SCRAM verifiers.
