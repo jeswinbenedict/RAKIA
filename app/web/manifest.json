@@ -1,12 +1,12 @@
 {
-    "name": "rakia",
-    "short_name": "rakia",
+    "name": "RAKIA: astronaut health intelligence",
+    "short_name": "RAKIA",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "RAKIA astronaut health intelligence",
-    "orientation": "portrait-primary",
+    "background_color": "#08060E",
+    "theme_color": "#08060E",
+    "description": "Open-source, offline-first, explainable astronaut health intelligence. Research software, not a medical device.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

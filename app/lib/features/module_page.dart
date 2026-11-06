@@ -9,9 +9,12 @@ import 'page_frame.dart';
 /// A module page before data exists: what the module tracks, any caveat,
 /// and an honest empty state. No placeholder numbers or fake charts.
 class ModulePage extends StatelessWidget {
-  const ModulePage({super.key, required this.module});
+  const ModulePage({super.key, required this.module, this.emptyAction});
 
   final ModuleSpec module;
+
+  /// Optional action under the empty state, e.g. starting the simulation.
+  final Widget? emptyAction;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +23,7 @@ class ModulePage extends StatelessWidget {
       icon: module.selectedIcon,
       title: module.emptyTitle,
       message: module.emptyMessage,
+      action: emptyAction,
     );
     final tracks = _TracksCard(module: module);
 

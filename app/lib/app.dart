@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'app_settings.dart';
 import 'core/analytics_core.dart';
 import 'design/theme.dart';
+import 'mission/mission_controller.dart';
 import 'navigation/router.dart';
 
 class RakiaApp extends StatefulWidget {
@@ -12,6 +13,7 @@ class RakiaApp extends StatefulWidget {
     this.initialLocation = '/mission',
     this.settings,
     this.coreLoader,
+    this.mission,
   });
 
   final String initialLocation;
@@ -19,6 +21,9 @@ class RakiaApp extends StatefulWidget {
 
   /// Loads librakia; defaults to the platform loader (native or WebAssembly).
   final AnalyticsCoreLoader? coreLoader;
+
+  /// Mission state; created by the app when not supplied (tests supply it).
+  final MissionController? mission;
 
   @override
   State<RakiaApp> createState() => _RakiaAppState();
@@ -33,6 +38,7 @@ class _RakiaAppState extends State<RakiaApp> {
   late final AnalyticsCoreController _core = AnalyticsCoreController(
     loader: widget.coreLoader,
   )..load();
+  late final MissionController _mission = widget.mission ?? MissionController();
   final ThemeData _dark = buildRakiaTheme(Brightness.dark);
   final ThemeData _light = buildRakiaTheme(Brightness.light);
 
@@ -41,6 +47,7 @@ class _RakiaAppState extends State<RakiaApp> {
     _router.dispose();
     if (widget.settings == null) _settings.dispose();
     _core.dispose();
+    if (widget.mission == null) _mission.dispose();
     super.dispose();
   }
 
@@ -48,18 +55,21 @@ class _RakiaAppState extends State<RakiaApp> {
   Widget build(BuildContext context) {
     return AnalyticsCoreScope(
       controller: _core,
-      child: AppSettings(
-        controller: _settings,
-        child: ListenableBuilder(
-          listenable: _settings,
-          builder: (context, _) => MaterialApp.router(
-            title: 'RAKIA',
-            debugShowCheckedModeBanner: false,
-            theme: _light,
-            darkTheme: _dark,
-            themeMode: _settings.themeMode,
-            themeAnimationDuration: Duration.zero,
-            routerConfig: _router,
+      child: MissionScope(
+        controller: _mission,
+        child: AppSettings(
+          controller: _settings,
+          child: ListenableBuilder(
+            listenable: _settings,
+            builder: (context, _) => MaterialApp.router(
+              title: 'RAKIA',
+              debugShowCheckedModeBanner: false,
+              theme: _light,
+              darkTheme: _dark,
+              themeMode: _settings.themeMode,
+              themeAnimationDuration: Duration.zero,
+              routerConfig: _router,
+            ),
           ),
         ),
       ),

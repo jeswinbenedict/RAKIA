@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../components/rakia_mark.dart';
+import '../components/simulation_banner.dart';
 import '../design/colors.dart';
 import '../design/tokens.dart';
 import 'modules.dart';
@@ -23,7 +25,15 @@ class AdaptiveShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final windowClass = RakiaBreakpoints.of(MediaQuery.sizeOf(context).width);
     final c = RakiaColors.of(context);
-    final content = FocusTraversalGroup(child: child);
+    final content = FocusTraversalGroup(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SimulationBanner(),
+          Expanded(child: child),
+        ],
+      ),
+    );
 
     if (windowClass == RakiaWindowClass.compact) {
       return Scaffold(
@@ -200,27 +210,45 @@ class _Sidebar extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: extended ? RakiaSpacing.lg : 0,
-              vertical: RakiaSpacing.lg,
+              vertical: extended ? RakiaSpacing.md : RakiaSpacing.lg,
             ),
             child: extended
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'RAKIA',
-                        style: t.titleLarge?.copyWith(letterSpacing: 2),
+                      Row(
+                        children: [
+                          const RakiaMark(size: 28),
+                          const SizedBox(width: RakiaSpacing.sm + 2),
+                          // The wordmark is a logo: it scales down to fit
+                          // rather than wrapping at very large text sizes.
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'RAKIA',
+                                style: t.titleMedium?.copyWith(
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      Text('Astronaut health intelligence', style: t.bodySmall),
+                      const SizedBox(height: RakiaSpacing.xs),
+                      Text(
+                        'Astronaut health intelligence',
+                        style: t.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   )
                 : Center(
                     child: Semantics(
                       label: 'RAKIA',
-                      excludeSemantics: true,
-                      child: Text(
-                        'R',
-                        style: t.titleLarge?.copyWith(color: c.brandText),
-                      ),
+                      child: const RakiaMark(size: 36),
                     ),
                   ),
           ),
