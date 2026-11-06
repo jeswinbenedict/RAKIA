@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // rakia-api: RAKIA's HTTP API. Configuration comes from environment
-// variables (see .env.example); for local development, a .env file in the
-// working directory or at RAKIA_ENV_FILE is read first and the process
-// environment wins.
+// variables (see .env.example). For local development only, ./.env in the
+// working directory is read first and the process environment wins; when
+// RAKIA_ENV is set to staging or production no file is read at all, so
+// deployed instances take settings only from their platform.
 #include <atomic>
 #include <chrono>
 #include <csignal>
-#include <cstdlib>
 #include <thread>
 
 #include "app.hpp"
@@ -19,28 +19,18 @@ namespace {
 std::atomic<bool> g_stop{false};
 extern "C" void on_signal(int) { g_stop = true; }
 
-std::string env_file_path() {
-#if defined(_MSC_VER)
-  char* value = nullptr;
-  std::size_t len = 0;
-  std::string path = ".env";
-  if (_dupenv_s(&value, &len, "RAKIA_ENV_FILE") == 0 && value != nullptr) {
-    path = value;
-    std::free(value);
-  }
-  return path;
-#else
-  const char* value = std::getenv("RAKIA_ENV_FILE");
-  return value ? value : ".env";
-#endif
-}
+// A fixed path: the location of configuration is never taken from input.
+constexpr const char* kDevEnvFile = ".env";
 }  // namespace
 
 int main() {
   rakia::Config config;
   try {
-    config = rakia::load_config(rakia::read_env_file(env_file_path()),
-                                rakia::process_environment());
+    const auto env = rakia::process_environment();
+    const auto mode = env.find("RAKIA_ENV");
+    const bool development = mode == env.end() || mode->second == "development";
+    config = rakia::load_config(
+        development ? rakia::read_env_file(kDevEnvFile) : rakia::EnvMap{}, env);
   } catch (const rakia::ConfigError& e) {
     rakia::log::error("configuration error", {{"detail", e.what()}});
     return 2;

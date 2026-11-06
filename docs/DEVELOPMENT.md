@@ -96,7 +96,7 @@ cmake --build server/build --parallel
 ctest --test-dir server/build --output-on-failure
 ```
 
-On Windows, configure from a Visual Studio developer shell (`vcvars64.bat`). The binary reads `.env` from its working directory (or `RAKIA_ENV_FILE`); the process environment wins. Run it from the repository root after the bootstrap and migrations:
+On Windows, configure from a Visual Studio developer shell (`vcvars64.bat`). In development the binary reads `./.env` from its working directory, and the process environment wins; with `RAKIA_ENV` set to `staging` or `production` it reads no file and takes every setting from the environment. Run it from the repository root after the bootstrap and migrations:
 
 ```bash
 ./server/build/rakia-api      # then: curl http://127.0.0.1:8080/v1/ready

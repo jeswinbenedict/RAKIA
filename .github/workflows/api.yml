@@ -111,8 +111,8 @@ jobs:
           RAKIA_ENV_FILE: ${{ github.workspace }}/.env
         run: ./build/test_pg
       - name: The binary serves, reports ready and stops cleanly on SIGTERM
+        # Run from the repository root: the binary reads ./.env there.
         env:
-          RAKIA_ENV_FILE: ${{ github.workspace }}/.env
           RAKIA_API_PORT: '18080'
         run: |
           ./server/build/rakia-api 2> api.log &
