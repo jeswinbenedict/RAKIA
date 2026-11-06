@@ -33,16 +33,16 @@
 
 | Tool | Status |
 |---|---|
-| Git 2.53, GitHub CLI 2.96 | ✅ logged in as `jeswinbenedict` |
-| Flutter 3.47.7 / Dart 3.13.5 | ✅ web (Chrome), Windows desktop OK |
-| Android SDK 36.1 | ⚠️ licences not accepted (`flutter doctor --android-licenses`) |
-| iOS | ❌ needs macOS; CI-only builds (GitHub macOS runner, unsigned) |
-| MSVC 14.44 (VS Build Tools 2022) + bundled CMake, clang-tidy | ✅ (not on PATH; will use a Developer shell or CMake presets) |
-| PostgreSQL 18.6 | ✅ service running; libpq headers present |
-| Docker 29.7 | ⚠️ installed, daemon not running |
-| Emscripten 6.0.13 (emsdk) | ✅ installed in `C:\Users\jeswi\tools\emsdk` (outside the repo and OneDrive); same version pinned in CI |
-| Supabase CLI 2.114, Firebase CLI 15.8, Node 25, Python 3.11 | ✅ |
-| Perplexity | ⚠️ connected tool is dashboard-import only, with no search API |
+| Git 2.53, GitHub CLI 2.96 | OK: logged in as `jeswinbenedict` |
+| Flutter 3.47.7 / Dart 3.13.5 | OK: web (Chrome), Windows desktop OK |
+| Android SDK 36.1 | Attention: licences not accepted (`flutter doctor --android-licenses`) |
+| iOS | Unavailable: needs macOS; CI-only builds (GitHub macOS runner, unsigned) |
+| MSVC 14.44 (VS Build Tools 2022) + bundled CMake, clang-tidy | OK: (not on PATH; will use a Developer shell or CMake presets) |
+| PostgreSQL 18.6 | OK: service running; libpq headers present |
+| Docker 29.7 | Attention: installed, daemon not running |
+| Emscripten 6.0.13 (emsdk) | OK: installed in `C:\Users\jeswi\tools\emsdk` (outside the repo and OneDrive); same version pinned in CI |
+| Supabase CLI 2.114, Firebase CLI 15.8, Node 25, Python 3.11 | OK |
+| Perplexity | Attention: connected tool is dashboard-import only, with no search API |
 
 ## Phased plan & PR strategy
 

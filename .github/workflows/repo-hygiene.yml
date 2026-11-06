@@ -32,6 +32,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - name: No emoji in any tracked file
+        run: node .github/scripts/check-no-emoji.mjs
       - name: Lint Markdown
         run: npx --yes markdownlint-cli2@0.24.0 "**/*.md" "#node_modules" "#_reference"
       - name: Validate YAML

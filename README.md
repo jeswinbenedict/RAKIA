@@ -11,7 +11,7 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 
 ## Project status
 
-🚧 **Phase 5 (core implementation).** The `librakia` analytics core is merged; the Flutter app shell is in review. No health data is displayed yet. Live progress is in [PROJECT_STATUS.md](PROJECT_STATUS.md).
+**Phase 5 (core implementation).** The `librakia` analytics core, the Flutter app shell and the librakia bindings (native and WebAssembly) are merged. No health data is displayed yet. Live progress is in [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 | Phone | Tablet | Desktop |
 |---|---|---|
