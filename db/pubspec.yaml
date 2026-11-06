@@ -1,0 +1,15 @@
+name: rakia_db
+description: RAKIA PostgreSQL migrations, the migration runner and database tests.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  crypto: ^3.0.6
+  postgres: ">=3.5.20 <3.6.0"
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.33.0

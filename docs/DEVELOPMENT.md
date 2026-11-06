@@ -86,6 +86,26 @@ sh tool/build_web_sqlite.sh    # from app/; output in app/web/sqlite3/ (git-igno
 
 It downloads `sqlite3.wasm` from the official release of the locked `sqlite3` package, checks the pinned SHA-256, and compiles `drift_worker.js` from `tool/web/drift_worker.dart`. Without these files the web app still runs, but says local storage is unavailable and keeps nothing after closing.
 
+### Database (`db/`)
+
+Migrations are numbered SQL files in `db/migrations/` (`NNNN_name.up.sql` and `NNNN_name.down.sql`), applied as `rakia_migrator` by a small Dart runner with the settings in `.env`. Run from `db/`:
+
+```bash
+dart run bin/migrate.dart status        # applied and pending migrations
+dart run bin/migrate.dart up            # apply all pending (or --to N)
+dart run bin/migrate.dart down          # revert the last one (or --steps N)
+```
+
+Each migration runs in its own transaction under an advisory lock. The runner records a SHA-256 of every applied script and refuses to run if one was edited afterwards: never change an applied migration, add a new one. Every migration needs a down script that reverts it completely.
+
+The tests in `db/test` (migration round trip, row-level security per role, integrity rules, the audit chain) **reset the schema and destroy its data**. They run only with `RAKIA_DB_ALLOW_RESET=1`, and only against a disposable database, never one holding anything of value:
+
+```bash
+RAKIA_DB_ALLOW_RESET=1 RAKIA_ENV_FILE=/path/to/throwaway.env dart test
+```
+
+Without that variable the database tests are skipped and only the file checks run. CI runs everything against a disposable PostgreSQL 18.
+
 ### Local store (`app/lib/storage/`)
 
 The schema, including the triggers that enforce immutability, the simulation firewall and hash-chain continuity, is plain SQL in `lib/storage/schema.drift`. After changing it:
@@ -113,7 +133,7 @@ Other components add their commands here as they land.
 | C core | `ctest --test-dir build` (add `-DRAKIA_SANITIZE=ON` for sanitizers); `clang-tidy -p build core/src/*.c` | active |
 | API | integration tests against disposable Postgres | planned |
 | Database bootstrap | CI (`.github/workflows/db.yml`): ShellCheck and PSScriptAnalyzer, then both scripts against a disposable PostgreSQL with a per-run password, checking privileges, refusal to overwrite `.env`, and password rotation | active |
-| Database | migration + RLS tests | planned |
+| Database | CI (`db schema` job): `dart format`, `dart analyze --fatal-infos`, migrations up, status and idempotency, then `dart test` (round trip, refusal of edited or unknown migrations, row-level security for every role, privileges of `rakia_api`, simulation firewall, units, hash-chain continuity, immutability, corrections, alert transitions, audit chain and tamper detection, Turnstile replay) | active |
 | Dart bindings | `dart test` (native), `dart test -p chrome` and `--compiler dart2wasm` (WebAssembly); both reproduce the C determinism digest | active |
 | Flutter | `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test` (tokens, navigation, accessibility guidelines, 200% text scale, components, analytics core loading, dashboard, local store rules and persistence) | active |
 
