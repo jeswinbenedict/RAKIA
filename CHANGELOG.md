@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Local database bootstrap (`db/bootstrap/`): `bootstrap-local.ps1` (Windows PowerShell 5.1+) and `bootstrap-local.sh` (Linux, macOS) create the `rakia_migrator` and `rakia_api` roles, the `rakia` database and schema, and `.env`:
+  - The superuser password is asked at a hidden prompt; role passwords are 32 random characters from the system's secure generator and are never printed or passed on a command line.
+  - Least privilege: neither role is a superuser or can create roles or databases or bypass row-level security; only these two roles may connect; `rakia_api` cannot create objects; passwords are stored as SCRAM verifiers.
+  - Each role signs in and its privileges are checked before `.env` is written, readable only by the current user. An existing `.env` is never overwritten; running again after moving it away rotates both passwords.
+  - CI runs both scripts against a disposable PostgreSQL with a password generated for the run.
+
 - Encryption at rest for the native on-device store:
   - The database file is encrypted with ChaCha20-Poly1305 (SQLite3 Multiple Ciphers, the checksum-verified build shipped by the `sqlite3` package).
   - A 256-bit key is generated on the device, saved in the system keystore (Keychain, Android Keystore, DPAPI, libsecret) and read back before any data is written. It is never stored in the file, the repository or the app.

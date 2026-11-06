@@ -1,0 +1,101 @@
+name: Database
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bootstrap-posix:
+    name: db bootstrap (shell, PostgreSQL 18)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: ShellCheck
+        run: shellcheck db/bootstrap/bootstrap-local.sh
+      - name: Disposable PostgreSQL 18 with a password generated for this run
+        run: |
+          pw=$(openssl rand -hex 24)
+          echo "::add-mask::$pw"
+          echo "PGPASSWORD=$pw" >> "$GITHUB_ENV"
+          docker run -d --name pg -p 127.0.0.1:5432:5432 \
+            -e POSTGRES_PASSWORD="$pw" \
+            -e POSTGRES_INITDB_ARGS=--auth=scram-sha-256 \
+            -e POSTGRES_HOST_AUTH_METHOD=scram-sha-256 \
+            postgres:18
+          for _ in $(seq 60); do
+            pg_isready -h localhost -p 5432 && break
+            sleep 1
+          done
+      - name: Bootstrap, then verify the result independently
+        run: |
+          sh db/bootstrap/bootstrap-local.sh
+          test "$(stat -c %a .env)" = 600
+          # shellcheck disable=SC1091
+          . ./.env
+          PGPASSWORD=$RAKIA_DB_PASSWORD psql -X -w -h localhost -U rakia_api -d rakia \
+            -tAc 'select current_user' | grep -qx rakia_api
+          if PGPASSWORD=$RAKIA_DB_PASSWORD psql -X -w -h localhost -U rakia_api -d rakia \
+            -c 'create table t(i int)' 2>/dev/null; then
+            echo "rakia_api could create a table" >&2
+            exit 1
+          fi
+      - name: An existing .env is never overwritten
+        run: |
+          before=$(sha256sum .env)
+          if sh db/bootstrap/bootstrap-local.sh; then exit 1; fi
+          test "$(sha256sum .env)" = "$before"
+      - name: Running again (after moving .env away) rotates both passwords
+        run: |
+          mv .env old.env
+          sh db/bootstrap/bootstrap-local.sh
+          old=$(grep '^RAKIA_DB_PASSWORD=' old.env | cut -d= -f2)
+          if PGPASSWORD=$old psql -X -w -h localhost -U rakia_api -d rakia -c 'select 1' 2>/dev/null; then
+            echo "the old password still works" >&2
+            exit 1
+          fi
+          rm -f old.env .env
+
+  bootstrap-windows:
+    name: db bootstrap (PowerShell, Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $issues = Invoke-ScriptAnalyzer -Path db/bootstrap/bootstrap-local.ps1 -Severity Warning,Error `
+            -ExcludeRule PSAvoidUsingWriteHost
+          $issues | Format-Table -AutoSize
+          if ($issues) { exit 1 }
+      - name: Disposable PostgreSQL with a password generated for this run
+        shell: pwsh
+        run: |
+          $bytes = New-Object byte[] 24
+          [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+          $pw = -join ($bytes | ForEach-Object { $_.ToString('x2') })
+          Write-Output "::add-mask::$pw"
+          "PGPASSWORD=$pw" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          $data = Join-Path $env:RUNNER_TEMP 'pgdata'
+          $pwFile = Join-Path $env:RUNNER_TEMP 'pw'
+          [IO.File]::WriteAllText($pwFile, $pw)
+          & "$env:PGBIN\initdb.exe" -D $data -U postgres --pwfile=$pwFile --auth=scram-sha-256 -E UTF8 --no-locale | Out-Null
+          Remove-Item $pwFile
+          & "$env:PGBIN\pg_ctl.exe" -D $data -o "-p 5432 -c listen_addresses=localhost" -l "$env:RUNNER_TEMP\pg.log" -w start
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Bootstrap with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & .\db\bootstrap\bootstrap-local.ps1 -Psql "$env:PGBIN\psql.exe"
+          if (-not (Test-Path .env)) { exit 1 }
+          $acl = (icacls .env) -join "`n"
+          if ($acl -match 'Everyone|BUILTIN\\Users') { Write-Output $acl; exit 1 }
+          try { & .\db\bootstrap\bootstrap-local.ps1 -Psql "$env:PGBIN\psql.exe"; exit 1 } catch { 'refused to overwrite .env' }
+          Remove-Item .env
