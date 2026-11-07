@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Deployment readiness:
+  - `server/Dockerfile`: multi-stage image for Cloud Run; the unit and HTTP tests run during the build; the binary runs as a non-root user; production mode by default (no `.env` file read, verified TLS to the database required); Debian base pinned by digest, with Dependabot tracking it.
+  - `RAKIA_DB_SSLROOTCERT` for the API and the migration runner: a CA certificate file for providers with a private CA (Supabase), or the system roots (the default with `verify-full`).
+  - A self-contained web build (`--csp --no-web-resources-cdn`): CanvasKit and every other resource from the app's own origin, so the web app also loads offline from its cache and makes no third-party requests. The splash screen's inline style and script moved into files.
+  - `app/web/_headers`: Content-Security-Policy without inline scripts, cross-origin isolation (the browser database now uses the Origin Private File System), HSTS, framing and referrer protection.
+  - `app/tool/web/serve_with_headers.mjs` and `check_web_build.mjs`: serve a build with its own headers and check it in headless Chrome (renders, no CSP violations, console errors or external requests, cross-origin isolated, database on OPFS); CI runs the check on every web build.
+  - CI builds the container image, checks it runs as a non-root user, refuses to start in production without TLS to the database, serves and reports ready against PostgreSQL, and stops cleanly.
+  - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): database roles and migrations on a hosted PostgreSQL, Cloud Run with secrets and probes, Cloudflare Pages, native builds.
+- CodeQL fetches the API's third-party headers outside the checkout, so its results cover RAKIA's own code (the 159 open alerts were all in cpp-httplib and nlohmann/json).
+
 - C++ API skeleton (`server/`, `rakia-api` 0.1.0):
   - Endpoints `GET /v1/health`, `GET /v1/ready` (database reachable and schema at the version this build expects) and `GET /v1/metric-definitions`, described in `docs/api/openapi.yaml`.
   - Configuration from environment variables, validated at start-up: TLS to the database (`verify-full`) and public https CORS origins outside development; refuses to connect as the migrator or a superuser; secrets never logged.

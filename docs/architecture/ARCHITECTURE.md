@@ -118,9 +118,11 @@ TLS everywhere; secrets only in env/secret manager (`.env.example` documents nam
 | `rakia-api` (native C++) | **Container on Google Cloud Run** (alt: Fly.io / Render) | Vercel Functions and Cloudflare Workers cannot run arbitrary native long-running C++ servers; Cloud Run runs our Docker image, scales to zero, HTTPS, health checks, logs. |
 | Database | Supabase Postgres (prod), local PG 18 (dev) | |
 | Auth | Firebase | |
-| Monitoring | Cloud Run logs/metrics + `/healthz` + `/readyz`, uptime check, structured JSON logs; client errors to a self-hosted-capable sink (decided in Phase 8) | |
+| Monitoring | Cloud Run logs/metrics + `GET /v1/health` (liveness) + `GET /v1/ready` (readiness), uptime check, structured JSON logs; client errors to a self-hosted-capable sink (decided in Phase 8) | |
 
 Environments: **dev** (local PG, Firebase dev project, Turnstile test keys), **staging** (`staging` Pages branch + Cloud Run revision + Supabase staging project), **prod**. CI/CD: GitHub Actions — format/lint/test on PR; build web, Android, iOS (macOS runner, unsigned), C/C++ on Windows (MSVC) and Linux (GCC/Clang + ASan/UBSan + clang-tidy); deploy on tag.
+
+Implemented for deployment: `server/Dockerfile` (multi-stage; tests run during the build; non-root; production mode by default; Debian base pinned by digest and tracked by Dependabot), `app/web/_headers` (CSP without inline scripts, cross-origin isolation, HSTS and the other security headers, checked in headless Chrome in CI) and a self-contained web build (`--csp --no-web-resources-cdn`). Step-by-step instructions: [DEPLOYMENT.md](../DEPLOYMENT.md).
 
 ## 10. Testing strategy
 

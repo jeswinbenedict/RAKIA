@@ -70,6 +70,11 @@ PgStore::PgStore(const Config& c, std::chrono::milliseconds acquire_timeout)
              // A runaway statement or a forgotten transaction cannot hold
              // a connection for long.
              "-c statement_timeout=10000 -c idle_in_transaction_session_timeout=15000"};
+  if (!c.db_sslrootcert.empty()) {
+    // "system" (libpq 16+) verifies against the operating system's roots.
+    keywords_.emplace_back("sslrootcert");
+    values_.push_back(c.db_sslrootcert);
+  }
 }
 
 PgStore::~PgStore() {
