@@ -1,4 +1,5 @@
--- RAKIA on-device store, schema version 1.
+-- RAKIA on-device store, schema version 2 (version 1 plus the private
+-- wellbeing tables at the end of this file).
 --
 -- The rules that protect data integrity are enforced by SQLite itself, not
 -- only by Dart code, so no caller can bypass them:
@@ -114,4 +115,65 @@ BEFORE DELETE ON missions
 WHEN OLD.is_simulation = 0
 BEGIN
   SELECT RAISE(ABORT, 'rakia: only simulation missions can be deleted');
+END;
+
+-- ------------------------------------------------- wellbeing (schema 2)
+-- The astronaut's own behavioural self-reports. Private by default: they
+-- belong to no mission, so they are never mixed with simulated data and are
+-- never part of what a mission shares. Each row is one completed check-in or
+-- test; rows are never edited (a new check-in records a new state), but the
+-- astronaut may delete their own records.
+
+CREATE TABLE self_checkins (
+  id BLOB NOT NULL PRIMARY KEY CHECK (length(id) = 16),
+  recorded_at_us INTEGER NOT NULL,
+  -- Karolinska Sleepiness Scale: 1 extremely alert ... 9 very sleepy,
+  -- fighting sleep (Akerstedt and Gillberg, 1990).
+  sleepiness INTEGER NOT NULL CHECK (sleepiness BETWEEN 1 AND 9),
+  -- Single-item measure of stress symptoms: 1 not at all ... 5 very much
+  -- (Elo, Leppanen and Jahkola, 2003).
+  stress INTEGER NOT NULL CHECK (stress BETWEEN 1 AND 5),
+  -- A plain mood self-rating, 1 very low ... 5 very good. Not a validated
+  -- clinical scale; the app says so.
+  mood INTEGER NOT NULL CHECK (mood BETWEEN 1 AND 5)
+) STRICT;
+
+CREATE INDEX self_checkins_by_time ON self_checkins (recorded_at_us);
+
+CREATE TRIGGER self_checkins_immutable
+BEFORE UPDATE ON self_checkins
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: check-ins are not edited; record a new one');
+END;
+
+-- A completed reaction-time test (3-minute psychomotor vigilance task,
+-- after PVT-B: Basner, Mollicone and Dinges, 2011). Response times include
+-- this device's display and input latency, so results compare only with
+-- earlier tests on the same device.
+CREATE TABLE reaction_tests (
+  id BLOB NOT NULL PRIMARY KEY CHECK (length(id) = 16),
+  recorded_at_us INTEGER NOT NULL,
+  duration_ms INTEGER NOT NULL CHECK (duration_ms > 0),
+  -- Stimuli shown and valid responses (100 ms or slower).
+  stimuli INTEGER NOT NULL CHECK (stimuli >= 0),
+  responses INTEGER NOT NULL CHECK (responses BETWEEN 0 AND stimuli),
+  median_rt_ms REAL CHECK (median_rt_ms IS NULL OR median_rt_ms > 0),
+  -- Mean response speed, 1/RT in 1/s (the PVT's most sensitive outcome).
+  mean_speed REAL CHECK (mean_speed IS NULL OR mean_speed > 0),
+  -- Lapses: responses of 355 ms or more, or no response within 30 s.
+  lapses INTEGER NOT NULL CHECK (lapses >= 0),
+  -- False starts: responses before a stimulus or faster than 100 ms.
+  false_starts INTEGER NOT NULL CHECK (false_starts >= 0),
+  -- The device the test ran on (platform and form factor), for comparison.
+  device TEXT NOT NULL CHECK (length(device) BETWEEN 1 AND 60),
+  CHECK ((responses = 0) = (median_rt_ms IS NULL)),
+  CHECK ((responses = 0) = (mean_speed IS NULL))
+) STRICT;
+
+CREATE INDEX reaction_tests_by_time ON reaction_tests (recorded_at_us);
+
+CREATE TRIGGER reaction_tests_immutable
+BEFORE UPDATE ON reaction_tests
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: test results are not edited');
 END;

@@ -40,11 +40,13 @@ jobs:
         run: |
           dart run build_runner build --delete-conflicting-outputs
           git diff --exit-code -- lib
-      - name: Database schema export is up to date
+      - name: Database schema export and migration test helpers are up to date
         run: |
           dart run drift_dev schema dump lib/storage/database.dart drift_schemas/
-          git diff --exit-code -- drift_schemas
-          test -z "$(git status --porcelain -- drift_schemas)"
+          dart run drift_dev schema generate drift_schemas/ test/generated_migrations/
+          dart format test/generated_migrations
+          git diff --exit-code -- drift_schemas test/generated_migrations
+          test -z "$(git status --porcelain -- drift_schemas test/generated_migrations)"
       - name: Static analysis
         run: flutter analyze
       - name: Tests (design system, navigation, accessibility, analytics, local store)

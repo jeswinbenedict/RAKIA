@@ -1,0 +1,894 @@
+{
+  "_meta": {
+    "description": "This file contains a serialized version of schema entities for drift.",
+    "version": "1.3.0"
+  },
+  "options": {
+    "store_date_time_values_as_text": false
+  },
+  "entities": [
+    {
+      "id": 0,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "settings",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "key",
+            "getter_name": "key",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "value",
+            "getter_name": "value",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "strict": true
+      }
+    },
+    {
+      "id": 1,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "missions",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "name",
+            "getter_name": "name",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(name) BETWEEN 1 AND 120)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "is_simulation",
+            "getter_name": "isSimulation",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (is_simulation IN (0, 1))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "simulation_seed",
+            "getter_name": "simulationSeed",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "simulated_day",
+            "getter_name": "simulatedDay",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "subject_id",
+            "getter_name": "subjectId",
+            "moor_type": "blob",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(subject_id) = 16)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "subject_label",
+            "getter_name": "subjectLabel",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "start_at_us",
+            "getter_name": "startAtUs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "reference_days",
+            "getter_name": "referenceDays",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (reference_days >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "planned_days",
+            "getter_name": "plannedDays",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (planned_days > 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "created_at_us",
+            "getter_name": "createdAtUs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "CHECK((is_simulation = 1)=(simulation_seed IS NOT NULL))",
+          "CHECK(is_simulation = 1 OR simulated_day IS NULL)"
+        ],
+        "strict": true
+      }
+    },
+    {
+      "id": 2,
+      "references": [
+        1
+      ],
+      "type": "table",
+      "data": {
+        "name": "measurements",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "blob",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (length(id) = 16)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "mission_id",
+            "getter_name": "missionId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL REFERENCES missions(id)ON DELETE CASCADE",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "missions",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": "cascade"
+                }
+              }
+            ]
+          },
+          {
+            "name": "subject_id",
+            "getter_name": "subjectId",
+            "moor_type": "blob",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(subject_id) = 16)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "metric_code",
+            "getter_name": "metricCode",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(metric_code) BETWEEN 1 AND 64)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "value",
+            "getter_name": "value",
+            "moor_type": "double",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "unit",
+            "getter_name": "unit",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(unit) BETWEEN 1 AND 32)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "observed_at_us",
+            "getter_name": "observedAtUs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "method",
+            "getter_name": "method",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (method BETWEEN 1 AND 4)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "provenance",
+            "getter_name": "provenance",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (provenance BETWEEN 1 AND 3)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "quality_flags",
+            "getter_name": "qualityFlags",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL DEFAULT 0 CHECK (quality_flags >= 0)",
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "supersedes_id",
+            "getter_name": "supersedesId",
+            "moor_type": "blob",
+            "nullable": true,
+            "customConstraints": "REFERENCES measurements(id)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              {
+                "foreign_key": {
+                  "to": {
+                    "table": "measurements",
+                    "column": "id"
+                  },
+                  "initially_deferred": false,
+                  "on_update": null,
+                  "on_delete": null
+                }
+              }
+            ]
+          },
+          {
+            "name": "client_seq",
+            "getter_name": "clientSeq",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (client_seq >= 1)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "prev_hash",
+            "getter_name": "prevHash",
+            "moor_type": "blob",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(prev_hash) = 32)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "hash",
+            "getter_name": "hash",
+            "moor_type": "blob",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(hash) = 32)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "UNIQUE(mission_id, client_seq)"
+        ],
+        "strict": true,
+        "unique_keys": [
+          [
+            "mission_id",
+            "client_seq"
+          ]
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "references": [
+        2
+      ],
+      "type": "index",
+      "data": {
+        "on": 2,
+        "name": "measurements_by_metric",
+        "sql": "CREATE INDEX measurements_by_metric\n  ON measurements (mission_id, metric_code, observed_at_us);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 4,
+      "references": [
+        2
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 2,
+        "references_in_body": [
+          2
+        ],
+        "name": "measurements_immutable",
+        "sql": "CREATE TRIGGER measurements_immutable\nBEFORE UPDATE ON measurements\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: measurements are immutable');\nEND;"
+      }
+    },
+    {
+      "id": 5,
+      "references": [
+        2,
+        1
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 2,
+        "references_in_body": [
+          2,
+          1
+        ],
+        "name": "measurements_simulation_firewall",
+        "sql": "CREATE TRIGGER measurements_simulation_firewall\nBEFORE INSERT ON measurements\nWHEN (NEW.provenance = 3) <>\n     (SELECT is_simulation = 1 FROM missions WHERE id = NEW.mission_id)\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: simulation firewall');\nEND;"
+      }
+    },
+    {
+      "id": 6,
+      "references": [
+        2,
+        1
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 2,
+        "references_in_body": [
+          2,
+          1
+        ],
+        "name": "measurements_subject_matches_mission",
+        "sql": "CREATE TRIGGER measurements_subject_matches_mission\nBEFORE INSERT ON measurements\nWHEN NEW.subject_id IS NOT\n     (SELECT subject_id FROM missions WHERE id = NEW.mission_id)\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: subject does not match the mission');\nEND;"
+      }
+    },
+    {
+      "id": 7,
+      "references": [
+        2
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 2,
+        "references_in_body": [
+          2
+        ],
+        "name": "measurements_chain_continuity",
+        "sql": "CREATE TRIGGER measurements_chain_continuity\nBEFORE INSERT ON measurements\nWHEN NEW.client_seq <> COALESCE(\n       (SELECT MAX(client_seq) FROM measurements\n        WHERE mission_id = NEW.mission_id), 0) + 1\n  OR NEW.prev_hash IS NOT COALESCE(\n       (SELECT hash FROM measurements\n        WHERE mission_id = NEW.mission_id\n          AND client_seq = NEW.client_seq - 1),\n       zeroblob(32))\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: ledger chain is not continuous');\nEND;"
+      }
+    },
+    {
+      "id": 8,
+      "references": [
+        2,
+        1
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 2,
+        "references_in_body": [
+          2,
+          1
+        ],
+        "name": "measurements_delete_simulation_only",
+        "sql": "CREATE TRIGGER measurements_delete_simulation_only\nBEFORE DELETE ON measurements\nWHEN (SELECT is_simulation FROM missions WHERE id = OLD.mission_id) = 0\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: only simulation data can be deleted');\nEND;"
+      }
+    },
+    {
+      "id": 9,
+      "references": [
+        1
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 1,
+        "references_in_body": [
+          1
+        ],
+        "name": "missions_identity_immutable",
+        "sql": "CREATE TRIGGER missions_identity_immutable\nBEFORE UPDATE OF id, is_simulation, simulation_seed, subject_id, start_at_us\nON missions\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: a mission''s identity cannot change');\nEND;"
+      }
+    },
+    {
+      "id": 10,
+      "references": [
+        1
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 1,
+        "references_in_body": [
+          1
+        ],
+        "name": "missions_delete_simulation_only",
+        "sql": "CREATE TRIGGER missions_delete_simulation_only\nBEFORE DELETE ON missions\nWHEN OLD.is_simulation = 0\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: only simulation missions can be deleted');\nEND;"
+      }
+    },
+    {
+      "id": 11,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "self_checkins",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "blob",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (length(id) = 16)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "recorded_at_us",
+            "getter_name": "recordedAtUs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "sleepiness",
+            "getter_name": "sleepiness",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (sleepiness BETWEEN 1 AND 9)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "stress",
+            "getter_name": "stress",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (stress BETWEEN 1 AND 5)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "mood",
+            "getter_name": "mood",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (mood BETWEEN 1 AND 5)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "strict": true
+      }
+    },
+    {
+      "id": 12,
+      "references": [
+        11
+      ],
+      "type": "index",
+      "data": {
+        "on": 11,
+        "name": "self_checkins_by_time",
+        "sql": "CREATE INDEX self_checkins_by_time ON self_checkins (recorded_at_us);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 13,
+      "references": [
+        11
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 11,
+        "references_in_body": [
+          11
+        ],
+        "name": "self_checkins_immutable",
+        "sql": "CREATE TRIGGER self_checkins_immutable\nBEFORE UPDATE ON self_checkins\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: check-ins are not edited; record a new one');\nEND;"
+      }
+    },
+    {
+      "id": 14,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "reaction_tests",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "blob",
+            "nullable": false,
+            "customConstraints": "NOT NULL PRIMARY KEY CHECK (length(id) = 16)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": [
+              "primary-key"
+            ]
+          },
+          {
+            "name": "recorded_at_us",
+            "getter_name": "recordedAtUs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "duration_ms",
+            "getter_name": "durationMs",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (duration_ms > 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "stimuli",
+            "getter_name": "stimuli",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (stimuli >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "responses",
+            "getter_name": "responses",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (responses BETWEEN 0 AND stimuli)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "median_rt_ms",
+            "getter_name": "medianRtMs",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": "CHECK (median_rt_ms IS NULL OR median_rt_ms > 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "mean_speed",
+            "getter_name": "meanSpeed",
+            "moor_type": "double",
+            "nullable": true,
+            "customConstraints": "CHECK (mean_speed IS NULL OR mean_speed > 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "lapses",
+            "getter_name": "lapses",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (lapses >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "false_starts",
+            "getter_name": "falseStarts",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (false_starts >= 0)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "device",
+            "getter_name": "device",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL CHECK (length(device) BETWEEN 1 AND 60)",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "CHECK((responses = 0)=(median_rt_ms IS NULL))",
+          "CHECK((responses = 0)=(mean_speed IS NULL))"
+        ],
+        "strict": true
+      }
+    },
+    {
+      "id": 15,
+      "references": [
+        14
+      ],
+      "type": "index",
+      "data": {
+        "on": 14,
+        "name": "reaction_tests_by_time",
+        "sql": "CREATE INDEX reaction_tests_by_time ON reaction_tests (recorded_at_us);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 16,
+      "references": [
+        14
+      ],
+      "type": "trigger",
+      "data": {
+        "on": 14,
+        "references_in_body": [
+          14
+        ],
+        "name": "reaction_tests_immutable",
+        "sql": "CREATE TRIGGER reaction_tests_immutable\nBEFORE UPDATE ON reaction_tests\nBEGIN\n  SELECT RAISE(ABORT, 'rakia: test results are not edited');\nEND;"
+      }
+    }
+  ],
+  "fixed_sql": [
+    {
+      "name": "settings",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"settings\" (\"key\" TEXT NOT NULL PRIMARY KEY, \"value\" TEXT NOT NULL) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "missions",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"missions\" (\"id\" TEXT NOT NULL PRIMARY KEY, \"name\" TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 120), \"is_simulation\" INTEGER NOT NULL CHECK (is_simulation IN (0, 1)), \"simulation_seed\" INTEGER, \"simulated_day\" INTEGER, \"subject_id\" BLOB NOT NULL CHECK (length(subject_id) = 16), \"subject_label\" TEXT NOT NULL, \"start_at_us\" INTEGER NOT NULL, \"reference_days\" INTEGER NOT NULL CHECK (reference_days >= 0), \"planned_days\" INTEGER NOT NULL CHECK (planned_days > 0), \"created_at_us\" INTEGER NOT NULL, CHECK((is_simulation = 1)=(simulation_seed IS NOT NULL)), CHECK(is_simulation = 1 OR simulated_day IS NULL)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "measurements",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"measurements\" (\"id\" BLOB NOT NULL PRIMARY KEY CHECK (length(id) = 16), \"mission_id\" TEXT NOT NULL REFERENCES missions(id)ON DELETE CASCADE, \"subject_id\" BLOB NOT NULL CHECK (length(subject_id) = 16), \"metric_code\" TEXT NOT NULL CHECK (length(metric_code) BETWEEN 1 AND 64), \"value\" REAL NOT NULL, \"unit\" TEXT NOT NULL CHECK (length(unit) BETWEEN 1 AND 32), \"observed_at_us\" INTEGER NOT NULL, \"method\" INTEGER NOT NULL CHECK (method BETWEEN 1 AND 4), \"provenance\" INTEGER NOT NULL CHECK (provenance BETWEEN 1 AND 3), \"quality_flags\" INTEGER NOT NULL DEFAULT 0 CHECK (quality_flags >= 0), \"supersedes_id\" BLOB REFERENCES measurements(id), \"client_seq\" INTEGER NOT NULL CHECK (client_seq >= 1), \"prev_hash\" BLOB NOT NULL CHECK (length(prev_hash) = 32), \"hash\" BLOB NOT NULL CHECK (length(hash) = 32), UNIQUE(mission_id, client_seq)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "measurements_by_metric",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX measurements_by_metric ON measurements (mission_id, metric_code, observed_at_us)"
+        }
+      ]
+    },
+    {
+      "name": "measurements_immutable",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER measurements_immutable BEFORE UPDATE ON measurements BEGIN SELECT RAISE (ABORT, 'rakia: measurements are immutable');END"
+        }
+      ]
+    },
+    {
+      "name": "measurements_simulation_firewall",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER measurements_simulation_firewall BEFORE INSERT ON measurements WHEN(NEW.provenance = 3)<> (SELECT is_simulation = 1 FROM missions WHERE id = NEW.mission_id) BEGIN SELECT RAISE (ABORT, 'rakia: simulation firewall');END"
+        }
+      ]
+    },
+    {
+      "name": "measurements_subject_matches_mission",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER measurements_subject_matches_mission BEFORE INSERT ON measurements WHEN NEW.subject_id IS NOT (SELECT subject_id FROM missions WHERE id = NEW.mission_id) BEGIN SELECT RAISE (ABORT, 'rakia: subject does not match the mission');END"
+        }
+      ]
+    },
+    {
+      "name": "measurements_chain_continuity",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER measurements_chain_continuity BEFORE INSERT ON measurements WHEN NEW.client_seq <> COALESCE((SELECT MAX(client_seq) FROM measurements WHERE mission_id = NEW.mission_id), 0) + 1 OR NEW.prev_hash IS NOT COALESCE((SELECT hash FROM measurements WHERE mission_id = NEW.mission_id AND client_seq = NEW.client_seq - 1), zeroblob(32)) BEGIN SELECT RAISE (ABORT, 'rakia: ledger chain is not continuous');END"
+        }
+      ]
+    },
+    {
+      "name": "measurements_delete_simulation_only",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER measurements_delete_simulation_only BEFORE DELETE ON measurements WHEN (SELECT is_simulation FROM missions WHERE id = OLD.mission_id) = 0 BEGIN SELECT RAISE (ABORT, 'rakia: only simulation data can be deleted');END"
+        }
+      ]
+    },
+    {
+      "name": "missions_identity_immutable",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER missions_identity_immutable BEFORE UPDATE OF id, is_simulation, simulation_seed, subject_id, start_at_us ON missions BEGIN SELECT RAISE (ABORT, 'rakia: a mission''s identity cannot change');END"
+        }
+      ]
+    },
+    {
+      "name": "missions_delete_simulation_only",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER missions_delete_simulation_only BEFORE DELETE ON missions WHEN OLD.is_simulation = 0 BEGIN SELECT RAISE (ABORT, 'rakia: only simulation missions can be deleted');END"
+        }
+      ]
+    },
+    {
+      "name": "self_checkins",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"self_checkins\" (\"id\" BLOB NOT NULL PRIMARY KEY CHECK (length(id) = 16), \"recorded_at_us\" INTEGER NOT NULL, \"sleepiness\" INTEGER NOT NULL CHECK (sleepiness BETWEEN 1 AND 9), \"stress\" INTEGER NOT NULL CHECK (stress BETWEEN 1 AND 5), \"mood\" INTEGER NOT NULL CHECK (mood BETWEEN 1 AND 5)) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "self_checkins_by_time",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX self_checkins_by_time ON self_checkins (recorded_at_us)"
+        }
+      ]
+    },
+    {
+      "name": "self_checkins_immutable",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER self_checkins_immutable BEFORE UPDATE ON self_checkins BEGIN SELECT RAISE (ABORT, 'rakia: check-ins are not edited; record a new one');END"
+        }
+      ]
+    },
+    {
+      "name": "reaction_tests",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"reaction_tests\" (\"id\" BLOB NOT NULL PRIMARY KEY CHECK (length(id) = 16), \"recorded_at_us\" INTEGER NOT NULL, \"duration_ms\" INTEGER NOT NULL CHECK (duration_ms > 0), \"stimuli\" INTEGER NOT NULL CHECK (stimuli >= 0), \"responses\" INTEGER NOT NULL CHECK (responses BETWEEN 0 AND stimuli), \"median_rt_ms\" REAL CHECK (median_rt_ms IS NULL OR median_rt_ms > 0), \"mean_speed\" REAL CHECK (mean_speed IS NULL OR mean_speed > 0), \"lapses\" INTEGER NOT NULL CHECK (lapses >= 0), \"false_starts\" INTEGER NOT NULL CHECK (false_starts >= 0), \"device\" TEXT NOT NULL CHECK (length(device) BETWEEN 1 AND 60), CHECK((responses = 0)=(median_rt_ms IS NULL)), CHECK((responses = 0)=(mean_speed IS NULL))) STRICT;"
+        }
+      ]
+    },
+    {
+      "name": "reaction_tests_by_time",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX reaction_tests_by_time ON reaction_tests (recorded_at_us)"
+        }
+      ]
+    },
+    {
+      "name": "reaction_tests_immutable",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TRIGGER reaction_tests_immutable BEFORE UPDATE ON reaction_tests BEGIN SELECT RAISE (ABORT, 'rakia: test results are not edited');END"
+        }
+      ]
+    }
+  ]
+}

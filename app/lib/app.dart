@@ -9,6 +9,7 @@ import 'design/theme.dart';
 import 'mission/mission_controller.dart';
 import 'navigation/router.dart';
 import 'storage/store_controller.dart';
+import 'wellbeing/wellbeing_controller.dart';
 
 class RakiaApp extends StatefulWidget {
   const RakiaApp({
@@ -50,7 +51,9 @@ class _RakiaAppState extends State<RakiaApp> {
   late final StoreController _store = StoreController(
     opener: widget.storeOpener,
   )..open();
+  final WellbeingController _wellbeing = WellbeingController();
   bool _settingsAttached = false;
+  bool _wellbeingAttached = false;
   bool _missionAttached = false;
   final ThemeData _dark = buildRakiaTheme(Brightness.dark);
   final ThemeData _light = buildRakiaTheme(Brightness.light);
@@ -72,6 +75,10 @@ class _RakiaAppState extends State<RakiaApp> {
       _settingsAttached = true;
       unawaited(_settings.attach(store));
     }
+    if (!_wellbeingAttached) {
+      _wellbeingAttached = true;
+      unawaited(_wellbeing.attach(store));
+    }
     if (!_missionAttached) {
       if (_core.state case AnalyticsCoreReady(:final core)) {
         _missionAttached = true;
@@ -89,6 +96,7 @@ class _RakiaAppState extends State<RakiaApp> {
     _core.dispose();
     _store.dispose();
     if (widget.mission == null) _mission.dispose();
+    _wellbeing.dispose();
     super.dispose();
   }
 
@@ -100,18 +108,21 @@ class _RakiaAppState extends State<RakiaApp> {
         controller: _store,
         child: MissionScope(
           controller: _mission,
-          child: AppSettings(
-            controller: _settings,
-            child: ListenableBuilder(
-              listenable: _settings,
-              builder: (context, _) => MaterialApp.router(
-                title: 'RAKIA',
-                debugShowCheckedModeBanner: false,
-                theme: _light,
-                darkTheme: _dark,
-                themeMode: _settings.themeMode,
-                themeAnimationDuration: Duration.zero,
-                routerConfig: _router,
+          child: WellbeingScope(
+            controller: _wellbeing,
+            child: AppSettings(
+              controller: _settings,
+              child: ListenableBuilder(
+                listenable: _settings,
+                builder: (context, _) => MaterialApp.router(
+                  title: 'RAKIA',
+                  debugShowCheckedModeBanner: false,
+                  theme: _light,
+                  darkTheme: _dark,
+                  themeMode: _settings.themeMode,
+                  themeAnimationDuration: Duration.zero,
+                  routerConfig: _router,
+                ),
               ),
             ),
           ),
