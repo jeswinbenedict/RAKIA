@@ -68,12 +68,13 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 
 ## Active blockers / owner input needed
 
-1. **Licence:** Apache-2.0 applied (recommended default). Tell me before the foundation PR merges if you prefer MIT.
-2. **Firebase project:** create it and enable Google, Email/Password and Phone providers (needed for `feature/auth`).
-3. **Cloudflare Turnstile:** site key and secret (put the secret in `.env`, never in chat).
-4. **Local PostgreSQL credentials** in `.env` (needed for `feature/db-schema`).
-5. **C++ API host:** confirm Google Cloud Run (needed by Phase 8).
-6. Accept Android licences; start Docker Desktop if you want the local Supabase stack.
+1. **Firebase project** (blocks the app's sign-in, mission administration, sync and ingest): create it, enable the Google, Email/Password and Phone providers, register the web, Android and iOS apps, and put the project id in `RAKIA_FIREBASE_PROJECT_ID`. The API side of sign-in is ready for it.
+2. **Cloudflare Turnstile keys** for staging and production (development uses Cloudflare's published test keys). The secret goes in the platform's secret manager, never in chat or the repository.
+3. **Merge approvals:** [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12), [jeswinbenedict/RAKIA#13](https://github.com/jeswinbenedict/RAKIA/pull/13) and the stacked [jeswinbenedict/RAKIA#14](https://github.com/jeswinbenedict/RAKIA/pull/14).
+4. **Ruleset:** add the `Database` and `API` checks to the required checks of the `main` ruleset (repository settings; owner decision).
+5. **Hosting accounts** for the first staging deployment: Google Cloud (Cloud Run, Artifact Registry, Secret Manager), Cloudflare (Pages) and Supabase. Steps: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+6. **Local database:** run `db/bootstrap/bootstrap-local.ps1` (it asks for the PostgreSQL superuser password, which only you should enter), then `dart run bin/migrate.dart up` in `db/`.
+7. Optional: accept the Android SDK licences (`flutter doctor --android-licenses`); start Docker Desktop to build the API image locally.
 
 ## Implemented features
 
