@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:rakia_core/rakia_core.dart';
 
 import '../simulation/simulated_mission.dart';
+import '../wellbeing/instruments.dart';
 import 'database.dart';
 import 'uuid.dart';
 
@@ -152,6 +153,115 @@ class LocalStore {
   Future<void> setSetting(String key, String value) => db
       .into(db.settings)
       .insertOnConflictUpdate(SettingsCompanion.insert(key: key, value: value));
+
+  // --------------------------------------------------------------- wellbeing
+  // The astronaut's private self-reports. They belong to no mission, so they
+  // can never mix with simulated data.
+
+  Future<CheckIn> addCheckIn({
+    required int sleepiness,
+    required int stress,
+    required int mood,
+    DateTime? now,
+  }) async {
+    final at = (now ?? DateTime.now()).toUtc();
+    final id = uuidV7(now: at);
+    await db
+        .into(db.selfCheckins)
+        .insert(
+          SelfCheckinsCompanion.insert(
+            id: id,
+            recordedAtUs: at.microsecondsSinceEpoch,
+            sleepiness: sleepiness,
+            stress: stress,
+            mood: mood,
+          ),
+        );
+    return CheckIn(
+      id: uuidToString(id),
+      recordedAt: at,
+      sleepiness: sleepiness,
+      stress: stress,
+      mood: mood,
+    );
+  }
+
+  /// Check-ins, newest first.
+  Future<List<CheckIn>> checkIns({int limit = 500}) async {
+    final rows =
+        await (db.select(db.selfCheckins)
+              ..orderBy([(c) => OrderingTerm.desc(c.recordedAtUs)])
+              ..limit(limit))
+            .get();
+    return [
+      for (final r in rows)
+        CheckIn(
+          id: uuidToString(r.id),
+          recordedAt: DateTime.fromMicrosecondsSinceEpoch(
+            r.recordedAtUs,
+            isUtc: true,
+          ),
+          sleepiness: r.sleepiness,
+          stress: r.stress,
+          mood: r.mood,
+        ),
+    ];
+  }
+
+  /// Stores a scored test and returns it with its identifier.
+  Future<ReactionTestResult> addReactionTest(ReactionTestResult t) async {
+    final id = uuidV7(now: t.recordedAt);
+    await db
+        .into(db.reactionTests)
+        .insert(
+          ReactionTestsCompanion.insert(
+            id: id,
+            recordedAtUs: t.recordedAt.toUtc().microsecondsSinceEpoch,
+            durationMs: t.duration.inMilliseconds,
+            stimuli: t.stimuli,
+            responses: t.responses,
+            medianRtMs: Value(t.medianRtMs),
+            meanSpeed: Value(t.meanSpeed),
+            lapses: t.lapses,
+            falseStarts: t.falseStarts,
+            device: t.device,
+          ),
+        );
+    return t.withId(uuidToString(id));
+  }
+
+  /// Reaction-time results, newest first.
+  Future<List<ReactionTestResult>> reactionTests({int limit = 500}) async {
+    final rows =
+        await (db.select(db.reactionTests)
+              ..orderBy([(t) => OrderingTerm.desc(t.recordedAtUs)])
+              ..limit(limit))
+            .get();
+    return [
+      for (final r in rows)
+        ReactionTestResult(
+          id: uuidToString(r.id),
+          recordedAt: DateTime.fromMicrosecondsSinceEpoch(
+            r.recordedAtUs,
+            isUtc: true,
+          ),
+          duration: Duration(milliseconds: r.durationMs),
+          stimuli: r.stimuli,
+          responses: r.responses,
+          medianRtMs: r.medianRtMs,
+          meanSpeed: r.meanSpeed,
+          lapses: r.lapses,
+          falseStarts: r.falseStarts,
+          device: r.device,
+        ),
+    ];
+  }
+
+  /// Deletes every check-in and reaction-time result on this device.
+  Future<void> deleteWellbeingRecords() => db.transaction(() async {
+    await db.delete(db.selfCheckins).go();
+    await db.delete(db.reactionTests).go();
+  });
 
   // -------------------------------------------------------------- simulation
 

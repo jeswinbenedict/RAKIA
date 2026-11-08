@@ -1750,6 +1750,1032 @@ class MeasurementsCompanion extends UpdateCompanion<Measurement> {
   }
 }
 
+class SelfCheckins extends Table with TableInfo<SelfCheckins, SelfCheckin> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  SelfCheckins(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<Uint8List> id = GeneratedColumn<Uint8List>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 16)',
+  );
+  static const VerificationMeta _recordedAtUsMeta = const VerificationMeta(
+    'recordedAtUs',
+  );
+  late final GeneratedColumn<int> recordedAtUs = GeneratedColumn<int>(
+    'recorded_at_us',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _sleepinessMeta = const VerificationMeta(
+    'sleepiness',
+  );
+  late final GeneratedColumn<int> sleepiness = GeneratedColumn<int>(
+    'sleepiness',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (sleepiness BETWEEN 1 AND 9)',
+  );
+  static const VerificationMeta _stressMeta = const VerificationMeta('stress');
+  late final GeneratedColumn<int> stress = GeneratedColumn<int>(
+    'stress',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (stress BETWEEN 1 AND 5)',
+  );
+  static const VerificationMeta _moodMeta = const VerificationMeta('mood');
+  late final GeneratedColumn<int> mood = GeneratedColumn<int>(
+    'mood',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (mood BETWEEN 1 AND 5)',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    recordedAtUs,
+    sleepiness,
+    stress,
+    mood,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'self_checkins';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SelfCheckin> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('recorded_at_us')) {
+      context.handle(
+        _recordedAtUsMeta,
+        recordedAtUs.isAcceptableOrUnknown(
+          data['recorded_at_us']!,
+          _recordedAtUsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recordedAtUsMeta);
+    }
+    if (data.containsKey('sleepiness')) {
+      context.handle(
+        _sleepinessMeta,
+        sleepiness.isAcceptableOrUnknown(data['sleepiness']!, _sleepinessMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sleepinessMeta);
+    }
+    if (data.containsKey('stress')) {
+      context.handle(
+        _stressMeta,
+        stress.isAcceptableOrUnknown(data['stress']!, _stressMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stressMeta);
+    }
+    if (data.containsKey('mood')) {
+      context.handle(
+        _moodMeta,
+        mood.isAcceptableOrUnknown(data['mood']!, _moodMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_moodMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SelfCheckin map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SelfCheckin(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}id'],
+      )!,
+      recordedAtUs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recorded_at_us'],
+      )!,
+      sleepiness: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sleepiness'],
+      )!,
+      stress: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stress'],
+      )!,
+      mood: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}mood'],
+      )!,
+    );
+  }
+
+  @override
+  SelfCheckins createAlias(String alias) {
+    return SelfCheckins(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class SelfCheckin extends DataClass implements Insertable<SelfCheckin> {
+  final Uint8List id;
+  final int recordedAtUs;
+
+  /// Karolinska Sleepiness Scale: 1 extremely alert ... 9 very sleepy,
+  /// fighting sleep (Akerstedt and Gillberg, 1990).
+  final int sleepiness;
+
+  /// Single-item measure of stress symptoms: 1 not at all ... 5 very much
+  /// (Elo, Leppanen and Jahkola, 2003).
+  final int stress;
+
+  /// A plain mood self-rating, 1 very low ... 5 very good. Not a validated
+  /// clinical scale; the app says so.
+  final int mood;
+  const SelfCheckin({
+    required this.id,
+    required this.recordedAtUs,
+    required this.sleepiness,
+    required this.stress,
+    required this.mood,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<Uint8List>(id);
+    map['recorded_at_us'] = Variable<int>(recordedAtUs);
+    map['sleepiness'] = Variable<int>(sleepiness);
+    map['stress'] = Variable<int>(stress);
+    map['mood'] = Variable<int>(mood);
+    return map;
+  }
+
+  SelfCheckinsCompanion toCompanion(bool nullToAbsent) {
+    return SelfCheckinsCompanion(
+      id: Value(id),
+      recordedAtUs: Value(recordedAtUs),
+      sleepiness: Value(sleepiness),
+      stress: Value(stress),
+      mood: Value(mood),
+    );
+  }
+
+  factory SelfCheckin.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SelfCheckin(
+      id: serializer.fromJson<Uint8List>(json['id']),
+      recordedAtUs: serializer.fromJson<int>(json['recorded_at_us']),
+      sleepiness: serializer.fromJson<int>(json['sleepiness']),
+      stress: serializer.fromJson<int>(json['stress']),
+      mood: serializer.fromJson<int>(json['mood']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<Uint8List>(id),
+      'recorded_at_us': serializer.toJson<int>(recordedAtUs),
+      'sleepiness': serializer.toJson<int>(sleepiness),
+      'stress': serializer.toJson<int>(stress),
+      'mood': serializer.toJson<int>(mood),
+    };
+  }
+
+  SelfCheckin copyWith({
+    Uint8List? id,
+    int? recordedAtUs,
+    int? sleepiness,
+    int? stress,
+    int? mood,
+  }) => SelfCheckin(
+    id: id ?? this.id,
+    recordedAtUs: recordedAtUs ?? this.recordedAtUs,
+    sleepiness: sleepiness ?? this.sleepiness,
+    stress: stress ?? this.stress,
+    mood: mood ?? this.mood,
+  );
+  SelfCheckin copyWithCompanion(SelfCheckinsCompanion data) {
+    return SelfCheckin(
+      id: data.id.present ? data.id.value : this.id,
+      recordedAtUs: data.recordedAtUs.present
+          ? data.recordedAtUs.value
+          : this.recordedAtUs,
+      sleepiness: data.sleepiness.present
+          ? data.sleepiness.value
+          : this.sleepiness,
+      stress: data.stress.present ? data.stress.value : this.stress,
+      mood: data.mood.present ? data.mood.value : this.mood,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SelfCheckin(')
+          ..write('id: $id, ')
+          ..write('recordedAtUs: $recordedAtUs, ')
+          ..write('sleepiness: $sleepiness, ')
+          ..write('stress: $stress, ')
+          ..write('mood: $mood')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    $driftBlobEquality.hash(id),
+    recordedAtUs,
+    sleepiness,
+    stress,
+    mood,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SelfCheckin &&
+          $driftBlobEquality.equals(other.id, this.id) &&
+          other.recordedAtUs == this.recordedAtUs &&
+          other.sleepiness == this.sleepiness &&
+          other.stress == this.stress &&
+          other.mood == this.mood);
+}
+
+class SelfCheckinsCompanion extends UpdateCompanion<SelfCheckin> {
+  final Value<Uint8List> id;
+  final Value<int> recordedAtUs;
+  final Value<int> sleepiness;
+  final Value<int> stress;
+  final Value<int> mood;
+  final Value<int> rowid;
+  const SelfCheckinsCompanion({
+    this.id = const Value.absent(),
+    this.recordedAtUs = const Value.absent(),
+    this.sleepiness = const Value.absent(),
+    this.stress = const Value.absent(),
+    this.mood = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SelfCheckinsCompanion.insert({
+    required Uint8List id,
+    required int recordedAtUs,
+    required int sleepiness,
+    required int stress,
+    required int mood,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       recordedAtUs = Value(recordedAtUs),
+       sleepiness = Value(sleepiness),
+       stress = Value(stress),
+       mood = Value(mood);
+  static Insertable<SelfCheckin> custom({
+    Expression<Uint8List>? id,
+    Expression<int>? recordedAtUs,
+    Expression<int>? sleepiness,
+    Expression<int>? stress,
+    Expression<int>? mood,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (recordedAtUs != null) 'recorded_at_us': recordedAtUs,
+      if (sleepiness != null) 'sleepiness': sleepiness,
+      if (stress != null) 'stress': stress,
+      if (mood != null) 'mood': mood,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SelfCheckinsCompanion copyWith({
+    Value<Uint8List>? id,
+    Value<int>? recordedAtUs,
+    Value<int>? sleepiness,
+    Value<int>? stress,
+    Value<int>? mood,
+    Value<int>? rowid,
+  }) {
+    return SelfCheckinsCompanion(
+      id: id ?? this.id,
+      recordedAtUs: recordedAtUs ?? this.recordedAtUs,
+      sleepiness: sleepiness ?? this.sleepiness,
+      stress: stress ?? this.stress,
+      mood: mood ?? this.mood,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<Uint8List>(id.value);
+    }
+    if (recordedAtUs.present) {
+      map['recorded_at_us'] = Variable<int>(recordedAtUs.value);
+    }
+    if (sleepiness.present) {
+      map['sleepiness'] = Variable<int>(sleepiness.value);
+    }
+    if (stress.present) {
+      map['stress'] = Variable<int>(stress.value);
+    }
+    if (mood.present) {
+      map['mood'] = Variable<int>(mood.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SelfCheckinsCompanion(')
+          ..write('id: $id, ')
+          ..write('recordedAtUs: $recordedAtUs, ')
+          ..write('sleepiness: $sleepiness, ')
+          ..write('stress: $stress, ')
+          ..write('mood: $mood, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class ReactionTests extends Table with TableInfo<ReactionTests, ReactionTest> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  ReactionTests(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<Uint8List> id = GeneratedColumn<Uint8List>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 16)',
+  );
+  static const VerificationMeta _recordedAtUsMeta = const VerificationMeta(
+    'recordedAtUs',
+  );
+  late final GeneratedColumn<int> recordedAtUs = GeneratedColumn<int>(
+    'recorded_at_us',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (duration_ms > 0)',
+  );
+  static const VerificationMeta _stimuliMeta = const VerificationMeta(
+    'stimuli',
+  );
+  late final GeneratedColumn<int> stimuli = GeneratedColumn<int>(
+    'stimuli',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (stimuli >= 0)',
+  );
+  static const VerificationMeta _responsesMeta = const VerificationMeta(
+    'responses',
+  );
+  late final GeneratedColumn<int> responses = GeneratedColumn<int>(
+    'responses',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (responses BETWEEN 0 AND stimuli)',
+  );
+  static const VerificationMeta _medianRtMsMeta = const VerificationMeta(
+    'medianRtMs',
+  );
+  late final GeneratedColumn<double> medianRtMs = GeneratedColumn<double>(
+    'median_rt_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (median_rt_ms IS NULL OR median_rt_ms > 0)',
+  );
+  static const VerificationMeta _meanSpeedMeta = const VerificationMeta(
+    'meanSpeed',
+  );
+  late final GeneratedColumn<double> meanSpeed = GeneratedColumn<double>(
+    'mean_speed',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    $customConstraints: 'CHECK (mean_speed IS NULL OR mean_speed > 0)',
+  );
+  static const VerificationMeta _lapsesMeta = const VerificationMeta('lapses');
+  late final GeneratedColumn<int> lapses = GeneratedColumn<int>(
+    'lapses',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (lapses >= 0)',
+  );
+  static const VerificationMeta _falseStartsMeta = const VerificationMeta(
+    'falseStarts',
+  );
+  late final GeneratedColumn<int> falseStarts = GeneratedColumn<int>(
+    'false_starts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (false_starts >= 0)',
+  );
+  static const VerificationMeta _deviceMeta = const VerificationMeta('device');
+  late final GeneratedColumn<String> device = GeneratedColumn<String>(
+    'device',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(device) BETWEEN 1 AND 60)',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    recordedAtUs,
+    durationMs,
+    stimuli,
+    responses,
+    medianRtMs,
+    meanSpeed,
+    lapses,
+    falseStarts,
+    device,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reaction_tests';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReactionTest> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('recorded_at_us')) {
+      context.handle(
+        _recordedAtUsMeta,
+        recordedAtUs.isAcceptableOrUnknown(
+          data['recorded_at_us']!,
+          _recordedAtUsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recordedAtUsMeta);
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_durationMsMeta);
+    }
+    if (data.containsKey('stimuli')) {
+      context.handle(
+        _stimuliMeta,
+        stimuli.isAcceptableOrUnknown(data['stimuli']!, _stimuliMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stimuliMeta);
+    }
+    if (data.containsKey('responses')) {
+      context.handle(
+        _responsesMeta,
+        responses.isAcceptableOrUnknown(data['responses']!, _responsesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_responsesMeta);
+    }
+    if (data.containsKey('median_rt_ms')) {
+      context.handle(
+        _medianRtMsMeta,
+        medianRtMs.isAcceptableOrUnknown(
+          data['median_rt_ms']!,
+          _medianRtMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mean_speed')) {
+      context.handle(
+        _meanSpeedMeta,
+        meanSpeed.isAcceptableOrUnknown(data['mean_speed']!, _meanSpeedMeta),
+      );
+    }
+    if (data.containsKey('lapses')) {
+      context.handle(
+        _lapsesMeta,
+        lapses.isAcceptableOrUnknown(data['lapses']!, _lapsesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lapsesMeta);
+    }
+    if (data.containsKey('false_starts')) {
+      context.handle(
+        _falseStartsMeta,
+        falseStarts.isAcceptableOrUnknown(
+          data['false_starts']!,
+          _falseStartsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_falseStartsMeta);
+    }
+    if (data.containsKey('device')) {
+      context.handle(
+        _deviceMeta,
+        device.isAcceptableOrUnknown(data['device']!, _deviceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReactionTest map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReactionTest(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}id'],
+      )!,
+      recordedAtUs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recorded_at_us'],
+      )!,
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      )!,
+      stimuli: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stimuli'],
+      )!,
+      responses: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}responses'],
+      )!,
+      medianRtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}median_rt_ms'],
+      ),
+      meanSpeed: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}mean_speed'],
+      ),
+      lapses: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lapses'],
+      )!,
+      falseStarts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}false_starts'],
+      )!,
+      device: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device'],
+      )!,
+    );
+  }
+
+  @override
+  ReactionTests createAlias(String alias) {
+    return ReactionTests(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+  @override
+  List<String> get customConstraints => const [
+    'CHECK((responses = 0)=(median_rt_ms IS NULL))',
+    'CHECK((responses = 0)=(mean_speed IS NULL))',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class ReactionTest extends DataClass implements Insertable<ReactionTest> {
+  final Uint8List id;
+  final int recordedAtUs;
+  final int durationMs;
+
+  /// Stimuli shown and valid responses (100 ms or slower).
+  final int stimuli;
+  final int responses;
+  final double? medianRtMs;
+
+  /// Mean response speed, 1/RT in 1/s (the PVT's most sensitive outcome).
+  final double? meanSpeed;
+
+  /// Lapses: responses of 355 ms or more, or no response within 30 s.
+  final int lapses;
+
+  /// False starts: responses before a stimulus or faster than 100 ms.
+  final int falseStarts;
+
+  /// The device the test ran on (platform and form factor), for comparison.
+  final String device;
+  const ReactionTest({
+    required this.id,
+    required this.recordedAtUs,
+    required this.durationMs,
+    required this.stimuli,
+    required this.responses,
+    this.medianRtMs,
+    this.meanSpeed,
+    required this.lapses,
+    required this.falseStarts,
+    required this.device,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<Uint8List>(id);
+    map['recorded_at_us'] = Variable<int>(recordedAtUs);
+    map['duration_ms'] = Variable<int>(durationMs);
+    map['stimuli'] = Variable<int>(stimuli);
+    map['responses'] = Variable<int>(responses);
+    if (!nullToAbsent || medianRtMs != null) {
+      map['median_rt_ms'] = Variable<double>(medianRtMs);
+    }
+    if (!nullToAbsent || meanSpeed != null) {
+      map['mean_speed'] = Variable<double>(meanSpeed);
+    }
+    map['lapses'] = Variable<int>(lapses);
+    map['false_starts'] = Variable<int>(falseStarts);
+    map['device'] = Variable<String>(device);
+    return map;
+  }
+
+  ReactionTestsCompanion toCompanion(bool nullToAbsent) {
+    return ReactionTestsCompanion(
+      id: Value(id),
+      recordedAtUs: Value(recordedAtUs),
+      durationMs: Value(durationMs),
+      stimuli: Value(stimuli),
+      responses: Value(responses),
+      medianRtMs: medianRtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(medianRtMs),
+      meanSpeed: meanSpeed == null && nullToAbsent
+          ? const Value.absent()
+          : Value(meanSpeed),
+      lapses: Value(lapses),
+      falseStarts: Value(falseStarts),
+      device: Value(device),
+    );
+  }
+
+  factory ReactionTest.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReactionTest(
+      id: serializer.fromJson<Uint8List>(json['id']),
+      recordedAtUs: serializer.fromJson<int>(json['recorded_at_us']),
+      durationMs: serializer.fromJson<int>(json['duration_ms']),
+      stimuli: serializer.fromJson<int>(json['stimuli']),
+      responses: serializer.fromJson<int>(json['responses']),
+      medianRtMs: serializer.fromJson<double?>(json['median_rt_ms']),
+      meanSpeed: serializer.fromJson<double?>(json['mean_speed']),
+      lapses: serializer.fromJson<int>(json['lapses']),
+      falseStarts: serializer.fromJson<int>(json['false_starts']),
+      device: serializer.fromJson<String>(json['device']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<Uint8List>(id),
+      'recorded_at_us': serializer.toJson<int>(recordedAtUs),
+      'duration_ms': serializer.toJson<int>(durationMs),
+      'stimuli': serializer.toJson<int>(stimuli),
+      'responses': serializer.toJson<int>(responses),
+      'median_rt_ms': serializer.toJson<double?>(medianRtMs),
+      'mean_speed': serializer.toJson<double?>(meanSpeed),
+      'lapses': serializer.toJson<int>(lapses),
+      'false_starts': serializer.toJson<int>(falseStarts),
+      'device': serializer.toJson<String>(device),
+    };
+  }
+
+  ReactionTest copyWith({
+    Uint8List? id,
+    int? recordedAtUs,
+    int? durationMs,
+    int? stimuli,
+    int? responses,
+    Value<double?> medianRtMs = const Value.absent(),
+    Value<double?> meanSpeed = const Value.absent(),
+    int? lapses,
+    int? falseStarts,
+    String? device,
+  }) => ReactionTest(
+    id: id ?? this.id,
+    recordedAtUs: recordedAtUs ?? this.recordedAtUs,
+    durationMs: durationMs ?? this.durationMs,
+    stimuli: stimuli ?? this.stimuli,
+    responses: responses ?? this.responses,
+    medianRtMs: medianRtMs.present ? medianRtMs.value : this.medianRtMs,
+    meanSpeed: meanSpeed.present ? meanSpeed.value : this.meanSpeed,
+    lapses: lapses ?? this.lapses,
+    falseStarts: falseStarts ?? this.falseStarts,
+    device: device ?? this.device,
+  );
+  ReactionTest copyWithCompanion(ReactionTestsCompanion data) {
+    return ReactionTest(
+      id: data.id.present ? data.id.value : this.id,
+      recordedAtUs: data.recordedAtUs.present
+          ? data.recordedAtUs.value
+          : this.recordedAtUs,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      stimuli: data.stimuli.present ? data.stimuli.value : this.stimuli,
+      responses: data.responses.present ? data.responses.value : this.responses,
+      medianRtMs: data.medianRtMs.present
+          ? data.medianRtMs.value
+          : this.medianRtMs,
+      meanSpeed: data.meanSpeed.present ? data.meanSpeed.value : this.meanSpeed,
+      lapses: data.lapses.present ? data.lapses.value : this.lapses,
+      falseStarts: data.falseStarts.present
+          ? data.falseStarts.value
+          : this.falseStarts,
+      device: data.device.present ? data.device.value : this.device,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionTest(')
+          ..write('id: $id, ')
+          ..write('recordedAtUs: $recordedAtUs, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('stimuli: $stimuli, ')
+          ..write('responses: $responses, ')
+          ..write('medianRtMs: $medianRtMs, ')
+          ..write('meanSpeed: $meanSpeed, ')
+          ..write('lapses: $lapses, ')
+          ..write('falseStarts: $falseStarts, ')
+          ..write('device: $device')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    $driftBlobEquality.hash(id),
+    recordedAtUs,
+    durationMs,
+    stimuli,
+    responses,
+    medianRtMs,
+    meanSpeed,
+    lapses,
+    falseStarts,
+    device,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReactionTest &&
+          $driftBlobEquality.equals(other.id, this.id) &&
+          other.recordedAtUs == this.recordedAtUs &&
+          other.durationMs == this.durationMs &&
+          other.stimuli == this.stimuli &&
+          other.responses == this.responses &&
+          other.medianRtMs == this.medianRtMs &&
+          other.meanSpeed == this.meanSpeed &&
+          other.lapses == this.lapses &&
+          other.falseStarts == this.falseStarts &&
+          other.device == this.device);
+}
+
+class ReactionTestsCompanion extends UpdateCompanion<ReactionTest> {
+  final Value<Uint8List> id;
+  final Value<int> recordedAtUs;
+  final Value<int> durationMs;
+  final Value<int> stimuli;
+  final Value<int> responses;
+  final Value<double?> medianRtMs;
+  final Value<double?> meanSpeed;
+  final Value<int> lapses;
+  final Value<int> falseStarts;
+  final Value<String> device;
+  final Value<int> rowid;
+  const ReactionTestsCompanion({
+    this.id = const Value.absent(),
+    this.recordedAtUs = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.stimuli = const Value.absent(),
+    this.responses = const Value.absent(),
+    this.medianRtMs = const Value.absent(),
+    this.meanSpeed = const Value.absent(),
+    this.lapses = const Value.absent(),
+    this.falseStarts = const Value.absent(),
+    this.device = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReactionTestsCompanion.insert({
+    required Uint8List id,
+    required int recordedAtUs,
+    required int durationMs,
+    required int stimuli,
+    required int responses,
+    this.medianRtMs = const Value.absent(),
+    this.meanSpeed = const Value.absent(),
+    required int lapses,
+    required int falseStarts,
+    required String device,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       recordedAtUs = Value(recordedAtUs),
+       durationMs = Value(durationMs),
+       stimuli = Value(stimuli),
+       responses = Value(responses),
+       lapses = Value(lapses),
+       falseStarts = Value(falseStarts),
+       device = Value(device);
+  static Insertable<ReactionTest> custom({
+    Expression<Uint8List>? id,
+    Expression<int>? recordedAtUs,
+    Expression<int>? durationMs,
+    Expression<int>? stimuli,
+    Expression<int>? responses,
+    Expression<double>? medianRtMs,
+    Expression<double>? meanSpeed,
+    Expression<int>? lapses,
+    Expression<int>? falseStarts,
+    Expression<String>? device,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (recordedAtUs != null) 'recorded_at_us': recordedAtUs,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (stimuli != null) 'stimuli': stimuli,
+      if (responses != null) 'responses': responses,
+      if (medianRtMs != null) 'median_rt_ms': medianRtMs,
+      if (meanSpeed != null) 'mean_speed': meanSpeed,
+      if (lapses != null) 'lapses': lapses,
+      if (falseStarts != null) 'false_starts': falseStarts,
+      if (device != null) 'device': device,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReactionTestsCompanion copyWith({
+    Value<Uint8List>? id,
+    Value<int>? recordedAtUs,
+    Value<int>? durationMs,
+    Value<int>? stimuli,
+    Value<int>? responses,
+    Value<double?>? medianRtMs,
+    Value<double?>? meanSpeed,
+    Value<int>? lapses,
+    Value<int>? falseStarts,
+    Value<String>? device,
+    Value<int>? rowid,
+  }) {
+    return ReactionTestsCompanion(
+      id: id ?? this.id,
+      recordedAtUs: recordedAtUs ?? this.recordedAtUs,
+      durationMs: durationMs ?? this.durationMs,
+      stimuli: stimuli ?? this.stimuli,
+      responses: responses ?? this.responses,
+      medianRtMs: medianRtMs ?? this.medianRtMs,
+      meanSpeed: meanSpeed ?? this.meanSpeed,
+      lapses: lapses ?? this.lapses,
+      falseStarts: falseStarts ?? this.falseStarts,
+      device: device ?? this.device,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<Uint8List>(id.value);
+    }
+    if (recordedAtUs.present) {
+      map['recorded_at_us'] = Variable<int>(recordedAtUs.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (stimuli.present) {
+      map['stimuli'] = Variable<int>(stimuli.value);
+    }
+    if (responses.present) {
+      map['responses'] = Variable<int>(responses.value);
+    }
+    if (medianRtMs.present) {
+      map['median_rt_ms'] = Variable<double>(medianRtMs.value);
+    }
+    if (meanSpeed.present) {
+      map['mean_speed'] = Variable<double>(meanSpeed.value);
+    }
+    if (lapses.present) {
+      map['lapses'] = Variable<int>(lapses.value);
+    }
+    if (falseStarts.present) {
+      map['false_starts'] = Variable<int>(falseStarts.value);
+    }
+    if (device.present) {
+      map['device'] = Variable<String>(device.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionTestsCompanion(')
+          ..write('id: $id, ')
+          ..write('recordedAtUs: $recordedAtUs, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('stimuli: $stimuli, ')
+          ..write('responses: $responses, ')
+          ..write('medianRtMs: $medianRtMs, ')
+          ..write('meanSpeed: $meanSpeed, ')
+          ..write('lapses: $lapses, ')
+          ..write('falseStarts: $falseStarts, ')
+          ..write('device: $device, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$RakiaDatabase extends GeneratedDatabase {
   _$RakiaDatabase(QueryExecutor e) : super(e);
   $RakiaDatabaseManager get managers => $RakiaDatabaseManager(this);
@@ -1788,6 +2814,24 @@ abstract class _$RakiaDatabase extends GeneratedDatabase {
     'CREATE TRIGGER missions_delete_simulation_only BEFORE DELETE ON missions WHEN OLD.is_simulation = 0 BEGIN SELECT RAISE (ABORT, \'rakia: only simulation missions can be deleted\');END',
     'missions_delete_simulation_only',
   );
+  late final SelfCheckins selfCheckins = SelfCheckins(this);
+  late final Index selfCheckinsByTime = Index(
+    'self_checkins_by_time',
+    'CREATE INDEX self_checkins_by_time ON self_checkins (recorded_at_us)',
+  );
+  late final Trigger selfCheckinsImmutable = Trigger(
+    'CREATE TRIGGER self_checkins_immutable BEFORE UPDATE ON self_checkins BEGIN SELECT RAISE (ABORT, \'rakia: check-ins are not edited; record a new one\');END',
+    'self_checkins_immutable',
+  );
+  late final ReactionTests reactionTests = ReactionTests(this);
+  late final Index reactionTestsByTime = Index(
+    'reaction_tests_by_time',
+    'CREATE INDEX reaction_tests_by_time ON reaction_tests (recorded_at_us)',
+  );
+  late final Trigger reactionTestsImmutable = Trigger(
+    'CREATE TRIGGER reaction_tests_immutable BEFORE UPDATE ON reaction_tests BEGIN SELECT RAISE (ABORT, \'rakia: test results are not edited\');END',
+    'reaction_tests_immutable',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1804,6 +2848,12 @@ abstract class _$RakiaDatabase extends GeneratedDatabase {
     measurementsDeleteSimulationOnly,
     missionsIdentityImmutable,
     missionsDeleteSimulationOnly,
+    selfCheckins,
+    selfCheckinsByTime,
+    selfCheckinsImmutable,
+    reactionTests,
+    reactionTestsByTime,
+    reactionTestsImmutable,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -1860,6 +2910,20 @@ abstract class _$RakiaDatabase extends GeneratedDatabase {
       on: TableUpdateQuery.onTableName(
         'missions',
         limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'self_checkins',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'reaction_tests',
+        limitUpdateKind: UpdateKind.update,
       ),
       result: [],
     ),
@@ -2994,6 +4058,524 @@ typedef $MeasurementsProcessedTableManager =
       Measurement,
       PrefetchHooks Function({bool missionId, bool supersedesId})
     >;
+typedef $SelfCheckinsCreateCompanionBuilder = SelfCheckinsCompanion Function({
+  required Uint8List id,
+  required int recordedAtUs,
+  required int sleepiness,
+  required int stress,
+  required int mood,
+  Value<int> rowid,
+});
+typedef $SelfCheckinsUpdateCompanionBuilder = SelfCheckinsCompanion Function({
+  Value<Uint8List> id,
+  Value<int> recordedAtUs,
+  Value<int> sleepiness,
+  Value<int> stress,
+  Value<int> mood,
+  Value<int> rowid,
+});
+
+class $SelfCheckinsFilterComposer
+    extends Composer<_$RakiaDatabase, SelfCheckins> {
+  $SelfCheckinsFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<Uint8List> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sleepiness => $composableBuilder(
+    column: $table.sleepiness,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stress => $composableBuilder(
+    column: $table.stress,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get mood => $composableBuilder(
+    column: $table.mood,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $SelfCheckinsOrderingComposer
+    extends Composer<_$RakiaDatabase, SelfCheckins> {
+  $SelfCheckinsOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<Uint8List> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sleepiness => $composableBuilder(
+    column: $table.sleepiness,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stress => $composableBuilder(
+    column: $table.stress,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get mood => $composableBuilder(
+    column: $table.mood,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $SelfCheckinsAnnotationComposer
+    extends Composer<_$RakiaDatabase, SelfCheckins> {
+  $SelfCheckinsAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<Uint8List> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sleepiness => $composableBuilder(
+    column: $table.sleepiness,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get stress =>
+      $composableBuilder(column: $table.stress, builder: (column) => column);
+
+  GeneratedColumn<int> get mood =>
+      $composableBuilder(column: $table.mood, builder: (column) => column);
+}
+
+class $SelfCheckinsTableManager
+    extends
+        RootTableManager<
+          _$RakiaDatabase,
+          SelfCheckins,
+          SelfCheckin,
+          $SelfCheckinsFilterComposer,
+          $SelfCheckinsOrderingComposer,
+          $SelfCheckinsAnnotationComposer,
+          $SelfCheckinsCreateCompanionBuilder,
+          $SelfCheckinsUpdateCompanionBuilder,
+          (
+            SelfCheckin,
+            BaseReferences<_$RakiaDatabase, SelfCheckins, SelfCheckin>,
+          ),
+          SelfCheckin,
+          PrefetchHooks Function()
+        > {
+  $SelfCheckinsTableManager(_$RakiaDatabase db, SelfCheckins table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $SelfCheckinsFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $SelfCheckinsOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $SelfCheckinsAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<Uint8List> id = const Value.absent(),
+                Value<int> recordedAtUs = const Value.absent(),
+                Value<int> sleepiness = const Value.absent(),
+                Value<int> stress = const Value.absent(),
+                Value<int> mood = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SelfCheckinsCompanion(
+                id: id,
+                recordedAtUs: recordedAtUs,
+                sleepiness: sleepiness,
+                stress: stress,
+                mood: mood,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required Uint8List id,
+                required int recordedAtUs,
+                required int sleepiness,
+                required int stress,
+                required int mood,
+                Value<int> rowid = const Value.absent(),
+              }) => SelfCheckinsCompanion.insert(
+                id: id,
+                recordedAtUs: recordedAtUs,
+                sleepiness: sleepiness,
+                stress: stress,
+                mood: mood,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<SelfCheckins, SelfCheckin>(table),
+                  BaseReferences<_$RakiaDatabase, SelfCheckins, SelfCheckin>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $SelfCheckinsProcessedTableManager =
+    ProcessedTableManager<
+      _$RakiaDatabase,
+      SelfCheckins,
+      SelfCheckin,
+      $SelfCheckinsFilterComposer,
+      $SelfCheckinsOrderingComposer,
+      $SelfCheckinsAnnotationComposer,
+      $SelfCheckinsCreateCompanionBuilder,
+      $SelfCheckinsUpdateCompanionBuilder,
+      (SelfCheckin, BaseReferences<_$RakiaDatabase, SelfCheckins, SelfCheckin>),
+      SelfCheckin,
+      PrefetchHooks Function()
+    >;
+typedef $ReactionTestsCreateCompanionBuilder = ReactionTestsCompanion Function({
+  required Uint8List id,
+  required int recordedAtUs,
+  required int durationMs,
+  required int stimuli,
+  required int responses,
+  Value<double?> medianRtMs,
+  Value<double?> meanSpeed,
+  required int lapses,
+  required int falseStarts,
+  required String device,
+  Value<int> rowid,
+});
+typedef $ReactionTestsUpdateCompanionBuilder = ReactionTestsCompanion Function({
+  Value<Uint8List> id,
+  Value<int> recordedAtUs,
+  Value<int> durationMs,
+  Value<int> stimuli,
+  Value<int> responses,
+  Value<double?> medianRtMs,
+  Value<double?> meanSpeed,
+  Value<int> lapses,
+  Value<int> falseStarts,
+  Value<String> device,
+  Value<int> rowid,
+});
+
+class $ReactionTestsFilterComposer
+    extends Composer<_$RakiaDatabase, ReactionTests> {
+  $ReactionTestsFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<Uint8List> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stimuli => $composableBuilder(
+    column: $table.stimuli,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get responses => $composableBuilder(
+    column: $table.responses,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get medianRtMs => $composableBuilder(
+    column: $table.medianRtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get meanSpeed => $composableBuilder(
+    column: $table.meanSpeed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lapses => $composableBuilder(
+    column: $table.lapses,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get falseStarts => $composableBuilder(
+    column: $table.falseStarts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get device => $composableBuilder(
+    column: $table.device,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $ReactionTestsOrderingComposer
+    extends Composer<_$RakiaDatabase, ReactionTests> {
+  $ReactionTestsOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<Uint8List> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stimuli => $composableBuilder(
+    column: $table.stimuli,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get responses => $composableBuilder(
+    column: $table.responses,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get medianRtMs => $composableBuilder(
+    column: $table.medianRtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get meanSpeed => $composableBuilder(
+    column: $table.meanSpeed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lapses => $composableBuilder(
+    column: $table.lapses,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get falseStarts => $composableBuilder(
+    column: $table.falseStarts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get device => $composableBuilder(
+    column: $table.device,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $ReactionTestsAnnotationComposer
+    extends Composer<_$RakiaDatabase, ReactionTests> {
+  $ReactionTestsAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<Uint8List> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get stimuli =>
+      $composableBuilder(column: $table.stimuli, builder: (column) => column);
+
+  GeneratedColumn<int> get responses =>
+      $composableBuilder(column: $table.responses, builder: (column) => column);
+
+  GeneratedColumn<double> get medianRtMs => $composableBuilder(
+    column: $table.medianRtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get meanSpeed =>
+      $composableBuilder(column: $table.meanSpeed, builder: (column) => column);
+
+  GeneratedColumn<int> get lapses =>
+      $composableBuilder(column: $table.lapses, builder: (column) => column);
+
+  GeneratedColumn<int> get falseStarts => $composableBuilder(
+    column: $table.falseStarts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get device =>
+      $composableBuilder(column: $table.device, builder: (column) => column);
+}
+
+class $ReactionTestsTableManager
+    extends
+        RootTableManager<
+          _$RakiaDatabase,
+          ReactionTests,
+          ReactionTest,
+          $ReactionTestsFilterComposer,
+          $ReactionTestsOrderingComposer,
+          $ReactionTestsAnnotationComposer,
+          $ReactionTestsCreateCompanionBuilder,
+          $ReactionTestsUpdateCompanionBuilder,
+          (
+            ReactionTest,
+            BaseReferences<_$RakiaDatabase, ReactionTests, ReactionTest>,
+          ),
+          ReactionTest,
+          PrefetchHooks Function()
+        > {
+  $ReactionTestsTableManager(_$RakiaDatabase db, ReactionTests table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $ReactionTestsFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $ReactionTestsOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $ReactionTestsAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<Uint8List> id = const Value.absent(),
+                Value<int> recordedAtUs = const Value.absent(),
+                Value<int> durationMs = const Value.absent(),
+                Value<int> stimuli = const Value.absent(),
+                Value<int> responses = const Value.absent(),
+                Value<double?> medianRtMs = const Value.absent(),
+                Value<double?> meanSpeed = const Value.absent(),
+                Value<int> lapses = const Value.absent(),
+                Value<int> falseStarts = const Value.absent(),
+                Value<String> device = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReactionTestsCompanion(
+                id: id,
+                recordedAtUs: recordedAtUs,
+                durationMs: durationMs,
+                stimuli: stimuli,
+                responses: responses,
+                medianRtMs: medianRtMs,
+                meanSpeed: meanSpeed,
+                lapses: lapses,
+                falseStarts: falseStarts,
+                device: device,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required Uint8List id,
+                required int recordedAtUs,
+                required int durationMs,
+                required int stimuli,
+                required int responses,
+                Value<double?> medianRtMs = const Value.absent(),
+                Value<double?> meanSpeed = const Value.absent(),
+                required int lapses,
+                required int falseStarts,
+                required String device,
+                Value<int> rowid = const Value.absent(),
+              }) => ReactionTestsCompanion.insert(
+                id: id,
+                recordedAtUs: recordedAtUs,
+                durationMs: durationMs,
+                stimuli: stimuli,
+                responses: responses,
+                medianRtMs: medianRtMs,
+                meanSpeed: meanSpeed,
+                lapses: lapses,
+                falseStarts: falseStarts,
+                device: device,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<ReactionTests, ReactionTest>(table),
+                  BaseReferences<_$RakiaDatabase, ReactionTests, ReactionTest>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $ReactionTestsProcessedTableManager =
+    ProcessedTableManager<
+      _$RakiaDatabase,
+      ReactionTests,
+      ReactionTest,
+      $ReactionTestsFilterComposer,
+      $ReactionTestsOrderingComposer,
+      $ReactionTestsAnnotationComposer,
+      $ReactionTestsCreateCompanionBuilder,
+      $ReactionTestsUpdateCompanionBuilder,
+      (
+        ReactionTest,
+        BaseReferences<_$RakiaDatabase, ReactionTests, ReactionTest>,
+      ),
+      ReactionTest,
+      PrefetchHooks Function()
+    >;
 
 class $RakiaDatabaseManager {
   final _$RakiaDatabase _db;
@@ -3004,4 +4586,8 @@ class $RakiaDatabaseManager {
       $MissionsTableManager(_db, _db.missions);
   $MeasurementsTableManager get measurements =>
       $MeasurementsTableManager(_db, _db.measurements);
+  $SelfCheckinsTableManager get selfCheckins =>
+      $SelfCheckinsTableManager(_db, _db.selfCheckins);
+  $ReactionTestsTableManager get reactionTests =>
+      $ReactionTestsTableManager(_db, _db.reactionTests);
 }

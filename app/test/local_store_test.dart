@@ -112,7 +112,7 @@ void main() {
   }
 
   group('schema', () {
-    test('opens at version 1 with foreign keys enforced', () async {
+    test('opens at the current version with foreign keys enforced', () async {
       expect(store.schemaVersion, RakiaDatabase.currentSchemaVersion);
       final fk = await store.db.customSelect('PRAGMA foreign_keys').getSingle();
       expect(fk.data.values.single, 1);
@@ -122,7 +122,9 @@ void main() {
       final file = File('${tmp.path}/newer.sqlite');
       final first = RakiaDatabase(NativeDatabase(file));
       await first.customSelect('SELECT 1').get();
-      await first.customStatement('PRAGMA user_version = 2');
+      await first.customStatement(
+        'PRAGMA user_version = ${RakiaDatabase.currentSchemaVersion + 1}',
+      );
       await first.close();
 
       final second = RakiaDatabase(NativeDatabase(file));

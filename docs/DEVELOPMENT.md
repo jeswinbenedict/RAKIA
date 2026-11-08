@@ -131,9 +131,11 @@ The schema, including the triggers that enforce immutability, the simulation fir
 ```bash
 dart run build_runner build --delete-conflicting-outputs     # regenerates database.g.dart
 dart run drift_dev schema dump lib/storage/database.dart drift_schemas/
+dart run drift_dev schema generate drift_schemas/ test/generated_migrations/
+dart format test/generated_migrations
 ```
 
-Bump `RakiaDatabase.currentSchemaVersion`, add a migration step, and commit the regenerated code and the new schema export; CI fails if either is stale. Native databases live in the app's private support directory (`rakia.sqlite`), never in the documents folder.
+Bump `RakiaDatabase.currentSchemaVersion`, add the step to `onUpgrade` in `lib/storage/database.dart`, and commit the regenerated code, the new schema export and the regenerated migration helpers; CI fails if any is stale. `test/migration_test.dart` upgrades a database of every earlier version and checks the result matches the current schema exactly, so a missing or wrong step fails the tests. Version 2 added the private wellbeing tables (`self_checkins`, `reaction_tests`). Native databases live in the app's private support directory (`rakia.sqlite`), never in the documents folder.
 
 Native databases are encrypted at rest. `pubspec.yaml` selects the SQLite3 Multiple Ciphers build of the `sqlite3` package (`hooks: user_defines: sqlite3: source: sqlite3mc`), downloaded by its build hook and checked against the SHA-256 published with the package. On first launch RAKIA generates a 256-bit key, saves it with `flutter_secure_storage` under `rakia.store.key.v1`, reads it back, and only then creates the database; a database from before encryption is encrypted in place (`PRAGMA rekey`). Opening refuses to continue if the loaded SQLite has no cipher or the file on disk is not encrypted. Tests run against the same library, so `flutter test` exercises real encryption (`test/store_encryption_test.dart`). Building for Linux needs `libsecret-1-dev`; macOS uses the login keychain and needs no extra entitlement. To inspect a development database, use a SQLite3 Multiple Ciphers shell with the key from the keystore; never copy the key into the repository.
 
