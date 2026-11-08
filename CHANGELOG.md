@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Sign-in on the API: Firebase ID-token verification and `GET /v1/me`:
+  - Tokens are verified as Firebase documents for third-party servers: RS256 only (never `none` or HMAC), a key id from Google's published X.509 certificates, a valid signature, `aud` and `iss` naming the project, `exp`, `iat` and `auth_time` within 60 s of clock leeway, and a well-formed `sub`. No Firebase service account or admin secret is used.
+  - Google's certificates are fetched over verified HTTPS, cached for their advertised `max-age` (between a minute and a day) and refreshed at most once a minute when an unknown key id appears.
+  - `GET /v1/me` creates the caller's account on first use and returns it with their mission roles, as that user, so row-level security applies. Without a token: 401 with a `WWW-Authenticate: Bearer` challenge; with an invalid one: 401 `invalid_token`; without a configured project: 503. Refusals are logged with a reason code, never the token.
+  - `RAKIA_FIREBASE_PROJECT_ID`: validated, optional in development, required in staging and production.
+  - 20 new tests: every refusal reason against real RS256 tokens signed with generated keys (wrong algorithm, unknown or missing key id, another key, altered payload, short signature, expiry and future times, audience, issuer, subject, missing claims, malformed input, non-canonical base64url, weak certificates), the endpoint over HTTP, account creation and refusal of someone else's account in PostgreSQL (rolled back), configuration, and a live fetch of Google's certificates in CI. CI also runs the binary with a project id and checks forged tokens are refused and never logged.
+- OpenSSL 3 is a new build dependency of the API (TLS client for Google's certificates and RSA signature checks).
+
 - Behavioural health: private check-ins and a reaction-time test (`app/lib/wellbeing`, `app/lib/features/wellbeing_page.dart`, `check_in_page.dart`, `reaction_test_page.dart`):
   - Check-ins ask about sleepiness (Karolinska Sleepiness Scale, all nine steps labelled), stress (single-item measure of stress symptoms, Elo and colleagues, 2003) and mood (a simple self-rating, labelled as not a validated scale). Each question shows its source; nothing is saved until all three are answered.
   - A 3-minute reaction-time test after PVT-B (1 to 4 s intervals, 355 ms lapses, 100 ms false starts, 30 s timeout). It responds to pointer down, Space and Enter, and times each stimulus from the frame that shows it. It reports median response time, mean response speed, lapses and false starts, and saves only if the astronaut chooses.

@@ -13,6 +13,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(cmake/dependencies.cmake)
 find_package(PostgreSQL REQUIRED)
+find_package(OpenSSL 3.0 REQUIRED)
 find_package(Threads REQUIRED)
 
 # Strict warnings for RAKIA's own code; third-party headers are SYSTEM.
@@ -50,17 +51,21 @@ add_library(rakia_api_core STATIC
   src/app.cpp
   src/config.cpp
   src/cors.cpp
+  src/firebase_auth.cpp
   src/log.cpp
   src/pg_store.cpp
   src/rate_limit.cpp
   src/security.cpp)
 target_include_directories(rakia_api_core PUBLIC src)
 target_link_libraries(rakia_api_core PUBLIC
-  rakia_httplib rakia_json PostgreSQL::PostgreSQL Threads::Threads)
+  rakia_httplib rakia_json PostgreSQL::PostgreSQL OpenSSL::SSL OpenSSL::Crypto
+  Threads::Threads)
+# HTTPS client support in cpp-httplib (for Google's token certificates); the
+# server itself still speaks plain HTTP behind a TLS-terminating front end.
 target_compile_definitions(rakia_api_core PUBLIC
-  RAKIA_API_VERSION="${PROJECT_VERSION}")
+  RAKIA_API_VERSION="${PROJECT_VERSION}" CPPHTTPLIB_OPENSSL_SUPPORT)
 if(WIN32)
-  target_link_libraries(rakia_api_core PUBLIC ws2_32)
+  target_link_libraries(rakia_api_core PUBLIC ws2_32 crypt32)
 endif()
 rakia_api_harden(rakia_api_core)
 
@@ -72,7 +77,7 @@ install(TARGETS rakia-api RUNTIME DESTINATION bin)
 
 if(RAKIA_API_BUILD_TESTS)
   enable_testing()
-  set(RAKIA_API_TESTS test_config test_cors test_rate_limit test_http test_pg)
+  set(RAKIA_API_TESTS test_config test_cors test_rate_limit test_auth test_http test_pg)
   foreach(t IN LISTS RAKIA_API_TESTS)
     add_executable(${t} tests/${t}.cpp)
     target_link_libraries(${t} PRIVATE rakia_api_core)

@@ -2,6 +2,7 @@
 #include "security.hpp"
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <random>
 
@@ -39,6 +40,31 @@ std::string new_request_id() {
     }
   }
   return id;
+}
+
+std::string new_uuid_v7() {
+  thread_local std::random_device rd;
+  std::array<std::uint8_t, 16> b{};
+  const auto ms = static_cast<std::uint64_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::system_clock::now().time_since_epoch())
+          .count());
+  for (int i = 0; i < 6; ++i) b[static_cast<std::size_t>(i)] = static_cast<std::uint8_t>(ms >> (8 * (5 - i)));
+  for (std::size_t i = 6; i < 16; i += 4) {
+    const std::uint32_t r = rd();
+    for (std::size_t j = 0; j < 4 && i + j < 16; ++j) b[i + j] = static_cast<std::uint8_t>(r >> (8 * j));
+  }
+  b[6] = static_cast<std::uint8_t>(0x70u | (b[6] & 0x0Fu));
+  b[8] = static_cast<std::uint8_t>(0x80u | (b[8] & 0x3Fu));
+  static constexpr char hex[] = "0123456789abcdef";
+  std::string out;
+  out.reserve(36);
+  for (std::size_t i = 0; i < 16; ++i) {
+    if (i == 4 || i == 6 || i == 8 || i == 10) out.push_back('-');
+    out.push_back(hex[b[i] >> 4]);
+    out.push_back(hex[b[i] & 0x0Fu]);
+  }
+  return out;
 }
 
 bool is_safe_request_id(const std::string& id) {

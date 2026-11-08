@@ -25,7 +25,7 @@ jobs:
           build-mode: manual
           queries: security-and-quality
       - name: libpq for the API
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev libssl-dev
       - name: Build librakia and the API
         run: |
           cmake -S core -B build -DCMAKE_BUILD_TYPE=Release

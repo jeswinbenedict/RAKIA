@@ -54,6 +54,18 @@ bool is_origin(const std::string& o) {
   return true;
 }
 
+// Google Cloud project ids: 6 to 30 characters, lower-case letters, digits
+// and hyphens, starting with a letter and not ending with a hyphen.
+bool is_firebase_project_id(const std::string& id) {
+  if (id.size() < 6 || id.size() > 30) return false;
+  if (id.front() < 'a' || id.front() > 'z' || id.back() == '-') return false;
+  for (const char ch : id) {
+    const bool ok = (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-';
+    if (!ok) return false;
+  }
+  return true;
+}
+
 bool is_local(const std::string& origin) {
   return origin.find("://localhost") != std::string::npos ||
          origin.find("://127.0.0.1") != std::string::npos ||
@@ -87,7 +99,7 @@ EnvMap process_environment() {
       "RAKIA_DB_NAME",      "RAKIA_DB_USER",
       "RAKIA_DB_PASSWORD",  "RAKIA_DB_SSLMODE",
       "RAKIA_DB_SSLROOTCERT",
-      "RAKIA_API_DB_POOL_SIZE",
+      "RAKIA_API_DB_POOL_SIZE", "RAKIA_FIREBASE_PROJECT_ID",
   };
   EnvMap env;
   for (const char* key : keys) {
@@ -184,6 +196,14 @@ Config load_config(const EnvMap& file, const EnvMap& env) {
     throw ConfigError("RAKIA_DB_USER must be the least-privilege API role (rakia_api), not "
                       "the migrator or a superuser");
   }
+  c.firebase_project_id = get("RAKIA_FIREBASE_PROJECT_ID");
+  if (!c.firebase_project_id.empty() && !is_firebase_project_id(c.firebase_project_id)) {
+    throw ConfigError("RAKIA_FIREBASE_PROJECT_ID must be a Firebase project id: 6 to 30 "
+                      "lower-case letters, digits or hyphens, starting with a letter");
+  }
+  if (!dev && c.firebase_project_id.empty()) {
+    throw ConfigError("RAKIA_FIREBASE_PROJECT_ID is required outside development");
+  }
   if (!get("RAKIA_API_DB_POOL_SIZE").empty()) {
     c.db_pool_size = parse_number<std::size_t>("RAKIA_API_DB_POOL_SIZE",
                                                get("RAKIA_API_DB_POOL_SIZE"), 1, 64);
@@ -202,7 +222,8 @@ std::string Config::describe() const {
     << " db=" << db_user << '@' << db_host << ':' << db_port << '/' << db_name
     << " sslmode=" << db_sslmode
     << (db_sslrootcert.empty() ? "" : " sslrootcert=" + db_sslrootcert)
-    << " pool=" << db_pool_size;
+    << " pool=" << db_pool_size << " firebase="
+    << (firebase_project_id.empty() ? "(not configured)" : firebase_project_id);
   return s.str();
 }
 

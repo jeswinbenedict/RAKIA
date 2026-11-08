@@ -88,10 +88,10 @@ It downloads `sqlite3.wasm` from the official release of the locked `sqlite3` pa
 
 ### API (`server/`)
 
-C++20 with CMake 3.24+. cpp-httplib and nlohmann/json are fetched at configure time and checked against pinned SHA-256 hashes (`server/cmake/dependencies.cmake`); libpq comes from the PostgreSQL installation (`libpq-dev` on Debian and Ubuntu).
+C++20 with CMake 3.24+. cpp-httplib and nlohmann/json are fetched at configure time and checked against pinned SHA-256 hashes (`server/cmake/dependencies.cmake`); libpq and OpenSSL 3 come from the system (`libpq-dev` and `libssl-dev` on Debian and Ubuntu; on Windows the PostgreSQL installation ships both, so pass `-DOPENSSL_ROOT_DIR` with the same path as `-DPostgreSQL_ROOT`). The ID-token tests sign real RS256 tokens with keys they generate; set `RAKIA_API_NETWORK_TESTS=1` to also fetch and parse Google's live certificates.
 
 ```bash
-cmake -S server -B server/build -DCMAKE_BUILD_TYPE=Release   # Windows: add -DPostgreSQL_ROOT="C:/Program Files/PostgreSQL/18"
+cmake -S server -B server/build -DCMAKE_BUILD_TYPE=Release   # Windows: add -DPostgreSQL_ROOT="C:/Program Files/PostgreSQL/18" -DOPENSSL_ROOT_DIR="C:/Program Files/PostgreSQL/18"
 cmake --build server/build --parallel
 ctest --test-dir server/build --output-on-failure
 ```

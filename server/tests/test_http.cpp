@@ -10,6 +10,7 @@
 #include "app.hpp"
 #include "log.hpp"
 #include "rk_test.hpp"
+#include "token_fixture.hpp"
 
 using namespace std::chrono_literals;
 using json = nlohmann::json;
@@ -37,6 +38,31 @@ struct FakeStore final : rakia::Store {
     if (mode == Mode::down) throw rakia::StoreUnavailable("down");
     if (mode == Mode::query_error) throw rakia::QueryError("XX000", "secret detail");
     return {{"heart_rate.resting", "Resting heart rate", "bpm", "/min", 30, 120}};
+  }
+  std::vector<std::string> account_calls;
+  rakia::Account account(const std::string& firebase_uid) override {
+    if (mode == Mode::down) throw rakia::StoreUnavailable("down");
+    account_calls.push_back(firebase_uid);
+    rakia::Account a;
+    a.id = "0190b8f4-0000-7000-8000-000000000001";
+    a.firebase_uid = firebase_uid;
+    a.created_at = "2026-11-08T09:00:00Z";
+    a.memberships.push_back({"0190b8f4-0000-7000-8000-0000000000aa", "Analog mission", false,
+                             "astronaut"});
+    return a;
+  }
+};
+
+/// A verifier over a freshly generated key, with the clock at rk::kNow.
+struct TestAuth {
+  rk::SigningKey key;
+  rakia::StaticKeys keys;
+  rakia::FirebaseVerifier verifier;
+  TestAuth() : verifier(rk::kProject, keys, [] { return rk::kNow; }) {
+    keys.add("key-1", rakia::key_from_certificate_pem(key.certificate_pem));
+  }
+  std::string token(const std::string& uid) const {
+    return key.sign(rk::header(), rk::valid_claims(uid));
   }
 };
 
@@ -224,6 +250,61 @@ TEST("rate limiting returns 429 with Retry-After, and spares the probes") {
   CHECK(!r->get_header_value("Retry-After").empty());
   CHECK_EQ(c.Get("/v1/health")->status, 200);
   CHECK_EQ(c.Get("/v1/ready")->status, 200);
+}
+
+TEST("/v1/me answers 503 when sign-in is not configured") {
+  FakeStore store;
+  rakia::App app(config(), store);
+  Running run(app);
+  const auto r = run.client().Get("/v1/me");
+  CHECK_EQ(r->status, 503);
+  CHECK_EQ(body(r)["error"]["code"], "auth_not_configured");
+}
+
+TEST("/v1/me needs a bearer token and challenges without one") {
+  FakeStore store;
+  TestAuth auth;
+  rakia::App app(config(), store, &auth.verifier);
+  Running run(app);
+  auto c = run.client();
+  auto r = c.Get("/v1/me");
+  CHECK_EQ(r->status, 401);
+  CHECK_EQ(body(r)["error"]["code"], "unauthenticated");
+  CHECK_EQ(r->get_header_value("WWW-Authenticate"), std::string("Bearer realm=\"rakia\""));
+  r = c.Get("/v1/me", httplib::Headers{{"Authorization", "Basic dXNlcjpwYXNz"}});
+  CHECK_EQ(r->status, 401);
+  CHECK(store.account_calls.empty());
+}
+
+TEST("/v1/me refuses an invalid token without reaching the database") {
+  FakeStore store;
+  TestAuth auth;
+  rakia::App app(config(), store, &auth.verifier);
+  Running run(app);
+  const rk::SigningKey stranger;
+  const auto r = run.client().Get(
+      "/v1/me", httplib::Headers{{"Authorization",
+                                  "Bearer " + stranger.sign(rk::header(), rk::valid_claims())}});
+  CHECK_EQ(r->status, 401);
+  CHECK_EQ(body(r)["error"]["code"], "invalid_token");
+  CHECK(r->get_header_value("WWW-Authenticate").find("invalid_token") != std::string::npos);
+  CHECK(store.account_calls.empty());
+}
+
+TEST("/v1/me returns the verified user's account and roles") {
+  FakeStore store;
+  TestAuth auth;
+  rakia::App app(config(), store, &auth.verifier);
+  Running run(app);
+  const auto r = run.client().Get(
+      "/v1/me", httplib::Headers{{"Authorization", "bearer " + auth.token("astronaut-7")}});
+  CHECK_EQ(r->status, 200);
+  const auto b = body(r);
+  CHECK_EQ(b["user"]["firebase_uid"], "astronaut-7");
+  CHECK(b["user"]["display_name"].is_null());
+  CHECK_EQ(b["memberships"][0]["role"], "astronaut");
+  CHECK_EQ(store.account_calls.size(), std::size_t{1});
+  CHECK_EQ(store.account_calls[0], std::string("astronaut-7"));
 }
 
 TEST("bodies over the limit are refused") {

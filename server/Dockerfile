@@ -16,7 +16,7 @@ ARG DEBIAN=debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b
 FROM ${DEBIAN} AS build
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      ca-certificates cmake g++ libpq-dev make \
+      ca-certificates cmake g++ libpq-dev libssl-dev make \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY CMakeLists.txt ./
@@ -32,7 +32,7 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
 
 FROM ${DEBIAN}
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates libpq5 \
+ && apt-get install -y --no-install-recommends ca-certificates libpq5 libssl3t64 \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin rakia
 COPY --from=build /src/build/rakia-api /usr/local/bin/rakia-api

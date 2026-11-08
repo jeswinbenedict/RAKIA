@@ -7,9 +7,11 @@ info:
     name: Apache-2.0
     identifier: Apache-2.0
   description: |
-    The endpoints implemented so far. Authenticated endpoints (sign-in with
-    Firebase ID tokens, sync, ingest) are added by later releases; this file
-    is updated with each.
+    The endpoints implemented so far. Sync and ingest are added by later
+    releases; this file is updated with each. Authenticated endpoints take a
+    Firebase ID token as a bearer token; the API verifies it against
+    Google's published keys and then acts as that user, with row-level
+    security in the database.
 
     Every response carries `X-Request-Id` (a caller may supply one of 8 to
     64 characters of `[A-Za-z0-9-]`), security headers, and
@@ -90,6 +92,60 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Error'}
+  /v1/me:
+    get:
+      summary: The signed-in user's account and mission roles
+      description: |
+        Creates the account record the first time a verified user calls it.
+        Returns the missions the user belongs to with their roles; health
+        data is not part of this response.
+      operationId: getMe
+      responses:
+        '200':
+          description: The account and memberships.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, memberships]
+                properties:
+                  user:
+                    type: object
+                    required: [id, firebase_uid, display_name, created_at]
+                    properties:
+                      id: {type: string, format: uuid}
+                      firebase_uid: {type: string}
+                      display_name: {type: [string, 'null']}
+                      created_at: {type: string, format: date-time}
+                  memberships:
+                    type: array
+                    items:
+                      type: object
+                      required: [mission_id, mission_name, is_simulation, role]
+                      properties:
+                        mission_id: {type: string, format: uuid}
+                        mission_name: {type: string}
+                        is_simulation: {type: boolean}
+                        role:
+                          type: string
+                          enum: [astronaut, crew_medical_officer, flight_surgeon, researcher, mission_admin]
+        '401':
+          description: |
+            No bearer token (`unauthenticated`), or a token that is expired,
+            not signed by Google for this project, or otherwise invalid
+            (`invalid_token`). Carries a `WWW-Authenticate: Bearer` challenge.
+          headers:
+            WWW-Authenticate:
+              schema: {type: string}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503':
+          description: Sign-in is not configured on this server, or the database is unavailable.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
 components:
   securitySchemes:
     firebase:
@@ -98,8 +154,7 @@ components:
       bearerFormat: JWT
       description: |
         A Firebase ID token, verified by the API against Google's public
-        keys. Used by the authenticated endpoints added in later releases;
-        the endpoints in this release are public (`security: []`).
+        keys. Endpoints marked `security: []` are public.
   schemas:
     MetricDefinition:
       type: object

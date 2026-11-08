@@ -77,7 +77,8 @@ TEST("CORS origins must be bare origins") {
 }
 
 TEST("outside development: TLS to the database and public https origins only") {
-  auto prod = with(base(), "RAKIA_ENV", "production");
+  auto prod = with(with(base(), "RAKIA_ENV", "production"), "RAKIA_FIREBASE_PROJECT_ID",
+                   "rakia-prod");
   CHECK_THROWS(ConfigError, load_config({}, prod));  // sslmode disable
   prod = with(prod, "RAKIA_DB_SSLMODE", "require");
   CHECK_THROWS(ConfigError, load_config({}, prod));  // require is not enough
@@ -90,12 +91,31 @@ TEST("outside development: TLS to the database and public https origins only") {
 }
 
 TEST("verify-full checks the server against the system roots unless a file is given") {
-  auto prod = with(with(base(), "RAKIA_ENV", "production"), "RAKIA_DB_SSLMODE", "verify-full");
+  auto prod = with(with(with(base(), "RAKIA_ENV", "production"), "RAKIA_DB_SSLMODE", "verify-full"),
+                   "RAKIA_FIREBASE_PROJECT_ID", "rakia-prod");
   CHECK_EQ(load_config({}, prod).db_sslrootcert, std::string("system"));
   CHECK_EQ(load_config({}, with(prod, "RAKIA_DB_SSLROOTCERT", "/etc/rakia/db-ca.pem")).db_sslrootcert,
            std::string("/etc/rakia/db-ca.pem"));
   CHECK(load_config({}, base()).db_sslrootcert.empty());
   CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_DB_SSLROOTCERT", "system")));
+}
+
+TEST("the Firebase project: optional in development, required elsewhere, well-formed") {
+  CHECK(load_config({}, base()).firebase_project_id.empty());
+  CHECK_EQ(load_config({}, with(base(), "RAKIA_FIREBASE_PROJECT_ID", "rakia-dev-1234"))
+               .firebase_project_id,
+           std::string("rakia-dev-1234"));
+  for (const char* bad : {"short", "Upper-case", "1starts-with-digit", "ends-with-hyphen-",
+                          "has_underscore", "a-project-id-that-is-far-too-long-x"}) {
+    CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_FIREBASE_PROJECT_ID", bad)));
+  }
+  const auto staging = with(with(base(), "RAKIA_ENV", "staging"), "RAKIA_DB_SSLMODE", "verify-full");
+  try {
+    load_config({}, staging);
+    CHECK(false);
+  } catch (const ConfigError& e) {
+    CHECK(std::string(e.what()).find("RAKIA_FIREBASE_PROJECT_ID") != std::string::npos);
+  }
 }
 
 TEST("the API refuses to run as the migrator or a superuser") {

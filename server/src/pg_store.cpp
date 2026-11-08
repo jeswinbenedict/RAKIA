@@ -8,6 +8,7 @@
 #include <string>
 
 #include "log.hpp"
+#include "security.hpp"
 
 namespace rakia {
 namespace {
@@ -193,6 +194,39 @@ std::vector<MetricDefinition> PgStore::metric_definitions() {
     }
   });
   return out;
+}
+
+Account load_account(Tx& tx, const std::string& firebase_uid, const std::string& new_id) {
+  // Row-level security lets a user create and read only their own record.
+  tx.query(
+      "INSERT INTO rakia.app_users (id, firebase_uid) VALUES ($1::uuid, $2) "
+      "ON CONFLICT (firebase_uid) DO NOTHING",
+      {new_id, firebase_uid});
+  const auto rows = tx.query(
+      "SELECT id::text, firebase_uid, display_name, "
+      "to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') "
+      "FROM rakia.app_users WHERE firebase_uid = rakia.current_uid()");
+  if (rows.size() != 1) throw QueryError("42501", "account not visible to its own user");
+  Account a;
+  a.id = rows[0].at(0).value();
+  a.firebase_uid = rows[0].at(1).value();
+  a.display_name = rows[0].at(2);
+  a.created_at = rows[0].at(3).value();
+  for (const auto& r : tx.query(
+           "SELECT m.id::text, m.name, m.is_simulation, mm.role::text "
+           "FROM rakia.mission_members mm JOIN rakia.missions m ON m.id = mm.mission_id "
+           "WHERE mm.user_id = rakia.current_user_id() ORDER BY m.name, mm.role")) {
+    a.memberships.push_back(
+        {r.at(0).value(), r.at(1).value(), r.at(2).value() == "t", r.at(3).value()});
+  }
+  return a;
+}
+
+Account PgStore::account(const std::string& firebase_uid) {
+  Account a;
+  transaction(firebase_uid,
+              [&](Tx& tx) { a = load_account(tx, firebase_uid, new_uuid_v7()); });
+  return a;
 }
 
 }  // namespace rakia
