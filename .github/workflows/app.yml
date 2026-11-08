@@ -188,6 +188,20 @@ jobs:
       - if: matrix.target == 'web'
         name: SQLite WebAssembly (pinned, checksum-verified) and the store worker
         run: sh tool/build_web_sqlite.sh
+      - if: matrix.target == 'android'
+        name: Gradle distribution (downloaded with retries; the wrapper checks its SHA-256)
+        # The wrapper itself does not retry. A 5xx from GitHub's release
+        # downloads should not fail the build, a wrong checksum still does,
+        # and five failed attempts still fail the job.
+        run: |
+          flutter build apk --config-only
+          cd android
+          for attempt in 1 2 3 4 5; do
+            ./gradlew --version --quiet && exit 0
+            echo "Gradle distribution download failed (attempt $attempt of 5)" >&2
+            sleep $((attempt * 30))
+          done
+          exit 1
       - name: Build
         run: ${{ matrix.command }}
       - if: matrix.target == 'web'
