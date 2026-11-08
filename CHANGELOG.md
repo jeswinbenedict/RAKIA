@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Sign-in on the API: Firebase ID-token verification and `GET /v1/me`:
+  - Tokens are verified as Firebase documents for third-party servers: RS256 only (never `none` or HMAC), a key id from Google's published X.509 certificates, a valid signature, `aud` and `iss` naming the project, `exp`, `iat` and `auth_time` within 60 s of clock leeway, and a well-formed `sub`. No Firebase service account or admin secret is used.
+  - Google's certificates are fetched over verified HTTPS, cached for their advertised `max-age` (between a minute and a day) and refreshed at most once a minute when an unknown key id appears.
+  - `GET /v1/me` creates the caller's account on first use and returns it with their mission roles, as that user, so row-level security applies. Without a token: 401 with a `WWW-Authenticate: Bearer` challenge; with an invalid one: 401 `invalid_token`; without a configured project: 503. Refusals are logged with a reason code, never the token.
+  - `RAKIA_FIREBASE_PROJECT_ID`: validated, optional in development, required in staging and production.
+  - 20 new tests: every refusal reason against real RS256 tokens signed with generated keys (wrong algorithm, unknown or missing key id, another key, altered payload, short signature, expiry and future times, audience, issuer, subject, missing claims, malformed input, non-canonical base64url, weak certificates), the endpoint over HTTP, account creation and refusal of someone else's account in PostgreSQL (rolled back), configuration, and a live fetch of Google's certificates in CI. CI also runs the binary with a project id and checks forged tokens are refused and never logged.
+- OpenSSL 3 is a new build dependency of the API (TLS client for Google's certificates and RSA signature checks).
+
 - Deployment readiness:
   - `server/Dockerfile`: multi-stage image for Cloud Run; the unit and HTTP tests run during the build; the binary runs as a non-root user; production mode by default (no `.env` file read, verified TLS to the database required); Debian base pinned by digest, with Dependabot tracking it.
   - `RAKIA_DB_SSLROOTCERT` for the API and the migration runner: a CA certificate file for providers with a private CA (Supabase), or the system roots (the default with `verify-full`).

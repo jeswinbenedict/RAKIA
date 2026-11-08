@@ -54,6 +54,8 @@ Key C++/C deps (all permissive): Drogon, libpq, jwt-cpp, OpenSSL, nlohmann/json,
 - **RBAC:** roles per mission — `astronaut`, `crew_medical_officer`, `flight_surgeon`, `researcher` (de-identified read only), `mission_admin`. Checked in the API *and* enforced again in Postgres with Row-Level Security (defence in depth). An astronaut sees only their own data; behavioural data obeys consent scopes.
 - **Turnstile:** on sign-up, password reset, phone-OTP request (prevents SMS-cost abuse) and any public form. Server-side `siteverify` with secret; reject on failure/`timeout-or-duplicate`; store SHA-256 of token for 10 min to block replay; check `action`/`hostname`; fail closed on public forms, with a clear retry message. Turnstile is bot friction, not identity.
 
+**Implemented in the API:** `server/src/firebase_auth.cpp` verifies ID tokens exactly as above (RS256 only, key id from Google's published X.509 certificates fetched over verified TLS and cached for their `max-age`, refreshed at most once a minute on an unknown key id; `aud`, `iss`, `exp`, `iat`, `auth_time` and `sub` checked with 60 s of clock leeway). `GET /v1/me` creates the caller's `app_users` row on first use and returns it with their mission roles, running as that user so row-level security applies. Refusals are logged with a reason code, never the token. The app's sign-in screens, Turnstile and RBAC-gated endpoints follow once a Firebase project exists.
+
 ## 5. Supabase integration — honest assessment
 
 Your local PostgreSQL 18 is vanilla Postgres. Supabase's PostgREST, Realtime, Storage and Auth are **separate services** and do not exist on it. Therefore:

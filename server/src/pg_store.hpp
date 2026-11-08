@@ -35,6 +35,10 @@ class Tx {
 /// PostgreSQL through libpq, as the least-privilege rakia_api role. A fixed
 /// pool of connections, opened lazily and reopened after a failure, so the
 /// API starts (and reports not ready) while the database is down.
+/// The account of the caller of [tx] (a transaction run with their uid),
+/// creating the record with [new_id] if it does not exist yet.
+Account load_account(Tx& tx, const std::string& firebase_uid, const std::string& new_id);
+
 class PgStore final : public Store {
  public:
   explicit PgStore(const Config& config,
@@ -53,6 +57,7 @@ class PgStore final : public Store {
 
   int schema_version() override;
   std::vector<MetricDefinition> metric_definitions() override;
+  Account account(const std::string& firebase_uid) override;
 
  private:
   pg_conn* acquire();

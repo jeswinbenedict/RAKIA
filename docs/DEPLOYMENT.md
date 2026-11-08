@@ -67,11 +67,11 @@ gcloud run deploy rakia-api \
   --image REGION-docker.pkg.dev/PROJECT/rakia/rakia-api:0.1.0 \
   --region REGION --port 8080 --allow-unauthenticated \
   --min-instances 0 --max-instances 3 --concurrency 40 \
-  --set-env-vars RAKIA_ENV=production,RAKIA_DB_HOST=<database host>,RAKIA_DB_PORT=5432,RAKIA_DB_NAME=postgres,RAKIA_DB_USER=rakia_api,RAKIA_DB_SSLMODE=verify-full,RAKIA_DB_SSLROOTCERT=/etc/rakia/db-ca.pem,RAKIA_CORS_ORIGINS=https://<web app host>,RAKIA_TRUSTED_PROXY_HOPS=1 \
+  --set-env-vars RAKIA_ENV=production,RAKIA_DB_HOST=<database host>,RAKIA_DB_PORT=5432,RAKIA_DB_NAME=postgres,RAKIA_DB_USER=rakia_api,RAKIA_DB_SSLMODE=verify-full,RAKIA_DB_SSLROOTCERT=/etc/rakia/db-ca.pem,RAKIA_CORS_ORIGINS=https://<web app host>,RAKIA_TRUSTED_PROXY_HOPS=1,RAKIA_FIREBASE_PROJECT_ID=<firebase project id> \
   --set-secrets RAKIA_DB_PASSWORD=rakia-db-password:latest,/etc/rakia/db-ca.pem=rakia-db-ca:latest
 ```
 
-- `--allow-unauthenticated` makes the service reachable from the web app; the API authenticates users itself (Firebase ID tokens, in the next release) and enforces row-level security in the database.
+- `--allow-unauthenticated` makes the service reachable from the web app; the API authenticates users itself by verifying Firebase ID tokens against Google's published keys (no Firebase service account or admin secret is needed, or used) and enforces row-level security in the database. The container needs outbound HTTPS to `www.googleapis.com` to fetch those keys.
 - In the service's YAML (or the console), set a **startup probe** on `GET /v1/ready` and a **liveness probe** on `GET /v1/health`. Readiness fails with 503 until the database is reachable and migrated to the version the image expects.
 - For a database without a private CA (a provider with publicly trusted certificates), leave `RAKIA_DB_SSLROOTCERT` unset: `verify-full` then checks against the image's system roots.
 - Logs are JSON lines on stderr, read by Cloud Logging (`severity`, `message`, `request_id`). They contain no addresses, query strings, headers, bodies or secrets.

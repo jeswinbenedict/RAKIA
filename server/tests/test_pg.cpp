@@ -9,6 +9,7 @@
 #include "log.hpp"
 #include "pg_store.hpp"
 #include "rk_test.hpp"
+#include "security.hpp"
 
 namespace {
 
@@ -98,6 +99,41 @@ TEST("the API role cannot write reference data") {
   try {
     store().transaction(std::nullopt, [](rakia::Tx& tx) {
       tx.query("UPDATE rakia.metric_definitions SET unit = 'x'");
+    });
+    CHECK(false);
+  } catch (const rakia::QueryError& e) {
+    CHECK_EQ(e.sqlstate, std::string("42501"));
+  }
+}
+
+TEST("an account is created once, as its own user, and only in that transaction") {
+  struct Rollback {};
+  const auto uid = "rakia-pg-test-" + rakia::new_uuid_v7();
+  try {
+    store().transaction(uid, [&](rakia::Tx& tx) {
+      const auto a = rakia::load_account(tx, uid, rakia::new_uuid_v7());
+      CHECK_EQ(a.firebase_uid, uid);
+      CHECK(!a.display_name.has_value());
+      CHECK(a.memberships.empty());
+      CHECK_EQ(a.created_at.size(), std::size_t{20});
+      // A second call finds the same record instead of creating another.
+      const auto again = rakia::load_account(tx, uid, rakia::new_uuid_v7());
+      CHECK_EQ(again.id, a.id);
+      throw Rollback{};  // leave no test user behind
+    });
+  } catch (const Rollback&) {
+  }
+  store().transaction(uid, [&](rakia::Tx& tx) {
+    CHECK_EQ(tx.query("SELECT count(*) FROM rakia.app_users").at(0).at(0).value(),
+             std::string("0"));
+  });
+}
+
+TEST("a user cannot create an account for someone else") {
+  try {
+    store().transaction(std::string("caller-a"), [](rakia::Tx& tx) {
+      tx.query("INSERT INTO rakia.app_users (id, firebase_uid) VALUES ($1::uuid, 'caller-b')",
+               {rakia::new_uuid_v7()});
     });
     CHECK(false);
   } catch (const rakia::QueryError& e) {

@@ -38,6 +38,11 @@ struct Config {
   std::string db_sslrootcert;
   std::size_t db_pool_size = 4;
 
+  /// Firebase project whose ID tokens the API accepts. Empty in
+  /// development means sign-in is not configured (authenticated endpoints
+  /// answer 503); required everywhere else.
+  std::string firebase_project_id;
+
   /// Settings safe to log: everything except the password.
   [[nodiscard]] std::string describe() const;
 };

@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: libpq (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev libssl-dev
       - name: Configure (Linux)
         if: runner.os == 'Linux'
         env:
@@ -50,10 +50,14 @@ jobs:
       - name: Configure (Windows, preinstalled PostgreSQL client)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: cmake -S . -B build ${{ matrix.cmake_args }} "-DPostgreSQL_ROOT=$env:PGROOT"
+        # libpq and OpenSSL both from the PostgreSQL installation, so the
+        # headers, import libraries and DLLs on PATH match.
+        run: cmake -S . -B build ${{ matrix.cmake_args }} "-DPostgreSQL_ROOT=$env:PGROOT" "-DOPENSSL_ROOT_DIR=$env:PGROOT"
       - name: Build (warnings are errors)
         run: cmake --build build --config Release --parallel
-      - name: Unit and HTTP tests
+      - name: Unit and HTTP tests (including a live fetch of Google's token certificates)
+        env:
+          RAKIA_API_NETWORK_TESTS: '1'
         run: ctest --test-dir build -C Release --output-on-failure
 
   spec:
@@ -78,7 +82,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - name: libpq
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev libssl-dev
       - name: Build
         working-directory: server
         run: |
@@ -124,6 +128,8 @@ jobs:
           curl -sf http://127.0.0.1:18080/v1/ready | grep -q '"status":"ready"'
           curl -sf http://127.0.0.1:18080/v1/metric-definitions | grep -q 'heart_rate.resting'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/v1/nope)" = 404
+          # Sign-in is not configured in this .env: /v1/me says so.
+          curl -s http://127.0.0.1:18080/v1/me | grep -q auth_not_configured
           kill -TERM "$pid"
           wait "$pid"
           grep -q '"message":"stopped"' api.log
@@ -132,6 +138,28 @@ jobs:
             value=$(grep "^$key=" .env | cut -d= -f2)
             if grep -qF "$value" api.log; then echo "$key appears in the log" >&2; exit 1; fi
           done
+      - name: With a Firebase project, forged tokens are refused against Google's live keys
+        env:
+          RAKIA_API_PORT: '18082'
+          RAKIA_FIREBASE_PROJECT_ID: rakia-ci-check
+        run: |
+          ./server/build/rakia-api 2> auth.log &
+          pid=$!
+          for _ in $(seq 30); do
+            curl -sf http://127.0.0.1:18082/v1/health >/dev/null && break
+            sleep 1
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18082/v1/me)" = 401
+          hdr=$(printf '{"alg":"RS256","kid":"forged"}' | base64 -w0 | tr '+/' '-_' | tr -d '=')
+          pay=$(printf '{"sub":"x"}' | base64 -w0 | tr '+/' '-_' | tr -d '=')
+          curl -s -D headers.txt -H "Authorization: Bearer $hdr.$pay.c2ln" \
+            http://127.0.0.1:18082/v1/me | grep -q invalid_token
+          grep -qi 'www-authenticate: Bearer realm="rakia", error="invalid_token"' headers.txt
+          grep -q '"reason":"unknown_key"' auth.log
+          # The token itself is never logged.
+          if grep -q "$hdr" auth.log; then echo "the token was logged" >&2; exit 1; fi
+          kill -TERM "$pid"
+          wait "$pid"
       - name: Container image builds (tests run inside) and serves as a non-root user
         run: |
           docker build -f server/Dockerfile -t rakia-api:ci server

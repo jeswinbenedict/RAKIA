@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -17,6 +18,23 @@ struct MetricDefinition {
   std::string ucum;
   double plausible_min = 0;
   double plausible_max = 0;
+};
+
+/// A mission the signed-in user belongs to, with one of their roles in it.
+struct Membership {
+  std::string mission_id;
+  std::string mission_name;
+  bool is_simulation = false;
+  std::string role;
+};
+
+/// The signed-in user's account record and memberships.
+struct Account {
+  std::string id;
+  std::string firebase_uid;
+  std::optional<std::string> display_name;
+  std::string created_at;
+  std::vector<Membership> memberships;
 };
 
 /// The database cannot be reached or no connection was free in time.
@@ -43,6 +61,9 @@ class Store {
   virtual int schema_version() = 0;
   /// Reference data: the indicators RAKIA understands.
   virtual std::vector<MetricDefinition> metric_definitions() = 0;
+  /// The account of the verified Firebase user [firebase_uid], created on
+  /// first use, as that user (row-level security applies).
+  virtual Account account(const std::string& firebase_uid) = 0;
 };
 
 }  // namespace rakia

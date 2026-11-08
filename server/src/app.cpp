@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "app.hpp"
 
+#include <cctype>
 #include <chrono>
 #include <exception>
 #include <nlohmann/json.hpp>
@@ -33,13 +34,26 @@ void send_error(httplib::Response& res, int status, const std::string& code,
        {{"error", {{"code", code}, {"message", message}, {"request_id", request_id(res)}}}});
 }
 
+/// The bearer token of an Authorization header, or empty.
+std::string bearer_token(const httplib::Request& req) {
+  const auto h = req.get_header_value("Authorization");
+  if (h.size() < 7) return {};
+  std::string scheme = h.substr(0, 7);
+  for (auto& ch : scheme) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+  if (scheme != "bearer ") return {};
+  const auto start = h.find_first_not_of(' ', 7);
+  return start == std::string::npos ? std::string{} : h.substr(start);
+}
+
 bool is_probe(const std::string& path) { return path == "/v1/health" || path == "/v1/ready"; }
 
 }  // namespace
 
-App::App(const Config& config, Store& store, RateLimiter::Clock clock)
+App::App(const Config& config, Store& store, const FirebaseVerifier* verifier,
+         RateLimiter::Clock clock)
     : config_(config),
       store_(store),
+      verifier_(verifier),
       cors_(config.cors_origins),
       limiter_(config.rate_limit_per_minute, std::move(clock)) {
   server_.set_payload_max_length(kMaxBodyBytes);
@@ -183,6 +197,49 @@ void App::routes() {
                        {"plausible_max", m.plausible_max}});
     }
     send(res, 200, {{"metric_definitions", items}});
+  });
+
+  // The signed-in user's account (created on first use) and their roles.
+  server_.Get("/v1/me", [this](const httplib::Request& req, httplib::Response& res) {
+    if (verifier_ == nullptr) {
+      send_error(res, 503, "auth_not_configured",
+                 "Sign-in is not configured on this server.");
+      return;
+    }
+    const auto token = bearer_token(req);
+    if (token.empty()) {
+      res.set_header("WWW-Authenticate", "Bearer realm=\"rakia\"");
+      send_error(res, 401, "unauthenticated", "Sign in to continue.");
+      return;
+    }
+    VerifiedUser user;
+    try {
+      user = verifier_->verify(token);
+    } catch (const AuthError& e) {
+      // The reason is logged; the token and its claims never are.
+      log::info("token refused", {{"request_id", request_id(res)}, {"reason", e.reason}});
+      res.set_header("WWW-Authenticate", "Bearer realm=\"rakia\", error=\"invalid_token\"");
+      send_error(res, 401, "invalid_token",
+                 e.reason == "keys_unavailable"
+                     ? "Sign-in cannot be checked right now. Try again shortly."
+                     : "Your sign-in has expired or is not valid. Sign in again.");
+      return;
+    }
+    const auto a = store_.account(user.uid);
+    json memberships = json::array();
+    for (const auto& m : a.memberships) {
+      memberships.push_back({{"mission_id", m.mission_id},
+                             {"mission_name", m.mission_name},
+                             {"is_simulation", m.is_simulation},
+                             {"role", m.role}});
+    }
+    send(res, 200,
+         {{"user",
+           {{"id", a.id},
+            {"firebase_uid", a.firebase_uid},
+            {"display_name", a.display_name ? json(*a.display_name) : json(nullptr)},
+            {"created_at", a.created_at}}},
+          {"memberships", memberships}});
   });
 }
 

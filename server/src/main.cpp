@@ -8,6 +8,7 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <memory>
 #include <thread>
 
 #include "app.hpp"
@@ -39,7 +40,15 @@ int main() {
                                           {"config", config.describe()}});
 
   rakia::PgStore store(config);
-  rakia::App app(config, store);
+  rakia::GoogleKeys google_keys;
+  std::unique_ptr<rakia::FirebaseVerifier> verifier;
+  if (config.firebase_project_id.empty()) {
+    rakia::log::warn("sign-in is not configured (RAKIA_FIREBASE_PROJECT_ID is empty); "
+                     "authenticated endpoints answer 503");
+  } else {
+    verifier = std::make_unique<rakia::FirebaseVerifier>(config.firebase_project_id, google_keys);
+  }
+  rakia::App app(config, store, verifier.get());
   auto& server = app.server();
 
   std::signal(SIGINT, on_signal);

@@ -29,11 +29,12 @@
 - [x] Local database bootstrap script (roles, database, `.env`): [jeswinbenedict/RAKIA#9](https://github.com/jeswinbenedict/RAKIA/pull/9), merged
 - [x] Phase 5: PostgreSQL schema, migrations, row-level security and tests: [jeswinbenedict/RAKIA#10](https://github.com/jeswinbenedict/RAKIA/pull/10), merged
 - [x] Phase 5: C++ API skeleton (configuration, health and readiness, reference data, security headers, CORS, rate limiting, database pool): [jeswinbenedict/RAKIA#11](https://github.com/jeswinbenedict/RAKIA/pull/11), merged
-- [ ] Deployment readiness (API container, web hosting headers, self-contained web build, deployment guide): `chore/deploy-readiness`, in review
+- [ ] Deployment readiness (API container, web hosting headers, self-contained web build, deployment guide): [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12), in review
+- [ ] Sign-in on the API (Firebase ID-token verification, `GET /v1/me`): `feature/auth-api`, in review (stacked on #12)
 
 ## Pending
 
-- [ ] Review and merge `chore/deploy-readiness` (owner approval required)
+- [ ] Review and merge [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12), then `feature/auth-api` (owner approval required)
 - [ ] Run `db/bootstrap/bootstrap-local.ps1`, then `dart run bin/migrate.dart up` in `db/`, on your machine (owner: needs the PostgreSQL superuser password)
 - [ ] `feature/auth` (needs a Firebase project and Turnstile keys)
 - [ ] `feature/ingest` (after `feature/auth`)
@@ -81,6 +82,7 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 - librakia in the app: struct-free flat C ABI; Dart package `core/dart` with a native backend (build hook + `dart:ffi`) and a web backend (Emscripten WebAssembly + `dart:js_interop`); the app loads the core at startup and the About page reports the backend and a known-answer self-test.
 - Mission dashboard: opt-in, deterministic simulation mission with known ground truth; Mission overview, Action center with six-part explainable alerts, detailed Cardiovascular / Sleep / Physical modules with baseline-band charts, and Data management with provenance and quality. Every status and number comes from librakia. Real data appears only after ingest and is never mixed with simulated data.
 - On-device store: SQLite through Drift on every platform (private app directory natively; OPFS or IndexedDB in a browser). SQLite triggers enforce immutable measurements, the simulation firewall, subject consistency, a continuous per-mission hash chain and simulation-only deletion; librakia re-verifies the chain on every load. The simulation mission and the theme choice survive restarts; without storage the app runs in memory and says why.
+- Sign-in on the API (in review): Firebase ID tokens verified against Google's published keys; `GET /v1/me` creates and returns the caller's account and mission roles under row-level security.
 - Deployment readiness (in review): API container image, web hosting security headers verified in headless Chrome, self-contained web build, deployment guide.
 - C++ API skeleton: health, readiness and reference-data endpoints; validated configuration; security headers, CORS, rate limiting, request ids, JSON errors and logs; libpq pool as `rakia_api` with per-request caller claims.
 - PostgreSQL schema: migration `0001_core` with the simulation firewall, per-client hash chains, immutable measurements, row-level security for every role and a hash-chained audit log; a Dart migration runner; 54 tests against PostgreSQL 18.
@@ -128,7 +130,8 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 
 ## Open pull requests
 
-- `chore/deploy-readiness`: deployment readiness (see GitHub)
+- [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12): deployment readiness
+- `feature/auth-api`: sign-in on the API (see GitHub)
 
 ## Next actions
 
