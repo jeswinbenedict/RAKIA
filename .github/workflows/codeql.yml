@@ -26,6 +26,11 @@ jobs:
           queries: security-and-quality
       - name: libpq for the API
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev libssl-dev
+      - name: Dependency archives (cached; CMake re-checks each pinned SHA-256)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/rakia-downloads
+          key: rakia-downloads-${{ hashFiles('server/cmake/dependencies.cmake') }}
       - name: Build librakia and the API
         run: |
           cmake -S core -B build -DCMAKE_BUILD_TYPE=Release
@@ -33,7 +38,7 @@ jobs:
           # Third-party headers are fetched outside the checkout: CodeQL
           # reports on RAKIA's own code, not on vendored libraries.
           cmake -S server -B server/build -DCMAKE_BUILD_TYPE=Release -DRAKIA_API_BUILD_TESTS=OFF \
-            "-DFETCHCONTENT_BASE_DIR=$RUNNER_TEMP/rakia-deps"
+            "-DFETCHCONTENT_BASE_DIR=$RUNNER_TEMP/rakia-deps" "-DRAKIA_DOWNLOAD_DIR=$RUNNER_TEMP/rakia-downloads"
           cmake --build server/build --parallel
       - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:

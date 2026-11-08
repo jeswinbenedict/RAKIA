@@ -13,6 +13,11 @@
 # Debian 13 (trixie) slim, pinned by digest; Dependabot proposes updates.
 ARG DEBIAN=debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 
+# Optional dependency archives (CI passes its cache with
+# --build-context downloads=<dir>); empty by default, so a plain build
+# downloads them. Either way CMake checks each archive's pinned SHA-256.
+FROM scratch AS downloads
+
 FROM ${DEBIAN} AS build
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -25,7 +30,9 @@ COPY src ./src
 COPY tests ./tests
 # Warnings are errors; the unit and HTTP tests must pass for the image to
 # build. (The PostgreSQL tests skip without RAKIA_API_PG_TESTS.)
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+RUN --mount=type=bind,from=downloads,target=/downloads-in \
+    mkdir -p /downloads && cp -R /downloads-in/. /downloads/ \
+ && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DRAKIA_DOWNLOAD_DIR=/downloads \
  && cmake --build build --parallel \
  && ctest --test-dir build --output-on-failure \
  && strip build/rakia-api

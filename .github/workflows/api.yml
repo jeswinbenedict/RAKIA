@@ -42,17 +42,22 @@ jobs:
       - name: libpq (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev libssl-dev
+      - name: Dependency archives (cached; CMake re-checks each pinned SHA-256)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/rakia-downloads
+          key: rakia-downloads-${{ hashFiles('server/cmake/dependencies.cmake') }}
       - name: Configure (Linux)
         if: runner.os == 'Linux'
         env:
           CXX: ${{ matrix.cc }}
-        run: cmake -S . -B build ${{ matrix.cmake_args }}
+        run: cmake -S . -B build ${{ matrix.cmake_args }} "-DRAKIA_DOWNLOAD_DIR=$RUNNER_TEMP/rakia-downloads"
       - name: Configure (Windows, preinstalled PostgreSQL client)
         if: runner.os == 'Windows'
         shell: pwsh
         # libpq and OpenSSL both from the PostgreSQL installation, so the
         # headers, import libraries and DLLs on PATH match.
-        run: cmake -S . -B build ${{ matrix.cmake_args }} "-DPostgreSQL_ROOT=$env:PGROOT" "-DOPENSSL_ROOT_DIR=$env:PGROOT"
+        run: cmake -S . -B build ${{ matrix.cmake_args }} "-DPostgreSQL_ROOT=$env:PGROOT" "-DOPENSSL_ROOT_DIR=$env:PGROOT" "-DRAKIA_DOWNLOAD_DIR=$env:RUNNER_TEMP/rakia-downloads"
       - name: Build (warnings are errors)
         run: cmake --build build --config Release --parallel
       - name: Unit and HTTP tests (including a live fetch of Google's token certificates)
@@ -83,10 +88,15 @@ jobs:
           cache: true
       - name: libpq
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpq-dev libssl-dev
+      - name: Dependency archives (cached; CMake re-checks each pinned SHA-256)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/rakia-downloads
+          key: rakia-downloads-${{ hashFiles('server/cmake/dependencies.cmake') }}
       - name: Build
         working-directory: server
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release "-DRAKIA_DOWNLOAD_DIR=$RUNNER_TEMP/rakia-downloads"
           cmake --build build --parallel
       - name: Disposable PostgreSQL 18 with a password generated for this run
         run: |
@@ -162,7 +172,8 @@ jobs:
           wait "$pid"
       - name: Container image builds (tests run inside) and serves as a non-root user
         run: |
-          docker build -f server/Dockerfile -t rakia-api:ci server
+          docker build -f server/Dockerfile -t rakia-api:ci \
+            --build-context "downloads=$RUNNER_TEMP/rakia-downloads" server
           test "$(docker image inspect rakia-api:ci --format '{{.Config.User}}')" = 10001
           # Production mode refuses a database connection without verified TLS.
           # (-e wins over --env-file; the .env from the bootstrap says development.)

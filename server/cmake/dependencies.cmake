@@ -6,18 +6,30 @@
 # stops the configure step.
 include(FetchContent)
 
+# Optional directory for the downloaded archives, so CI can cache them between
+# runs. An archive already there is reused only if its SHA-256 matches the pin
+# below; otherwise it is downloaded again.
+set(RAKIA_DOWNLOAD_DIR "" CACHE PATH "Reuse dependency archives from this directory")
+set(rakia_download_dir_arg)
+if(RAKIA_DOWNLOAD_DIR)
+  file(TO_CMAKE_PATH "${RAKIA_DOWNLOAD_DIR}" rakia_download_dir)
+  set(rakia_download_dir_arg DOWNLOAD_DIR "${rakia_download_dir}")
+endif()
+
 # Only the headers are used. SOURCE_SUBDIR names a directory without a
 # CMakeLists.txt, so neither project's own build is configured.
 FetchContent_Declare(cpp_httplib
   URL https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.62.0.tar.gz
   URL_HASH SHA256=7bba5949c56e772236432f69da03197fd4c12dc443455b9d81f6a05575431fc8
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  ${rakia_download_dir_arg}
   SOURCE_SUBDIR headers-only)
 
 FetchContent_Declare(nlohmann_json
   URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
   URL_HASH SHA256=42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  ${rakia_download_dir_arg}
   SOURCE_SUBDIR headers-only)
 
 FetchContent_MakeAvailable(cpp_httplib nlohmann_json)
