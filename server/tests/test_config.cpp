@@ -89,6 +89,15 @@ TEST("outside development: TLS to the database and public https origins only") {
   CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_ENV", "prod")));
 }
 
+TEST("verify-full checks the server against the system roots unless a file is given") {
+  auto prod = with(with(base(), "RAKIA_ENV", "production"), "RAKIA_DB_SSLMODE", "verify-full");
+  CHECK_EQ(load_config({}, prod).db_sslrootcert, std::string("system"));
+  CHECK_EQ(load_config({}, with(prod, "RAKIA_DB_SSLROOTCERT", "/etc/rakia/db-ca.pem")).db_sslrootcert,
+           std::string("/etc/rakia/db-ca.pem"));
+  CHECK(load_config({}, base()).db_sslrootcert.empty());
+  CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_DB_SSLROOTCERT", "system")));
+}
+
 TEST("the API refuses to run as the migrator or a superuser") {
   CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_DB_USER", "rakia_migrator")));
   CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_DB_USER", "postgres")));

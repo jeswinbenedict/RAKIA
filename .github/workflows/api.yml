@@ -132,3 +132,26 @@ jobs:
             value=$(grep "^$key=" .env | cut -d= -f2)
             if grep -qF "$value" api.log; then echo "$key appears in the log" >&2; exit 1; fi
           done
+      - name: Container image builds (tests run inside) and serves as a non-root user
+        run: |
+          docker build -f server/Dockerfile -t rakia-api:ci server
+          test "$(docker image inspect rakia-api:ci --format '{{.Config.User}}')" = 10001
+          # Production mode refuses a database connection without verified TLS.
+          # (-e wins over --env-file; the .env from the bootstrap says development.)
+          if timeout 30 docker run --rm --network host --env-file .env \
+              -e RAKIA_ENV=production -e RAKIA_CORS_ORIGINS= rakia-api:ci 2> refused.log; then
+            echo "the image started in production mode without TLS to the database" >&2
+            exit 1
+          fi
+          grep -q 'RAKIA_DB_SSLMODE must be verify-full' refused.log
+          # The CI database has no TLS, so the smoke test runs in development mode.
+          docker run -d --name api --network host --env-file .env \
+            -e RAKIA_ENV=development -e RAKIA_API_HOST=127.0.0.1 -e RAKIA_API_PORT=18081 rakia-api:ci
+          for _ in $(seq 30); do
+            curl -sf http://127.0.0.1:18081/v1/health >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:18081/v1/ready | grep -q '"status":"ready"'
+          docker stop --time 10 api
+          test "$(docker inspect api --format '{{.State.ExitCode}}')" = 0
+          docker logs api 2>&1 | grep -q '"message":"stopped"'

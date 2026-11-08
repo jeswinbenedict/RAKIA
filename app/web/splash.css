@@ -1,0 +1,18 @@
+/* Shown until Flutter renders its first frame, in the app's colours, so
+   the page never flashes white. Follows the system light/dark setting. */
+:root { --canvas: #08060E; --text: #A69FB8; --track: #1F1A2B; --bar: #B79CFF; }
+@media (prefers-color-scheme: light) {
+  :root { --canvas: #F4F2F8; --text: #6B6480; --track: #ECE9F2; --bar: #5B2BC4; }
+}
+html, body { margin: 0; height: 100%; background: var(--canvas); }
+#splash {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+  font: 600 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: 0.2em; color: var(--text);
+}
+#splash img { width: 56px; height: 56px; border-radius: 13px; }
+#splash .track { width: 120px; height: 3px; border-radius: 3px; background: var(--track); overflow: hidden; }
+#splash .bar { width: 40%; height: 100%; border-radius: 3px; background: var(--bar); animation: slide 1.2s ease-in-out infinite; }
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce) { #splash .bar { animation: none; width: 100%; opacity: 0.5; } }

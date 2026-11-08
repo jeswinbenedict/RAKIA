@@ -32,6 +32,10 @@ struct Config {
   std::string db_user;
   std::string db_password;
   std::string db_sslmode = "disable";
+  /// Certificates that may sign the database server's certificate: a file
+  /// path, or "system" for the operating system's trusted roots (the
+  /// default with verify-full). Empty for other modes.
+  std::string db_sslrootcert;
   std::size_t db_pool_size = 4;
 
   /// Settings safe to log: everything except the password.
