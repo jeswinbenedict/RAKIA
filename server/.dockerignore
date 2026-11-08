@@ -1,0 +1,6 @@
+# Only the sources the Dockerfile copies are sent to the build.
+*
+!CMakeLists.txt
+!cmake/
+!src/
+!tests/

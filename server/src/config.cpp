@@ -86,6 +86,7 @@ EnvMap process_environment() {
       "RAKIA_DB_HOST",      "RAKIA_DB_PORT",
       "RAKIA_DB_NAME",      "RAKIA_DB_USER",
       "RAKIA_DB_PASSWORD",  "RAKIA_DB_SSLMODE",
+      "RAKIA_DB_SSLROOTCERT",
       "RAKIA_API_DB_POOL_SIZE",
   };
   EnvMap env;
@@ -174,6 +175,11 @@ Config load_config(const EnvMap& file, const EnvMap& env) {
   if (!dev && c.db_sslmode != "verify-full") {
     throw ConfigError("RAKIA_DB_SSLMODE must be verify-full outside development");
   }
+  c.db_sslrootcert = get("RAKIA_DB_SSLROOTCERT");
+  if (c.db_sslmode == "verify-full" && c.db_sslrootcert.empty()) c.db_sslrootcert = "system";
+  if (c.db_sslmode == "disable" && !c.db_sslrootcert.empty()) {
+    throw ConfigError("RAKIA_DB_SSLROOTCERT is set but RAKIA_DB_SSLMODE is disable");
+  }
   if (c.db_user == "rakia_migrator" || c.db_user == "postgres") {
     throw ConfigError("RAKIA_DB_USER must be the least-privilege API role (rakia_api), not "
                       "the migrator or a superuser");
@@ -194,7 +200,9 @@ std::string Config::describe() const {
   for (std::size_t i = 0; i < cors_origins.size(); ++i) s << (i ? "," : "") << cors_origins[i];
   s << " rate_limit=" << rate_limit_per_minute << "/min proxy_hops=" << trusted_proxy_hops
     << " db=" << db_user << '@' << db_host << ':' << db_port << '/' << db_name
-    << " sslmode=" << db_sslmode << " pool=" << db_pool_size;
+    << " sslmode=" << db_sslmode
+    << (db_sslrootcert.empty() ? "" : " sslrootcert=" + db_sslrootcert)
+    << " pool=" << db_pool_size;
   return s.str();
 }
 

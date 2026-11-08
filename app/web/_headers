@@ -1,0 +1,23 @@
+# Response headers for static hosting (Cloudflare Pages reads this file from
+# the build output; other hosts need the same headers configured). Verified
+# against the release build in Chrome with the policy enforced: see
+# docs/DEPLOYMENT.md.
+#
+# CSP notes: 'wasm-unsafe-eval' lets the page compile WebAssembly (CanvasKit,
+# librakia, SQLite) without allowing eval(); the build uses --csp and
+# --no-web-resources-cdn, so every script, font and module comes from this
+# origin and no inline script is allowed. style-src keeps 'unsafe-inline'
+# because Flutter's web engine sets inline styles on its own elements (the
+# check fails without it). When the app starts calling the API, add its
+# origin to connect-src. COOP and COEP make the page cross-origin isolated,
+# which lets the local database use the Origin Private File System.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains

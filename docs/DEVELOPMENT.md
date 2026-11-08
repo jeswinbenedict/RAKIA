@@ -75,7 +75,7 @@ cd app
 flutter pub get
 flutter run -d chrome        # or: windows, an Android device or emulator
 flutter test
-flutter build web --release
+flutter build web --release --csp --no-web-resources-cdn
 ```
 
 The web build also needs the SQLite WebAssembly module and the database worker for the local store, prepared once (and again after updating `drift` or `sqlite3`):
@@ -165,6 +165,6 @@ Other components add their commands here as they land.
 
 Secrets for staging and production live in the hosting providers' secret stores and in GitHub Actions environment secrets, never in the repository.
 
-## Deployment **(planned, Phase 8)**
+## Deployment
 
-Described in [architecture §9](architecture/ARCHITECTURE.md#9-deployment).
+Step-by-step instructions for the database, the API on Cloud Run, the web app on Cloudflare Pages and the native apps are in [DEPLOYMENT.md](DEPLOYMENT.md). The reasoning behind the hosting choices is in [architecture §9](architecture/ARCHITECTURE.md#9-deployment).

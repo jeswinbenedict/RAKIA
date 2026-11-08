@@ -11,7 +11,15 @@ Built for the [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.or
 
 ## Project status
 
-**Phase 5 (core implementation).** The `librakia` analytics core, the Flutter app shell and the librakia bindings (native and WebAssembly) are merged. No health data is displayed yet. Live progress is in [PROJECT_STATUS.md](PROJECT_STATUS.md).
+**Phase 5 (core implementation).** Working today:
+
+- The Flutter app on web, Android, iOS, Windows, macOS and Linux, with the mission dashboard, explainable alerts and the monitoring modules, running on a clearly labelled **simulation mission**.
+- The `librakia` analytics core, natively through `dart:ffi` and in the browser as WebAssembly.
+- An offline-first on-device store: SQLite, a hash-chained ledger that is re-verified on every load, and encryption at rest on native platforms.
+- The PostgreSQL schema, with row-level security, the simulation firewall and an audit log.
+- The C++ API skeleton (health, readiness, reference data), with a container image and a deployment guide.
+
+Sign-in, mission administration, ingest of real measurements and sync need a Firebase project and Turnstile keys, and are next. Live progress is in [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 The screenshots show the built-in **simulation mission**. Every value in it is simulated and labelled as such, and every status, baseline, onset and trend is computed by `librakia`.
 
@@ -45,12 +53,40 @@ The reasoning and sources are in the [Research & Innovation Report](docs/researc
 |---|---|
 | App (Web, Android, iOS, desktop) | Flutter, offline store (SQLite/Drift) |
 | Analytics core | C11 (`librakia`) via `dart:ffi` and WebAssembly |
-| API service | C++20 (Drogon), REST + Server-Sent Events |
+| API service | C++20 (cpp-httplib, libpq), REST/JSON; container on Google Cloud Run |
 | Database | PostgreSQL 18 (dev: self-hosted; prod: Supabase Postgres + Row-Level Security) |
 | Authentication | Firebase Authentication (Google, email/password, phone OTP) |
 | Bot protection | Cloudflare Turnstile (server-side verification) |
+| Web hosting | Cloudflare Pages, self-contained build with a strict Content-Security-Policy |
 
 Details: [Architecture & Database Design](docs/architecture/ARCHITECTURE.md) · [Design System](docs/design/DESIGN_SYSTEM.md)
+
+## Getting started
+
+Prerequisites and details for every component are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). The short version, from the repository root:
+
+```bash
+# The app (simulation mission included) on this desktop; for -d chrome, first
+# build the WebAssembly modules as described in DEVELOPMENT.md
+cd app && flutter pub get && flutter run -d windows   # or -d macos, -d linux
+```
+
+```bash
+# Tests: analytics core, app, database, API
+cmake -S core -B build && cmake --build build && ctest --test-dir build
+(cd app && flutter test)
+(cd db && dart test)           # database tests need a disposable database; see DEVELOPMENT.md
+cmake -S server -B server/build && cmake --build server/build && ctest --test-dir server/build
+```
+
+```bash
+# Local database and API (PostgreSQL 16+ running locally)
+sh db/bootstrap/bootstrap-local.sh          # Windows: powershell -File dbootstrapootstrap-local.ps1
+(cd db && dart pub get && dart run bin/migrate.dart up)
+./server/build/rakia-api                    # then: curl http://127.0.0.1:8080/v1/ready
+```
+
+Deploying the database, the API (Cloud Run), the web app (Cloudflare Pages) and the native apps: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Documentation
 
@@ -60,6 +96,8 @@ Details: [Architecture & Database Design](docs/architecture/ARCHITECTURE.md) · 
 | [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | System, API, sync, security, database, deployment |
 | [docs/design/DESIGN_SYSTEM.md](docs/design/DESIGN_SYSTEM.md) | Colour tokens, typography, layout, accessibility, motion |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Installation, local development, testing, deployment environments |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Database, API, web and native deployment, step by step |
+| [docs/api/openapi.yaml](docs/api/openapi.yaml) | API description (OpenAPI 3.1) |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Phased roadmap |
 | [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) | What RAKIA cannot do and why |
 | [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) · [CHANGELOG.md](CHANGELOG.md) | Community and policy |

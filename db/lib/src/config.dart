@@ -27,6 +27,7 @@ class DbConfig {
     required this.user,
     required this.password,
     required this.sslMode,
+    this.sslRootCert,
   });
 
   /// The migrator's settings (RAKIA_DB_MIGRATOR_USER and _PASSWORD) or, with
@@ -50,13 +51,23 @@ class DbConfig {
     }
 
     final prefix = api ? 'RAKIA_DB_' : 'RAKIA_DB_MIGRATOR_';
+    final rootCert = env['RAKIA_DB_SSLROOTCERT'];
+    final sslModeText = env['RAKIA_DB_SSLMODE'] ?? 'disable';
+    if (sslModeText == 'disable' && rootCert != null && rootCert.isNotEmpty) {
+      throw StateError(
+        'RAKIA_DB_SSLROOTCERT is set but RAKIA_DB_SSLMODE is disable.',
+      );
+    }
     return DbConfig(
       host: need('RAKIA_DB_HOST'),
       port: int.parse(need('RAKIA_DB_PORT')),
       database: need('RAKIA_DB_NAME'),
       user: need('${prefix}USER'),
       password: need('${prefix}PASSWORD'),
-      sslMode: switch (env['RAKIA_DB_SSLMODE'] ?? 'disable') {
+      sslRootCert: rootCert == null || rootCert.isEmpty || rootCert == 'system'
+          ? null
+          : rootCert,
+      sslMode: switch (sslModeText) {
         'disable' => SslMode.disable,
         'require' => SslMode.require,
         'verify-full' => SslMode.verifyFull,
@@ -75,6 +86,11 @@ class DbConfig {
   final String password;
   final SslMode sslMode;
 
+  /// A CA certificate file that must have signed the server's certificate
+  /// (for providers with a private CA, such as Supabase), or null for the
+  /// system's trusted roots.
+  final String? sslRootCert;
+
   Future<Connection> open() => Connection.open(
     Endpoint(
       host: host,
@@ -85,6 +101,10 @@ class DbConfig {
     ),
     settings: ConnectionSettings(
       sslMode: sslMode,
+      securityContext: sslRootCert == null
+          ? null
+          : (SecurityContext(withTrustedRoots: false)
+              ..setTrustedCertificates(sslRootCert!)),
       applicationName: 'rakia_db',
       connectTimeout: const Duration(seconds: 10),
     ),
