@@ -169,20 +169,21 @@ const List<ModuleSpec> kModules = [
     selectedIcon: Icons.psychology,
     group: ModuleGroup.monitoring,
     summary:
-        'Short self check-ins on mood, stress and alertness, plus brief '
-        'cognitive tasks, to help you notice changes in yourself.',
+        'Short self check-ins on sleepiness, stress and mood, and a '
+        '3-minute reaction-time test, to help you notice changes in yourself.',
     tracks: [
-      'Mood and stress self-assessments',
-      'Reaction-time and attention tasks',
-      'Isolation and workload self-reports',
-      'Links with sleep and workload',
+      'Sleepiness (Karolinska Sleepiness Scale) and stress self-reports',
+      'A simple mood self-rating',
+      'Reaction-time test after the brief psychomotor vigilance test',
+      'Your own history, kept on this device',
     ],
     emptyTitle: 'No check-ins yet',
     emptyMessage:
-        'Your check-ins will appear here after you complete the first one.',
+        'Your check-ins and test results appear here after you complete the '
+        'first one.',
     note:
-        'Private by default: check-ins stay on this device unless you '
-        'choose to share them. RAKIA does not profile you.',
+        'Private: check-ins and test results stay on this device and are not '
+        'shared. RAKIA does not score, profile or diagnose you.',
   ),
   ModuleSpec(
     id: 'environment',

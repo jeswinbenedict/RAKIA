@@ -11,8 +11,11 @@ class RakiaDatabase extends _$RakiaDatabase {
   RakiaDatabase(super.executor);
 
   /// Bump with every schema change, add a migration step in [migration] and
-  /// export the new schema (`dart run drift_dev make-migrations`).
-  static const int currentSchemaVersion = 1;
+  /// export the new schema (`dart run drift_dev schema dump ...`, see
+  /// docs/DEVELOPMENT.md). Version history:
+  ///   1  settings, missions, measurements (hash-chained ledger)
+  ///   2  self_checkins and reaction_tests (private wellbeing records)
+  static const int currentSchemaVersion = 2;
 
   @override
   int get schemaVersion => currentSchemaVersion;
@@ -21,12 +24,26 @@ class RakiaDatabase extends _$RakiaDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
-      // No migrations exist yet. Refuse rather than guess, so a database
-      // written by a newer build is never silently reinterpreted.
-      throw UnsupportedError(
-        'The local database uses schema version $from; this build of RAKIA '
-        'supports version $to.',
-      );
+      if (from > to) {
+        // Written by a newer build: refuse rather than guess, so it is
+        // never silently reinterpreted.
+        throw UnsupportedError(
+          'The local database uses schema version $from; this build of RAKIA '
+          'supports version $to.',
+        );
+      }
+      if (from < 2) {
+        for (final entity in <DatabaseSchemaEntity>[
+          selfCheckins,
+          selfCheckinsByTime,
+          selfCheckinsImmutable,
+          reactionTests,
+          reactionTestsByTime,
+          reactionTestsImmutable,
+        ]) {
+          await m.create(entity);
+        }
+      }
     },
     beforeOpen: (details) async {
       // ON DELETE CASCADE and REFERENCES are only enforced with this pragma.

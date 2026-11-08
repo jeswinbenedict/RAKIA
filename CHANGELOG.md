@@ -14,6 +14,13 @@ All notable changes to this project are documented here. The format follows [Kee
   - 20 new tests: every refusal reason against real RS256 tokens signed with generated keys (wrong algorithm, unknown or missing key id, another key, altered payload, short signature, expiry and future times, audience, issuer, subject, missing claims, malformed input, non-canonical base64url, weak certificates), the endpoint over HTTP, account creation and refusal of someone else's account in PostgreSQL (rolled back), configuration, and a live fetch of Google's certificates in CI. CI also runs the binary with a project id and checks forged tokens are refused and never logged.
 - OpenSSL 3 is a new build dependency of the API (TLS client for Google's certificates and RSA signature checks).
 
+- Behavioural health: private check-ins and a reaction-time test (`app/lib/wellbeing`, `app/lib/features/wellbeing_page.dart`, `check_in_page.dart`, `reaction_test_page.dart`):
+  - Check-ins ask about sleepiness (Karolinska Sleepiness Scale, all nine steps labelled), stress (single-item measure of stress symptoms, Elo and colleagues, 2003) and mood (a simple self-rating, labelled as not a validated scale). Each question shows its source; nothing is saved until all three are answered.
+  - A 3-minute reaction-time test after PVT-B (1 to 4 s intervals, 355 ms lapses, 100 ms false starts, 30 s timeout). It responds to pointer down, Space and Enter, and times each stimulus from the frame that shows it. It reports median response time, mean response speed, lapses and false starts, and saves only if the astronaut chooses.
+  - History with a trace per question, the latest answer in words, and the device each test ran on; no scores, interpretation or alerts.
+  - The records belong to no mission, so they never mix with simulated data. They are stored in the encrypted on-device database, cannot be edited, and can all be deleted by the astronaut after a confirmation. Without storage they are kept in memory and the page says so.
+- On-device schema version 2 (`self_checkins`, `reaction_tests`), with the first real migration step. `test/migration_test.dart` upgrades a version 1 database and checks it matches the current schema exactly, with data kept; CI checks the generated migration helpers are current.
+- 33 new tests: scoring, the test session on a controlled clock, store rules (ranges, immutability, deletion that leaves missions untouched), the in-memory fallback, migrations, the full check-in and test flows in the app, restart and deletion, accessibility guidelines in both themes and layout at four viewports with 200% text.
 - Deployment readiness:
   - `server/Dockerfile`: multi-stage image for Cloud Run; the unit and HTTP tests run during the build; the binary runs as a non-root user; production mode by default (no `.env` file read, verified TLS to the database required); Debian base pinned by digest, with Dependabot tracking it.
   - `RAKIA_DB_SSLROOTCERT` for the API and the migration runner: a CA certificate file for providers with a private CA (Supabase), or the system roots (the default with `verify-full`).
@@ -99,3 +106,11 @@ All notable changes to this project are documented here. The format follows [Kee
 - Repository foundation: README, Apache-2.0 licence, contributing guide, Code of Conduct (Contributor Covenant 2.1), security policy, issue and PR templates, CODEOWNERS, Dependabot for GitHub Actions, and a repository-hygiene CI workflow (secret scan, Markdown lint, YAML validation).
 - Phase 1–3 documents: research and innovation report, design system specification, and architecture and database design.
 - Development, roadmap and known-limitations documentation; `.env.example`.
+
+### Changed
+
+- The Behavioural health module describes what it does (it previously listed isolation and workload reports and sharing, which do not exist).
+
+### Fixed
+
+- Two store tests hard-coded schema version numbers; they now follow `RakiaDatabase.currentSchemaVersion`.

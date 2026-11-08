@@ -29,12 +29,13 @@
 - [x] Local database bootstrap script (roles, database, `.env`): [jeswinbenedict/RAKIA#9](https://github.com/jeswinbenedict/RAKIA/pull/9), merged
 - [x] Phase 5: PostgreSQL schema, migrations, row-level security and tests: [jeswinbenedict/RAKIA#10](https://github.com/jeswinbenedict/RAKIA/pull/10), merged
 - [x] Phase 5: C++ API skeleton (configuration, health and readiness, reference data, security headers, CORS, rate limiting, database pool): [jeswinbenedict/RAKIA#11](https://github.com/jeswinbenedict/RAKIA/pull/11), merged
-- [ ] Deployment readiness (API container, web hosting headers, self-contained web build, deployment guide): [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12), in review
-- [ ] Sign-in on the API (Firebase ID-token verification, `GET /v1/me`): `feature/auth-api`, in review (stacked on #12)
+- [x] Deployment readiness (API container, web hosting headers, self-contained web build, deployment guide): [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12), merged
+- [x] Phase 5: behavioural health check-ins and reaction-time test: [jeswinbenedict/RAKIA#13](https://github.com/jeswinbenedict/RAKIA/pull/13), merged
+- [ ] Sign-in on the API (Firebase ID-token verification, `GET /v1/me`): [jeswinbenedict/RAKIA#14](https://github.com/jeswinbenedict/RAKIA/pull/14), in review
 
 ## Pending
 
-- [ ] Review and merge [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12), then `feature/auth-api` (owner approval required)
+- [ ] Review and merge [jeswinbenedict/RAKIA#14](https://github.com/jeswinbenedict/RAKIA/pull/14) (owner approval required)
 - [ ] Run `db/bootstrap/bootstrap-local.ps1`, then `dart run bin/migrate.dart up` in `db/`, on your machine (owner: needs the PostgreSQL superuser password)
 - [ ] `feature/auth` (needs a Firebase project and Turnstile keys)
 - [ ] `feature/ingest` (after `feature/auth`)
@@ -70,7 +71,7 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 
 1. **Firebase project** (blocks the app's sign-in, mission administration, sync and ingest): create it, enable the Google, Email/Password and Phone providers, register the web, Android and iOS apps, and put the project id in `RAKIA_FIREBASE_PROJECT_ID`. The API side of sign-in is ready for it.
 2. **Cloudflare Turnstile keys** for staging and production (development uses Cloudflare's published test keys). The secret goes in the platform's secret manager, never in chat or the repository.
-3. **Merge approvals:** [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12), [jeswinbenedict/RAKIA#13](https://github.com/jeswinbenedict/RAKIA/pull/13) and the stacked [jeswinbenedict/RAKIA#14](https://github.com/jeswinbenedict/RAKIA/pull/14).
+3. **Merge approval:** [jeswinbenedict/RAKIA#14](https://github.com/jeswinbenedict/RAKIA/pull/14) (sign-in on the API).
 4. **Ruleset:** add the `Database` and `API` checks to the required checks of the `main` ruleset (repository settings; owner decision).
 5. **Hosting accounts** for the first staging deployment: Google Cloud (Cloud Run, Artifact Registry, Secret Manager), Cloudflare (Pages) and Supabase. Steps: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 6. **Local database:** run `db/bootstrap/bootstrap-local.ps1` (it asks for the PostgreSQL superuser password, which only you should enter), then `dart run bin/migrate.dart up` in `db/`.
@@ -84,7 +85,8 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 - Mission dashboard: opt-in, deterministic simulation mission with known ground truth; Mission overview, Action center with six-part explainable alerts, detailed Cardiovascular / Sleep / Physical modules with baseline-band charts, and Data management with provenance and quality. Every status and number comes from librakia. Real data appears only after ingest and is never mixed with simulated data.
 - On-device store: SQLite through Drift on every platform (private app directory natively; OPFS or IndexedDB in a browser). SQLite triggers enforce immutable measurements, the simulation firewall, subject consistency, a continuous per-mission hash chain and simulation-only deletion; librakia re-verifies the chain on every load. The simulation mission and the theme choice survive restarts; without storage the app runs in memory and says why.
 - Sign-in on the API (in review): Firebase ID tokens verified against Google's published keys; `GET /v1/me` creates and returns the caller's account and mission roles under row-level security.
-- Deployment readiness (in review): API container image, web hosting security headers verified in headless Chrome, self-contained web build, deployment guide.
+- Behavioural health: private check-ins (Karolinska Sleepiness Scale, single-item stress measure, a labelled mood self-rating) and a 3-minute reaction-time test after PVT-B, stored on the device only, deletable, never mixed with simulated data; on-device schema version 2 with a tested migration.
+- Deployment readiness: API container image, web hosting security headers verified in headless Chrome, self-contained web build, deployment guide.
 - C++ API skeleton: health, readiness and reference-data endpoints; validated configuration; security headers, CORS, rate limiting, request ids, JSON errors and logs; libpq pool as `rakia_api` with per-request caller claims.
 - PostgreSQL schema: migration `0001_core` with the simulation firewall, per-client hash chains, immutable measurements, row-level security for every role and a hash-chained audit log; a Dart migration runner; 54 tests against PostgreSQL 18.
 - Encryption at rest: native database files are encrypted with ChaCha20-Poly1305 (SQLite3 Multiple Ciphers) and a 256-bit key from the system keystore; existing databases are encrypted in place; a missing or wrong key never destroys data. Browser storage is not encrypted, and the app says so.
@@ -131,8 +133,7 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 
 ## Open pull requests
 
-- [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12): deployment readiness
-- `feature/auth-api`: sign-in on the API (see GitHub)
+- [jeswinbenedict/RAKIA#14](https://github.com/jeswinbenedict/RAKIA/pull/14): sign-in on the API
 
 ## Next actions
 
