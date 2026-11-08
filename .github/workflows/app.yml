@@ -33,6 +33,11 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - name: SQLite native libraries (cached; the sqlite3 build hook re-checks each pinned SHA-256)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/.dart_tool/hooks_runner/shared/sqlite3/build/download-*
+          key: sqlite3-native-${{ runner.os }}-${{ hashFiles('app/pubspec.lock') }}
       - run: flutter pub get
       - name: Formatting
         run: dart format --output=none --set-exit-if-changed lib test tool
@@ -152,6 +157,17 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - name: SQLite native libraries (cached; the sqlite3 build hook re-checks each pinned SHA-256)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/.dart_tool/hooks_runner/shared/sqlite3/build/download-*
+          key: sqlite3-native-${{ runner.os }}-${{ hashFiles('app/pubspec.lock') }}
+      - if: matrix.target == 'web'
+        name: SQLite WebAssembly (cached; the script re-checks its pinned SHA-256)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: app/web/sqlite3/sqlite3.wasm
+          key: sqlite3-wasm-${{ hashFiles('app/tool/build_web_sqlite.sh') }}
       - if: matrix.target == 'web'
         name: Install Emscripten
         working-directory: ${{ runner.temp }}
