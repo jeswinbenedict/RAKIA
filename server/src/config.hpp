@@ -43,6 +43,21 @@ struct Config {
   /// answer 503); required everywhere else.
   std::string firebase_project_id;
 
+  /// host:port of the Firebase Auth emulator, whose unsigned tokens are
+  /// then accepted instead of Google-signed ones. Development only:
+  /// refused in every other environment.
+  std::string firebase_auth_emulator_host;
+
+  /// Cloudflare Turnstile secret key (RAKIA_TURNSTILE_SECRET_KEY). Creating a RAKIA account needs a
+  /// verified Turnstile token when it is set; without it, development
+  /// creates accounts unchecked and other environments refuse to create
+  /// them (fail closed). Never logged.
+  std::string turnstile_secret;
+
+  /// Hostnames a Turnstile token may have been solved on. Defaults to the
+  /// hosts of the CORS origins.
+  std::vector<std::string> turnstile_hostnames;
+
   /// Settings safe to log: everything except the password.
   [[nodiscard]] std::string describe() const;
 };

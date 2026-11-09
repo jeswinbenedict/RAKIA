@@ -132,6 +132,37 @@ TEST("the API refuses to run as the migrator or a superuser") {
   CHECK_EQ(pooled.db_user, std::string("rakia_api.ytadamlepphfckkbvmjq"));
 }
 
+TEST("the Firebase Auth emulator is allowed only in development, with a project") {
+  const auto dev = with(with(base(), "RAKIA_FIREBASE_PROJECT_ID", "rakia-dev-1234"),
+                        "RAKIA_FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099");
+  CHECK_EQ(load_config({}, dev).firebase_auth_emulator_host, std::string("127.0.0.1:9099"));
+  CHECK_THROWS(ConfigError,
+               load_config({}, with(base(), "RAKIA_FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099")));
+  auto staging = with(with(dev, "RAKIA_ENV", "staging"), "RAKIA_DB_SSLMODE", "verify-full");
+  try {
+    load_config({}, staging);
+    CHECK(false);
+  } catch (const ConfigError& e) {
+    CHECK(std::string(e.what()).find("only in development") != std::string::npos);
+  }
+}
+
+TEST("Turnstile: hostnames default to the CORS origins; the secret is never printed") {
+  const auto c = load_config(
+      {}, with(with(base(), "RAKIA_CORS_ORIGINS",
+                    "https://staging.rakia-app.pages.dev,http://localhost:5000"),
+               "RAKIA_TURNSTILE_SECRET_KEY", "0x4AAAAAAA-very-secret"));
+  CHECK_EQ(c.turnstile_hostnames.size(), std::size_t{2});
+  CHECK_EQ(c.turnstile_hostnames[0], std::string("staging.rakia-app.pages.dev"));
+  CHECK_EQ(c.turnstile_hostnames[1], std::string("localhost"));
+  CHECK(c.describe().find("very-secret") == std::string::npos);
+  CHECK(c.describe().find("turnstile=(set)") != std::string::npos);
+  const auto explicit_hosts =
+      load_config({}, with(base(), "RAKIA_TURNSTILE_HOSTNAMES", "a.example,b.example"));
+  CHECK_EQ(explicit_hosts.turnstile_hostnames.at(1), std::string("b.example"));
+  CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_TURNSTILE_SECRET_KEY", "has space")));
+}
+
 TEST("describe() never contains the password") {
   const auto c = load_config({}, base());
   CHECK(c.describe().find("s3cret") == std::string::npos);

@@ -74,7 +74,9 @@ struct ManualClock {
 struct NoStore final : rakia::Store {
   int schema_version() override { return rakia::kExpectedSchemaVersion; }
   std::vector<rakia::MetricDefinition> metric_definitions() override { return {}; }
-  rakia::Account account(const std::string&) override { return {}; }
+  std::optional<rakia::Account> find_account(const std::string&) override { return {}; }
+  rakia::Account create_account(const std::string&) override { return {}; }
+  bool remember_turnstile_token(const std::string&) override { return true; }
 };
 
 rakia::Config config() {

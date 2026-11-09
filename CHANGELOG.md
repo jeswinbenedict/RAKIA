@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Sign-in and RAKIA accounts, with Turnstile protecting account creation:
+  - Account page: sign in, create an account, reset the password, verify the email, see the RAKIA account and mission roles, sign out. It uses Firebase Authentication's documented REST API (email and password), not the SDK, so the web app stays self-contained and the same code runs on every platform. The sign-in is restored after a restart. Only the refresh token is stored (never the password), in the on-device store. An offline start keeps the sign-in; one Firebase refuses is forgotten. Errors are in plain words, and a failed sign-in does not say whether the email exists.
+  - `POST /v1/me` creates the RAKIA account only after a Cloudflare Turnstile check. The API verifies the token with Cloudflare (siteverify), checks the hostname and the `create-account` action, refuses Cloudflare's always-pass testing keys outside development, and records the token's SHA-256 for ten minutes against replays. Staging and production without a Turnstile secret refuse new accounts. `GET /v1/me` no longer creates an account (404 `no_account`).
+  - The Turnstile widget runs in the web app under the existing cross-origin isolation (checked in Chrome). Native builds send people to the web app to create an account.
+  - Development without real accounts: the API accepts the Firebase Auth emulator's unsigned tokens when `RAKIA_FIREBASE_AUTH_EMULATOR_HOST` is set, which configuration allows only in development. See DEVELOPMENT.md.
+  - Build settings: `RAKIA_FIREBASE_API_KEY` and `RAKIA_TURNSTILE_SITE_KEY` (public identifiers); the API takes `RAKIA_TURNSTILE_SECRET_KEY` and optionally `RAKIA_TURNSTILE_HOSTNAMES`. The CSP allows Firebase Authentication's REST hosts, and Turnstile's script and frame from `challenges.cloudflare.com`.
+  - New app dependency: `web` (Dart team, BSD), for the Turnstile widget.
+  - Tests: 27 new app tests (the Firebase client, the account API, the controller's states and persistence, the Account page, accessibility in both themes, and layout at 200% text on four window sizes), and 15 new API tests (Turnstile parsing and rules, a live call with Cloudflare's testing secrets, the emulator verifier, configuration, account creation over HTTP, and replay protection in PostgreSQL).
+
 - Live space-radiation environment in the app, from NOAA through the RAKIA API (`GET /v1/space-weather`):
   - Radiation & environment shows the solar radiation storm level (NOAA S-scale) with NOAA's published effect on astronauts and what it means for the crew. From S3 that means following the mission's radiation flight rules and the ground's instructions, with spacewalks normally avoided. It also shows protons above 10 MeV over the last 24 hours on a logarithmic chart with the S1 threshold, the Kp index, the source satellite, and when it was updated.
   - A radiation storm (S1 or above) is raised in the Action center. The Mission overview shows the current level.

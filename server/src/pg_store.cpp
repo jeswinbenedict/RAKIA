@@ -196,17 +196,12 @@ std::vector<MetricDefinition> PgStore::metric_definitions() {
   return out;
 }
 
-Account load_account(Tx& tx, const std::string& firebase_uid, const std::string& new_id) {
-  // Row-level security lets a user create and read only their own record.
-  tx.query(
-      "INSERT INTO rakia.app_users (id, firebase_uid) VALUES ($1::uuid, $2) "
-      "ON CONFLICT (firebase_uid) DO NOTHING",
-      {new_id, firebase_uid});
+std::optional<Account> read_account(Tx& tx) {
   const auto rows = tx.query(
       "SELECT id::text, firebase_uid, display_name, "
       "to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') "
       "FROM rakia.app_users WHERE firebase_uid = rakia.current_uid()");
-  if (rows.size() != 1) throw QueryError("42501", "account not visible to its own user");
+  if (rows.empty()) return std::nullopt;
   Account a;
   a.id = rows[0].at(0).value();
   a.firebase_uid = rows[0].at(1).value();
@@ -222,11 +217,42 @@ Account load_account(Tx& tx, const std::string& firebase_uid, const std::string&
   return a;
 }
 
-Account PgStore::account(const std::string& firebase_uid) {
+Account load_account(Tx& tx, const std::string& firebase_uid, const std::string& new_id) {
+  // Row-level security lets a user create and read only their own record.
+  tx.query(
+      "INSERT INTO rakia.app_users (id, firebase_uid) VALUES ($1::uuid, $2) "
+      "ON CONFLICT (firebase_uid) DO NOTHING",
+      {new_id, firebase_uid});
+  auto a = read_account(tx);
+  if (!a) throw QueryError("42501", "account not visible to its own user");
+  return *a;
+}
+
+std::optional<Account> PgStore::find_account(const std::string& firebase_uid) {
+  std::optional<Account> a;
+  transaction(firebase_uid, [&](Tx& tx) { a = read_account(tx); });
+  return a;
+}
+
+Account PgStore::create_account(const std::string& firebase_uid) {
   Account a;
   transaction(firebase_uid,
               [&](Tx& tx) { a = load_account(tx, firebase_uid, new_uuid_v7()); });
   return a;
+}
+
+bool PgStore::remember_turnstile_token(const std::string& hash_hex) {
+  bool fresh = false;
+  transaction(std::nullopt, [&](Tx& tx) {
+    tx.query("DELETE FROM rakia.turnstile_replay WHERE expires_at < now()");
+    fresh = !tx.query(
+                   "INSERT INTO rakia.turnstile_replay (token_hash, expires_at) "
+                   "VALUES (decode($1, 'hex'), now() + interval '10 minutes') "
+                   "ON CONFLICT (token_hash) DO NOTHING RETURNING 1",
+                   {hash_hex})
+                .empty();
+  });
+  return fresh;
 }
 
 }  // namespace rakia

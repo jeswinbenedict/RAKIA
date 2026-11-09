@@ -61,9 +61,15 @@ class Store {
   virtual int schema_version() = 0;
   /// Reference data: the indicators RAKIA understands.
   virtual std::vector<MetricDefinition> metric_definitions() = 0;
-  /// The account of the verified Firebase user [firebase_uid], created on
-  /// first use, as that user (row-level security applies).
-  virtual Account account(const std::string& firebase_uid) = 0;
+  /// The account of the verified Firebase user [firebase_uid], or nullopt
+  /// when they have none yet. Runs as that user (row-level security).
+  virtual std::optional<Account> find_account(const std::string& firebase_uid) = 0;
+  /// Creates the account of [firebase_uid] if it does not exist, and
+  /// returns it. Runs as that user.
+  virtual Account create_account(const std::string& firebase_uid) = 0;
+  /// Records a Turnstile token's SHA-256 (hex) for ten minutes. False when
+  /// it is already recorded: the token is being replayed.
+  virtual bool remember_turnstile_token(const std::string& hash_hex) = 0;
 };
 
 }  // namespace rakia

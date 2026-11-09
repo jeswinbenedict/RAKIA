@@ -41,16 +41,30 @@ int main() {
 
   rakia::PgStore store(config);
   rakia::GoogleKeys google_keys;
-  std::unique_ptr<rakia::FirebaseVerifier> verifier;
+  std::unique_ptr<rakia::TokenVerifier> verifier;
   if (config.firebase_project_id.empty()) {
     rakia::log::warn("sign-in is not configured (RAKIA_FIREBASE_PROJECT_ID is empty); "
                      "authenticated endpoints answer 503");
+  } else if (!config.firebase_auth_emulator_host.empty()) {
+    // Configuration allows this only in development.
+    rakia::log::warn("accepting unsigned tokens from the Firebase Auth emulator",
+                     {{"emulator", config.firebase_auth_emulator_host}});
+    verifier = std::make_unique<rakia::EmulatorVerifier>(config.firebase_project_id);
   } else {
     verifier = std::make_unique<rakia::FirebaseVerifier>(config.firebase_project_id, google_keys);
   }
+  rakia::CloudflareSiteverify siteverify;
+  std::unique_ptr<rakia::TurnstileGuard> turnstile;
+  if (config.turnstile_secret.empty()) {
+    rakia::log::warn(config.environment == rakia::Environment::development
+                         ? "turnstile is not configured; accounts are created unchecked"
+                         : "turnstile is not configured; new accounts are refused");
+  } else {
+    turnstile = std::make_unique<rakia::TurnstileGuard>(config, siteverify);
+  }
   rakia::NoaaSwpc noaa;
   rakia::SpaceWeatherService space_weather(noaa);
-  rakia::App app(config, store, verifier.get(), {}, &space_weather);
+  rakia::App app(config, store, verifier.get(), {}, &space_weather, turnstile.get());
   auto& server = app.server();
 
   std::signal(SIGINT, on_signal);

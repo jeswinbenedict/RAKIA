@@ -110,10 +110,13 @@ cd core/dart && sh tool/build_wasm.sh ../../app/web/rakia/rakia.wasm && cd ../..
 cd app
 flutter pub get
 sh tool/build_web_sqlite.sh
-flutter build web --release --csp --no-web-resources-cdn   --dart-define=RAKIA_API_URL=https://rakia-api-staging.onrender.com
+flutter build web --release --csp --no-web-resources-cdn \
+  --dart-define=RAKIA_API_URL=https://rakia-api-staging.onrender.com \
+  --dart-define=RAKIA_FIREBASE_API_KEY=<staging Web API key> \
+  --dart-define=RAKIA_TURNSTILE_SITE_KEY=<staging Turnstile site key>
 ```
 
-`RAKIA_API_URL` names the API the build calls for live data (space weather today); use `https://rakia-api.onrender.com` for production. Without it the app says it is not connected and shows no live values. The API must list the site's origin in `RAKIA_CORS_ORIGINS`, and the API origins are allowed in `connect-src` in `app/web/_headers`.
+`RAKIA_FIREBASE_API_KEY` is the project's Web API key (Firebase console, **Project settings**, **General**): a public identifier, not a secret, that every copy of the web app carries. `RAKIA_TURNSTILE_SITE_KEY` is the public site key of the Turnstile widget registered for the site's hostname. Without either, the Account page says sign-in is not available in this build. `RAKIA_API_URL` names the API the build calls for live data and sign-in; use `https://rakia-api.onrender.com` for production. Without it the app says it is not connected and shows no live values. The API must list the site's origin in `RAKIA_CORS_ORIGINS`, and the API origins are allowed in `connect-src` in `app/web/_headers`.
 
 Check it locally under its own headers, in headless Chrome (with the same `RAKIA_API_URL`, requests to the API are not reported as external):
 
@@ -148,5 +151,6 @@ Native builds encrypt the on-device database with a key from the system keystore
 
 - Run a staging deployment end to end with these steps.
 - Firebase projects `rakia-staging` and `rakia-production` exist with email/password and Google sign-in; add the web app's hostnames to **Authentication**, **Settings**, **Authorized domains** in each.
-- Turnstile widgets exist for staging and production; their secret keys go into the API's environment only when the API starts verifying Turnstile tokens.
+- In each Firebase project, enable the **Email/Password** provider (**Authentication**, **Sign-in method**).
+- Turnstile widgets exist for staging and production. Enter each widget's secret key as `RAKIA_TURNSTILE_SECRET_KEY` on the matching Render service (Render dashboard, **Environment**; never in the repository). Without it the API refuses to create new accounts, and Cloudflare's always-pass testing secrets are refused outside development.
 - Backups: Supabase's free plan has no automatic backups. Take a logical dump before each migration (`pg_dump --schema=rakia` through the session pooler, as `rakia_migrator`) and keep it encrypted off the platform, and test restoring one.

@@ -55,6 +55,27 @@ json parse_object(const std::string& text) {
   return value;
 }
 
+/// The claim checks shared by both verifiers.
+VerifiedUser check_claims(const json& claims, const std::string& project_id,
+                          const std::string& issuer, std::int64_t now) {
+  constexpr auto kLeewaySeconds = FirebaseVerifier::kLeewaySeconds;
+  VerifiedUser user;
+  user.expires_at = integer_claim(claims, "exp");
+  user.issued_at = integer_claim(claims, "iat");
+  user.auth_time = integer_claim(claims, "auth_time");
+  if (user.expires_at + kLeewaySeconds <= now) throw AuthError("expired");
+  if (user.issued_at > now + kLeewaySeconds) throw AuthError("issued_in_future");
+  if (user.auth_time > now + kLeewaySeconds) throw AuthError("auth_time_in_future");
+  if (string_claim(claims, "aud") != project_id) throw AuthError("wrong_audience");
+  if (string_claim(claims, "iss") != issuer) throw AuthError("wrong_issuer");
+  user.uid = string_claim(claims, "sub");
+  if (user.uid.empty() || user.uid.size() > 128) throw AuthError("bad_subject");
+  for (const char ch : user.uid) {
+    if (std::iscntrl(static_cast<unsigned char>(ch))) throw AuthError("bad_subject");
+  }
+  return user;
+}
+
 }  // namespace
 
 std::string base64url_decode(std::string_view in) {
@@ -202,23 +223,32 @@ VerifiedUser FirebaseVerifier::verify(std::string_view token) const {
     throw AuthError("bad_signature");
   }
 
-  const json claims = parse_object(base64url_decode(payload_b64));
-  const auto now = now_();
-  VerifiedUser user;
-  user.expires_at = integer_claim(claims, "exp");
-  user.issued_at = integer_claim(claims, "iat");
-  user.auth_time = integer_claim(claims, "auth_time");
-  if (user.expires_at + kLeewaySeconds <= now) throw AuthError("expired");
-  if (user.issued_at > now + kLeewaySeconds) throw AuthError("issued_in_future");
-  if (user.auth_time > now + kLeewaySeconds) throw AuthError("auth_time_in_future");
-  if (string_claim(claims, "aud") != project_id_) throw AuthError("wrong_audience");
-  if (string_claim(claims, "iss") != issuer_) throw AuthError("wrong_issuer");
-  user.uid = string_claim(claims, "sub");
-  if (user.uid.empty() || user.uid.size() > 128) throw AuthError("bad_subject");
-  for (const char ch : user.uid) {
-    if (std::iscntrl(static_cast<unsigned char>(ch))) throw AuthError("bad_subject");
+  return check_claims(parse_object(base64url_decode(payload_b64)), project_id_, issuer_,
+                      now_());
+}
+
+EmulatorVerifier::EmulatorVerifier(std::string project_id, FirebaseVerifier::Clock now)
+    : project_id_(std::move(project_id)),
+      issuer_("https://securetoken.google.com/" + project_id_),
+      now_(now ? std::move(now) : FirebaseVerifier::Clock(now_seconds)) {}
+
+VerifiedUser EmulatorVerifier::verify(std::string_view token) const {
+  if (token.empty() || token.size() > FirebaseVerifier::kMaxTokenBytes) {
+    throw AuthError("malformed");
   }
-  return user;
+  const auto dot1 = token.find('.');
+  const auto dot2 = dot1 == std::string_view::npos ? dot1 : token.find('.', dot1 + 1);
+  if (dot2 == std::string_view::npos || token.find('.', dot2 + 1) != std::string_view::npos) {
+    throw AuthError("malformed");
+  }
+  const json header = parse_object(base64url_decode(token.substr(0, dot1)));
+  const auto alg = header.find("alg");
+  if (alg == header.end() || !alg->is_string() || alg->get<std::string>() != "none" ||
+      dot2 + 1 != token.size()) {
+    throw AuthError("not_emulator_token");
+  }
+  return check_claims(parse_object(base64url_decode(token.substr(dot1 + 1, dot2 - dot1 - 1))),
+                      project_id_, issuer_, now_());
 }
 
 }  // namespace rakia

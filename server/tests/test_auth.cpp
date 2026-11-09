@@ -196,6 +196,34 @@ TEST("Google's published certificates parse (network; RAKIA_API_NETWORK_TESTS=1)
   }
 }
 
+TEST("emulator tokens: unsigned, alg none, same claim checks; signed tokens refused") {
+  const rakia::EmulatorVerifier emu(rk::kProject, [] { return rk::kNow; });
+  const auto unsigned_token = [](const nlohmann::json& claims) {
+    return rk::b64url(nlohmann::json{{"alg", "none"}, {"typ", "JWT"}}.dump()) + "." +
+           rk::b64url(claims.dump()) + ".";
+  };
+  CHECK_EQ(emu.verify(unsigned_token(rk::valid_claims("emu-1"))).uid, std::string("emu-1"));
+
+  const auto reason = [&](const std::string& t) {
+    try {
+      emu.verify(t);
+    } catch (const AuthError& e) {
+      return e.reason;
+    }
+    return std::string("accepted");
+  };
+  CHECK_EQ(reason(unsigned_token(with(rk::valid_claims(), "aud", "other-project"))),
+           std::string("wrong_audience"));
+  CHECK_EQ(reason(unsigned_token(with(rk::valid_claims(), "exp", rk::kNow - 3600))),
+           std::string("expired"));
+  // A real (signed) token is not an emulator token, and an alg none token
+  // with a signature is refused.
+  CHECK_EQ(reason(token(rk::valid_claims())), std::string("not_emulator_token"));
+  CHECK_EQ(reason(unsigned_token(rk::valid_claims()) + "c2ln"), std::string("not_emulator_token"));
+  // And the production verifier still refuses emulator tokens.
+  CHECK_EQ(refusal(unsigned_token(rk::valid_claims())), std::string("wrong_algorithm"));
+}
+
 int main() {
   rakia::log::set_enabled(false);
   return rk::run("auth");

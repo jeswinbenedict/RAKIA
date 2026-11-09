@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'account/account_api.dart';
+import 'account/account_controller.dart';
+import 'account/firebase_auth_client.dart';
 import 'app_settings.dart';
+import 'config/build_config.dart';
 import 'core/analytics_core.dart';
 import 'design/theme.dart';
 import 'environment/space_weather.dart';
@@ -22,6 +26,7 @@ class RakiaApp extends StatefulWidget {
     this.mission,
     this.storeOpener,
     this.spaceWeather,
+    this.account,
   });
 
   final String initialLocation;
@@ -40,6 +45,10 @@ class RakiaApp extends StatefulWidget {
   /// Live space weather; by default from the API named at build time
   /// ([kApiUrl]), or not connected when the build names none.
   final SpaceWeatherController? spaceWeather;
+
+  /// Sign-in; by default from the build's Firebase key and API URL, or
+  /// unavailable when the build names neither.
+  final AccountController? account;
 
   @override
   State<RakiaApp> createState() => _RakiaAppState();
@@ -64,6 +73,20 @@ class _RakiaAppState extends State<RakiaApp> {
               kApiUrl.isEmpty ? null : SpaceWeatherClient(baseUrl: kApiUrl),
             )
         ..start();
+  late final AccountController _account =
+      widget.account ??
+      AccountController(
+        auth: kFirebaseApiKey.isEmpty || kApiUrl.isEmpty
+            ? null
+            : FirebaseAuthClient(
+                apiKey: kFirebaseApiKey,
+                emulatorHost: kFirebaseAuthEmulatorHost,
+              ),
+        api: kFirebaseApiKey.isEmpty || kApiUrl.isEmpty
+            ? null
+            : AccountApi(baseUrl: kApiUrl),
+      );
+  bool _accountAttached = false;
   final WellbeingController _wellbeing = WellbeingController();
   final RecordController _record = RecordController();
   bool _recordAttached = false;
@@ -91,6 +114,12 @@ class _RakiaAppState extends State<RakiaApp> {
         _recordAttached = true;
         unawaited(_record.attach(recordStore, core));
       }
+    }
+    // The sign-in is kept in the store when it is persistent; otherwise it
+    // lasts for this session.
+    if (!_accountAttached && _store.state is! StoreOpening) {
+      _accountAttached = true;
+      unawaited(_account.attach(_store.store));
     }
     final store = _store.store;
     if (store == null) return;
@@ -123,6 +152,7 @@ class _RakiaAppState extends State<RakiaApp> {
     _wellbeing.dispose();
     _record.dispose();
     if (widget.spaceWeather == null) _spaceWeather.dispose();
+    if (widget.account == null) _account.dispose();
     super.dispose();
   }
 
@@ -140,18 +170,21 @@ class _RakiaAppState extends State<RakiaApp> {
               controller: _record,
               child: SpaceWeatherScope(
                 controller: _spaceWeather,
-                child: AppSettings(
-                  controller: _settings,
-                  child: ListenableBuilder(
-                    listenable: _settings,
-                    builder: (context, _) => MaterialApp.router(
-                      title: 'RAKIA',
-                      debugShowCheckedModeBanner: false,
-                      theme: _light,
-                      darkTheme: _dark,
-                      themeMode: _settings.themeMode,
-                      themeAnimationDuration: Duration.zero,
-                      routerConfig: _router,
+                child: AccountScope(
+                  controller: _account,
+                  child: AppSettings(
+                    controller: _settings,
+                    child: ListenableBuilder(
+                      listenable: _settings,
+                      builder: (context, _) => MaterialApp.router(
+                        title: 'RAKIA',
+                        debugShowCheckedModeBanner: false,
+                        theme: _light,
+                        darkTheme: _dark,
+                        themeMode: _settings.themeMode,
+                        themeAnimationDuration: Duration.zero,
+                        routerConfig: _router,
+                      ),
                     ),
                   ),
                 ),

@@ -10,10 +10,7 @@ import 'dart:convert';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 
-/// The API's base URL, fixed at build time:
-/// `flutter build web --dart-define=RAKIA_API_URL=https://...`.
-/// Empty means this build has no live data connection.
-const String kApiUrl = String.fromEnvironment('RAKIA_API_URL');
+export '../config/build_config.dart' show kApiUrl;
 
 @immutable
 class FluxPoint {

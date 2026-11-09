@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rakia/account/account_controller.dart';
 import 'package:rakia/app.dart';
 import 'package:rakia/app_settings.dart';
 import 'package:rakia/environment/space_weather.dart';
@@ -38,6 +39,7 @@ Future<void> pumpRakia(
   MissionController? mission,
   LocalStoreOpener? storeOpener,
   SpaceWeatherController? spaceWeather,
+  AccountController? account,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -51,6 +53,7 @@ Future<void> pumpRakia(
       mission: mission,
       storeOpener: storeOpener ?? memoryStoreOpener,
       spaceWeather: spaceWeather,
+      account: account,
     ),
   );
   await tester.pumpAndSettle();

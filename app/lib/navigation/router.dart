@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../components/empty_state.dart';
 import '../features/about_page.dart';
+import '../features/account_page.dart';
 import '../features/actions_page.dart';
 import '../features/check_in_page.dart';
 import '../features/data_page.dart';
@@ -84,6 +85,7 @@ Widget pageFor(ModuleSpec m) => switch (m.id) {
   'data' => DataPage(module: m),
   'behavioural' => WellbeingPage(module: m),
   'record' => RecordPage(module: m),
+  'account' => AccountPage(module: m),
   'environment' => ModulePage(module: m, header: const SpaceWeatherSection()),
   _ when m.group == ModuleGroup.monitoring => MonitoringPage(module: m),
   _ => ModulePage(module: m),
