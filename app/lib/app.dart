@@ -8,6 +8,7 @@ import 'core/analytics_core.dart';
 import 'design/theme.dart';
 import 'mission/mission_controller.dart';
 import 'navigation/router.dart';
+import 'record/record_controller.dart';
 import 'storage/store_controller.dart';
 import 'wellbeing/wellbeing_controller.dart';
 
@@ -52,6 +53,8 @@ class _RakiaAppState extends State<RakiaApp> {
     opener: widget.storeOpener,
   )..open();
   final WellbeingController _wellbeing = WellbeingController();
+  final RecordController _record = RecordController();
+  bool _recordAttached = false;
   bool _settingsAttached = false;
   bool _wellbeingAttached = false;
   bool _missionAttached = false;
@@ -68,6 +71,15 @@ class _RakiaAppState extends State<RakiaApp> {
   /// Once both the store and the analytics core are ready, preferences and
   /// the saved mission are restored from the store.
   void _attachStore() {
+    // The health record needs a database even when persistent storage is
+    // unavailable; it then uses the session's in-memory store.
+    final recordStore = _store.store ?? _store.sessionStore;
+    if (recordStore != null && !_recordAttached) {
+      if (_core.state case AnalyticsCoreReady(:final core)) {
+        _recordAttached = true;
+        unawaited(_record.attach(recordStore, core));
+      }
+    }
     final store = _store.store;
     if (store == null) return;
     // Preferences do not need the analytics core.
@@ -79,8 +91,8 @@ class _RakiaAppState extends State<RakiaApp> {
       _wellbeingAttached = true;
       unawaited(_wellbeing.attach(store));
     }
-    if (!_missionAttached) {
-      if (_core.state case AnalyticsCoreReady(:final core)) {
+    if (_core.state case AnalyticsCoreReady(:final core)) {
+      if (!_missionAttached) {
         _missionAttached = true;
         unawaited(_mission.attach(store, core));
       }
@@ -97,6 +109,7 @@ class _RakiaAppState extends State<RakiaApp> {
     _store.dispose();
     if (widget.mission == null) _mission.dispose();
     _wellbeing.dispose();
+    _record.dispose();
     super.dispose();
   }
 
@@ -110,18 +123,21 @@ class _RakiaAppState extends State<RakiaApp> {
           controller: _mission,
           child: WellbeingScope(
             controller: _wellbeing,
-            child: AppSettings(
-              controller: _settings,
-              child: ListenableBuilder(
-                listenable: _settings,
-                builder: (context, _) => MaterialApp.router(
-                  title: 'RAKIA',
-                  debugShowCheckedModeBanner: false,
-                  theme: _light,
-                  darkTheme: _dark,
-                  themeMode: _settings.themeMode,
-                  themeAnimationDuration: Duration.zero,
-                  routerConfig: _router,
+            child: RecordScope(
+              controller: _record,
+              child: AppSettings(
+                controller: _settings,
+                child: ListenableBuilder(
+                  listenable: _settings,
+                  builder: (context, _) => MaterialApp.router(
+                    title: 'RAKIA',
+                    debugShowCheckedModeBanner: false,
+                    theme: _light,
+                    darkTheme: _dark,
+                    themeMode: _settings.themeMode,
+                    themeAnimationDuration: Duration.zero,
+                    routerConfig: _router,
+                  ),
                 ),
               ),
             ),

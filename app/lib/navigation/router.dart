@@ -11,6 +11,7 @@ import '../features/module_page.dart';
 import '../features/monitoring_page.dart';
 import '../features/page_frame.dart';
 import '../features/reaction_test_page.dart';
+import '../features/record_page.dart';
 import '../features/wellbeing_page.dart';
 import 'adaptive_shell.dart';
 import 'modules.dart';
@@ -81,6 +82,7 @@ Widget pageFor(ModuleSpec m) => switch (m.id) {
   'actions' => ActionsPage(module: m),
   'data' => DataPage(module: m),
   'behavioural' => WellbeingPage(module: m),
+  'record' => RecordPage(module: m),
   _ when m.group == ModuleGroup.monitoring => MonitoringPage(module: m),
   _ => ModulePage(module: m),
 };

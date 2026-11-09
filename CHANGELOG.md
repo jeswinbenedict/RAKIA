@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- My health record: the astronaut records their own readings (resting heart rate, heart-rate variability, SpO2, sleep duration, exercise minutes) and the app evaluates them against their personal baseline.
+  - Readings are validated (plausible range; not in the future; up to 90 days back, to load existing history) and appended to the on-device hash-chained ledger as real, manual data. They are never simulated, never edited and never deleted. A correction is a new linked record that replaces the original in every evaluation.
+  - Evaluation uses librakia on a rolling window: the usual range is learned from up to 35 days before the past week (at least 14 needed), and the past 7 days are compared with it. Until the baseline exists, the page shows its progress ("9 of 14 days") rather than a verdict. Once it does, it shows the status and the plain-language explanation.
+  - 21 new tests: validation, windows, ledger writes, immutability, corrections, the controller (including detection of a sustained rise in entered data), the page, a restart, accessibility in both themes, and layout at 200% text on four window sizes.
+- Storage never hangs the app: if local storage does not open within 15 seconds (for example while another window holds it), the Data page says why and the app continues on an in-memory SQLite database for the session. The health record states that readings will not be kept.
 - Live space-radiation environment: `GET /v1/space-weather` serves NOAA SWPC data, refreshed every five minutes over verified HTTPS: the GOES >=10 MeV proton flux for the last day, the current solar radiation storm level (S-scale) and the planetary K index. Each response carries its source, timestamps and a `stale` flag. Feeds are validated, a dropped connection is retried once, the last snapshot is served as stale for up to six hours, and then the endpoint answers 503 rather than inventing data. It has 10 tests, including a live fetch in CI.
 - Zero-cost hosting: every hosted service runs on a free plan that needs no payment method.
   - `render.yaml`: Render Blueprint for the API, with free Docker web services for staging (deploys on push to `main`) and production (manual). Secrets are entered in Render and never stored in the file.
@@ -125,4 +130,5 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Disabled filled buttons looked identical to enabled ones (the theme painted every state in the action colour). They now use a muted surface and text colour.
 - Two store tests hard-coded schema version numbers; they now follow `RakiaDatabase.currentSchemaVersion`.

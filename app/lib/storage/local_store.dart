@@ -2,6 +2,9 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:rakia_core/rakia_core.dart';
 
+import '../analytics/metric_definitions.dart';
+import '../analytics/metric_series.dart';
+import '../record/record.dart';
 import '../simulation/simulated_mission.dart';
 import '../wellbeing/instruments.dart';
 import 'database.dart';
@@ -297,7 +300,7 @@ class LocalStore {
     final rows = <MeasurementsCompanion>[];
     var seq = 0;
     var prev = Uint8List(32);
-    void add(SimulatedSeries s, int day, double v, int flags) {
+    void add(MetricSeries s, int day, double v, int flags) {
       if (!v.isFinite) return; // no reading that day
       final observedAtUs = startAtUs + (day - 1) * _dayUs + _readingOffsetUs;
       final id = uuidV7(now: created);
@@ -396,7 +399,7 @@ class LocalStore {
       for (final r in records)
         if (r.supersedesId != null) uuidToString(r.supersedesId!),
     };
-    final series = <SimulatedSeries>[];
+    final series = <MetricSeries>[];
     for (final g in generated.series) {
       final reference = List<double>.filled(row.referenceDays, double.nan);
       final monitoring = List<double>.filled(simulatedDay, double.nan);
@@ -422,7 +425,7 @@ class LocalStore {
         }
       }
       series.add(
-        SimulatedSeries(
+        MetricSeries(
           metric: g.metric,
           reference: reference,
           monitoring: monitoring,
@@ -445,6 +448,160 @@ class LocalStore {
         series: series,
       ),
     );
+  }
+
+  // ---------------------------------------------------- personal record
+
+  /// The astronaut's own real record, if one exists. There is at most one
+  /// real mission on a device today.
+  Future<String?> personalRecordId() async {
+    final row =
+        await (db.select(db.missions)
+              ..where((m) => m.isSimulation.equals(0))
+              ..orderBy([(m) => OrderingTerm.asc(m.createdAtUs)])
+              ..limit(1))
+            .getSingleOrNull();
+    return row?.id;
+  }
+
+  /// Creates the personal record (a real, non-simulation mission). Real
+  /// missions can never be deleted, and nothing simulated may enter them.
+  Future<String> createPersonalRecord({
+    required String label,
+    DateTime? now,
+  }) async {
+    final existing = await personalRecordId();
+    if (existing != null) return existing;
+    final created = (now ?? DateTime.now()).toUtc();
+    final id = uuidToString(uuidV7(now: created));
+    await db
+        .into(db.missions)
+        .insert(
+          MissionsCompanion.insert(
+            id: id,
+            name: 'My health record',
+            isSimulation: 0,
+            subjectId: uuidV7(now: created),
+            subjectLabel: label,
+            startAtUs: DateTime.utc(
+              created.year,
+              created.month,
+              created.day,
+            ).microsecondsSinceEpoch,
+            referenceDays: RecordWindows.referenceDays,
+            plannedDays: 365,
+            createdAtUs: created.microsecondsSinceEpoch,
+          ),
+        );
+    return id;
+  }
+
+  /// Appends a reading the user entered, linked into the record's hash
+  /// chain. A correction names the entry it replaces; nothing is
+  /// overwritten.
+  Future<RecordEntry> addRecordEntry({
+    required String recordId,
+    required MetricDefinition metric,
+    required double value,
+    required DateTime day,
+    required RakiaCore core,
+    String? supersedesId,
+    DateTime? now,
+  }) async {
+    if (!value.isFinite ||
+        value < metric.plausibleMin ||
+        value > metric.plausibleMax) {
+      throw ArgumentError.value(value, 'value', 'outside the plausible range');
+    }
+    final created = (now ?? DateTime.now()).toUtc();
+    return db.transaction(() async {
+      final mission = await (db.select(
+        db.missions,
+      )..where((m) => m.id.equals(recordId))).getSingle();
+      if (mission.isSimulation != 0) {
+        throw StoreIntegrityError('$recordId is not a real record');
+      }
+      final last =
+          await (db.select(db.measurements)
+                ..where((m) => m.missionId.equals(recordId))
+                ..orderBy([(m) => OrderingTerm.desc(m.clientSeq)])
+                ..limit(1))
+              .getSingleOrNull();
+      final seq = (last?.clientSeq ?? 0) + 1;
+      final prev = last?.hash ?? Uint8List(32);
+      final id = uuidV7(now: created);
+      // Noon of the chosen date, so the reading stays on that date.
+      final observedAtUs = day.microsecondsSinceEpoch + _dayUs ~/ 2;
+      final hash = core.recordHash(
+        LedgerRecord(
+          id: id,
+          subjectId: mission.subjectId,
+          metricCode: metric.code,
+          value: value,
+          unit: metric.ucum,
+          observedAtUs: observedAtUs,
+          method: MeasurementMethod.manual,
+          provenance: Provenance.real,
+          clientSeq: seq,
+          prevHash: prev,
+        ),
+      );
+      await db
+          .into(db.measurements)
+          .insert(
+            MeasurementsCompanion.insert(
+              id: id,
+              missionId: recordId,
+              subjectId: mission.subjectId,
+              metricCode: metric.code,
+              value: value,
+              unit: metric.ucum,
+              observedAtUs: observedAtUs,
+              method: MeasurementMethod.manual.code,
+              provenance: Provenance.real.code,
+              supersedesId: Value(
+                supersedesId == null ? null : uuidFromString(supersedesId),
+              ),
+              clientSeq: seq,
+              prevHash: prev,
+              hash: hash,
+            ),
+          );
+      return RecordEntry(
+        id: uuidToString(id),
+        metricCode: metric.code,
+        value: value,
+        unit: metric.ucum,
+        day: day,
+        seq: seq,
+        supersedesId: supersedesId,
+      );
+    });
+  }
+
+  /// Every entry in the record, in ledger order.
+  Future<List<RecordEntry>> recordEntries(String recordId) async {
+    final rows = await _records(recordId);
+    return [
+      for (final r in rows)
+        RecordEntry(
+          id: uuidToString(r.id),
+          metricCode: r.metricCode,
+          value: r.value,
+          unit: r.unit,
+          day: () {
+            final t = DateTime.fromMicrosecondsSinceEpoch(
+              r.observedAtUs,
+              isUtc: true,
+            );
+            return DateTime.utc(t.year, t.month, t.day);
+          }(),
+          seq: r.clientSeq,
+          supersedesId: r.supersedesId == null
+              ? null
+              : uuidToString(r.supersedesId!),
+        ),
+    ];
   }
 
   // ------------------------------------------------------------------ ledger
