@@ -1,6 +1,6 @@
 # RAKIA — Project Status
 
-**Current phase:** Phase 5, core implementation. `librakia`, the app shell and bindings, the mission dashboard, the encrypted on-device store and the database bootstrap, the PostgreSQL schema, the API skeleton, deployment readiness, behavioural check-ins and sign-in on the API are merged. The remaining features need owner credentials (see blockers).
+**Current phase:** Phase 5, core implementation. `librakia`, the app shell and bindings, the mission dashboard, the encrypted on-device store and the database bootstrap, the PostgreSQL schema, the API skeleton, deployment readiness, behavioural check-ins and sign-in on the API are merged. Staging runs live on free plans: web app at <https://staging.rakia-app.pages.dev>, API at <https://rakia-api-staging.onrender.com>, database on Supabase. Next: sign-in in the app (`feature/auth`).
 **Last updated:** 2026-11-09
 
 ## Completed
@@ -32,11 +32,12 @@
 - [x] Deployment readiness (API container, web hosting headers, self-contained web build, deployment guide): [jeswinbenedict/RAKIA#12](https://github.com/jeswinbenedict/RAKIA/pull/12), merged
 - [x] Phase 5: behavioural health check-ins and reaction-time test: [jeswinbenedict/RAKIA#13](https://github.com/jeswinbenedict/RAKIA/pull/13), merged
 - [x] Sign-in on the API (Firebase ID-token verification, `GET /v1/me`): [jeswinbenedict/RAKIA#14](https://github.com/jeswinbenedict/RAKIA/pull/14), merged
+- [x] Zero-cost hosting (Render for the API, Supabase session pooler, documentation): [jeswinbenedict/RAKIA#18](https://github.com/jeswinbenedict/RAKIA/pull/18), merged
+- [x] Staging deployed (2026-11-09): Supabase `rakia-staging` migrated to schema 2, Render `rakia-api-staging` ready, web app on Cloudflare Pages `staging` branch
+- [x] Local database bootstrapped and migrated on the owner's machine (2026-11-09)
 
 ## Pending
 
-- [ ] Run `db/bootstrap/bootstrap-local.ps1`, then `dart run bin/migrate.dart up` in `db/`, on your machine (owner: needs the PostgreSQL superuser password)
-- [ ] Zero-cost hosting (Render for the API, Supabase session pooler, documentation): `chore/zero-cost-hosting`, in review
 - [ ] `feature/auth`: sign-in screens in the app and Turnstile (Firebase projects and Turnstile widgets now exist)
 - [ ] `feature/ingest` (after `feature/auth`)
 
@@ -69,14 +70,12 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 
 ## Active blockers / owner input needed
 
-Done on 2026-11-09: Firebase projects `rakia-staging` and `rakia-production` (email/password and Google sign-in; Analytics off), Turnstile widgets for staging (`staging.rakia-app.pages.dev`, `localhost`) and production (`rakia-app.pages.dev`), Supabase project `rakia-staging` in ap-south-1 (Data API off), and the `Database` and `API` jobs required in the `main` ruleset.
+Done on 2026-11-09: Firebase projects `rakia-staging` and `rakia-production` (email/password and Google sign-in; Analytics off); Turnstile widgets for staging (`staging.rakia-app.pages.dev`, `localhost`) and production (`rakia-app.pages.dev`); Supabase `rakia-staging` in ap-south-1 (Data API off, roles created, migrated to schema 2); Render services `rakia-api-staging` (live) and `rakia-api` (created, not deployed) with the Supabase CA as a secret file; Cloudflare Pages project `rakia-app` with the `staging` branch deployed; the `Database` and `API` jobs required in the `main` ruleset; the local database bootstrapped and migrated.
 
-1. **Supabase roles:** run step 1 of [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) in the `rakia-staging` SQL editor with passwords you generate, then the migrations through the session pooler.
-2. **Render:** sign up (free, no payment method) and apply `render.yaml` as a Blueprint; enter the database host, user, password and CORS origin, and add the Supabase CA certificate as a secret file.
-3. **Cloudflare Pages:** create the `rakia-app` project with the first deployment (`npx wrangler pages deploy`).
-4. **Supabase production project:** the free plan allows 2 active projects per account, and the account holding `rakia-staging` has one other project.
-5. **Local database:** run `db/bootstrap/bootstrap-local.ps1` (it asks for the PostgreSQL superuser password, which only you should enter), then `dart run bin/migrate.dart up` in `db/`.
-6. Optional: accept the Android SDK licences (`flutter doctor --android-licenses`); start Docker Desktop to build the API image locally.
+1. **Supabase production project:** the free plan allows 2 active projects per account, and the account holding `rakia-staging` is at that limit. Until a production project exists, `rakia-api` points at the staging database and must not hold real data.
+2. **Production web deploy:** deploy `app/build/web` to the `main` branch of `rakia-app` once production has its own database.
+3. **Firebase authorized domains:** add `staging.rakia-app.pages.dev` and `rakia-app.pages.dev` in each Firebase project when the app's sign-in screens land.
+4. Optional: accept the Android SDK licences (`flutter doctor --android-licenses`); start Docker Desktop to build the API image locally.
 
 ## Implemented features
 
@@ -129,6 +128,7 @@ Done on 2026-11-09: Firebase projects `rakia-staging` and `rakia-production` (em
 | PR #10 CI | all 23 checks passed; merged; `main` CI green |
 | API: MSVC 19.44 `/W4 /WX` Release (local) | built; config 10/10, cors 8/8, rate_limit 6/6, http 11/11 |
 | API: PostgreSQL integration against a throwaway local PostgreSQL 18.6 | 9/9; db tests 55/55 with migration 0002 |
+| Staging, live (2026-11-09) | API: `/v1/ready` 200 with schema 2, `/v1/metric-definitions` from Supabase, `/v1/me` 401 without or with a forged token, CORS allows only the staging web origin, HSTS and CSP present. Web app: rendered, cross-origin isolated, OPFS, no CSP violations or external requests (headless Chrome). Database: no role is superuser or bypasses RLS; RLS on all 10 tables with personal or mission data; `anon` and `authenticated` cannot use the `rakia` schema |
 | API: binary against that database (local) | health, ready (schema 2), metric definitions, JSON 404, CORS preflight 204; 503 while the database was stopped, ready again after it restarted; no password in the log |
 | db bootstrap: both scripts against a throwaway local PostgreSQL 18.6 (local) | roles and database created and verified; outside role refused CONNECT; `rakia_api` refused CREATE; SCRAM verifiers only; rerun refused to overwrite `.env`; rotation invalidated the old password |
 
@@ -138,4 +138,4 @@ None.
 
 ## Next actions
 
-`feature/auth` (sign-in in the app, Turnstile; the API side is merged) needs a Firebase project and Turnstile keys; then `feature/ingest` and sync.
+`feature/auth`: sign-in screens in the app (Firebase `rakia-staging`, email/password and Google) and Turnstile on sign-up and password reset; then `feature/ingest` and sync.
