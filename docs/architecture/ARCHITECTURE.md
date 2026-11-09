@@ -49,7 +49,7 @@ Key C++/C deps (all permissive): Drogon, libpq, jwt-cpp, OpenSSL, nlohmann/json,
 
 ## 4. Authentication & authorisation
 
-- **Firebase Auth** on the client: Google Sign-In, email/password (+ verification, password reset), phone OTP (web requires Firebase's reCAPTCHA verifier), persistence, logout with token revocation.
+- **Firebase Auth** on the client: Google Sign-In, email/password (+ verification, password reset), persistence, logout with token revocation. Phone OTP is not enabled: SMS needs Firebase's paid Blaze plan, and the deployment is zero-cost.
 - **Backend verification without a service account:** `rakia-api` verifies Firebase ID tokens (RS256) against Google's public certificates, checking `iss`, `aud` (project id), `exp`, `iat`, `auth_time`. No Firebase admin secret is needed by the API or ever shipped to the client.
 - **RBAC:** roles per mission — `astronaut`, `crew_medical_officer`, `flight_surgeon`, `researcher` (de-identified read only), `mission_admin`. Checked in the API *and* enforced again in Postgres with Row-Level Security (defence in depth). An astronaut sees only their own data; behavioural data obeys consent scopes.
 - **Turnstile:** on sign-up, password reset, phone-OTP request (prevents SMS-cost abuse) and any public form. Server-side `siteverify` with secret; reject on failure/`timeout-or-duplicate`; store SHA-256 of token for 10 min to block replay; check `action`/`hostname`; fail closed on public forms, with a clear retry message. Turnstile is bot friction, not identity.
@@ -117,12 +117,12 @@ TLS everywhere; secrets only in env/secret manager (`.env.example` documents nam
 | Piece | Host | Why |
 |---|---|---|
 | Flutter web | **Cloudflare Pages** (alt: Vercel) | Static assets, global CDN, HTTPS, preview deploys; same vendor as Turnstile. |
-| `rakia-api` (native C++) | **Container on Google Cloud Run** (alt: Fly.io / Render) | Vercel Functions and Cloudflare Workers cannot run arbitrary native long-running C++ servers; Cloud Run runs our Docker image, scales to zero, HTTPS, health checks, logs. |
-| Database | Supabase Postgres (prod), local PG 18 (dev) | |
-| Auth | Firebase | |
-| Monitoring | Cloud Run logs/metrics + `GET /v1/health` (liveness) + `GET /v1/ready` (readiness), uptime check, structured JSON logs; client errors to a self-hosted-capable sink (decided in Phase 8) | |
+| `rakia-api` (native C++) | **Container on Render, free plan** (alt: Google Cloud Run, which needs a billing account) | Vercel Functions and Cloudflare Workers cannot run arbitrary native long-running C++ servers. Render runs our Docker image with HTTPS, health checks and logs at no cost and without a payment method; the free service sleeps when idle (cold starts of about a minute). The image is unchanged on Cloud Run. |
+| Database | Supabase Postgres, free plan (staging, prod), local PG 18 (dev) | Reached through Supabase's session pooler (IPv4, `verify-full`). |
+| Auth | Firebase Authentication, Spark (free) plan | Email/password and Google sign-in. Phone OTP needs the paid Blaze plan and is not enabled. |
+| Monitoring | Render logs and metrics + `GET /v1/health` (liveness) + `GET /v1/ready` (readiness), uptime check, structured JSON logs; client errors to a self-hosted-capable sink (decided in Phase 8) | |
 
-Environments: **dev** (local PG, Firebase dev project, Turnstile test keys), **staging** (`staging` Pages branch + Cloud Run revision + Supabase staging project), **prod**. CI/CD: GitHub Actions — format/lint/test on PR; build web, Android, iOS (macOS runner, unsigned), C/C++ on Windows (MSVC) and Linux (GCC/Clang + ASan/UBSan + clang-tidy); deploy on tag.
+Environments: **dev** (local PG, Firebase dev project, Turnstile test keys), **staging** (`staging` Pages branch + Render staging service + Supabase staging project + Firebase `rakia-staging`), **prod**. CI/CD: GitHub Actions — format/lint/test on PR; build web, Android, iOS (macOS runner, unsigned), C/C++ on Windows (MSVC) and Linux (GCC/Clang + ASan/UBSan + clang-tidy); deploy on tag.
 
 Implemented for deployment: `server/Dockerfile` (multi-stage; tests run during the build; non-root; production mode by default; Debian base pinned by digest and tracked by Dependabot), `app/web/_headers` (CSP without inline scripts, cross-origin isolation, HSTS and the other security headers, checked in headless Chrome in CI) and a self-contained web build (`--csp --no-web-resources-cdn`). Step-by-step instructions: [DEPLOYMENT.md](../DEPLOYMENT.md).
 

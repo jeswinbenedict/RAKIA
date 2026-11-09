@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Zero-cost hosting: every hosted service runs on a free plan that needs no payment method.
+  - `render.yaml`: Render Blueprint for the API, with free Docker web services for staging (deploys on push to `main`) and production (manual). Secrets are entered in Render and never stored in the file.
+  - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): a cost table with each free plan's limits; the API on Render, with Cloud Run as an alternative that needs billing; the database through Supabase's session pooler (IPv4, `verify-full`); Pages project `rakia-app`; and backups by `pg_dump`, since the free plan has none.
+- The API refuses to connect as `postgres`, `supabase_admin` or `rakia_migrator` when the role carries a pooler suffix (`<role>.<project ref>`), not only under the bare names. Tests cover both forms and accept `rakia_api.<ref>`.
+
+### Removed
+
+- `RAKIA_SUPABASE_URL` and `RAKIA_SUPABASE_SERVICE_ROLE_KEY` from `.env.example`: nothing used them (the API connects to PostgreSQL directly), and a slot for a service-role key invited storing one.
+
 - CI keeps building through a GitHub download outage: pinned dependency archives (nlohmann/json, cpp-httplib), the Gradle distribution and the SQLite native and WebAssembly binaries are cached between runs and reused only when they match their pinned SHA-256. The Gradle wrapper now verifies its distribution checksum, and the API image accepts the cached archives as an optional build context.
 - Sign-in on the API: Firebase ID-token verification and `GET /v1/me`:
   - Tokens are verified as Firebase documents for third-party servers: RS256 only (never `none` or HMAC), a key id from Google's published X.509 certificates, a valid signature, `aud` and `iss` naming the project, `exp`, `iat` and `auth_time` within 60 s of clock leeway, and a well-formed `sub`. No Firebase service account or admin secret is used.
@@ -110,6 +119,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Phone (SMS) sign-in is no longer planned: Firebase sends SMS only on its paid plan. Email/password and Google remain.
 - The Behavioural health module describes what it does (it previously listed isolation and workload reports and sharing, which do not exist).
 
 ### Fixed

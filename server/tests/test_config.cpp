@@ -121,6 +121,15 @@ TEST("the Firebase project: optional in development, required elsewhere, well-fo
 TEST("the API refuses to run as the migrator or a superuser") {
   CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_DB_USER", "rakia_migrator")));
   CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_DB_USER", "postgres")));
+  CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_DB_USER", "supabase_admin")));
+  // Through a connection pooler the role carries the project reference.
+  CHECK_THROWS(ConfigError,
+               load_config({}, with(base(), "RAKIA_DB_USER", "postgres.ytadamlepphfckkbvmjq")));
+  CHECK_THROWS(ConfigError, load_config({}, with(base(), "RAKIA_DB_USER",
+                                                 "rakia_migrator.ytadamlepphfckkbvmjq")));
+  const auto pooled =
+      load_config({}, with(base(), "RAKIA_DB_USER", "rakia_api.ytadamlepphfckkbvmjq"));
+  CHECK_EQ(pooled.db_user, std::string("rakia_api.ytadamlepphfckkbvmjq"));
 }
 
 TEST("describe() never contains the password") {

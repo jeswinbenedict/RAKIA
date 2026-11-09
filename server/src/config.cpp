@@ -192,7 +192,10 @@ Config load_config(const EnvMap& file, const EnvMap& env) {
   if (c.db_sslmode == "disable" && !c.db_sslrootcert.empty()) {
     throw ConfigError("RAKIA_DB_SSLROOTCERT is set but RAKIA_DB_SSLMODE is disable");
   }
-  if (c.db_user == "rakia_migrator" || c.db_user == "postgres") {
+  // A connection pooler (Supabase's Supavisor) names the role
+  // "<role>.<project ref>"; the role is the part before the first dot.
+  const std::string role = c.db_user.substr(0, c.db_user.find('.'));
+  if (role == "rakia_migrator" || role == "postgres" || role == "supabase_admin") {
     throw ConfigError("RAKIA_DB_USER must be the least-privilege API role (rakia_api), not "
                       "the migrator or a superuser");
   }
