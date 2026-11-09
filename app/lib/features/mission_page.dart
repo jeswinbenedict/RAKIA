@@ -16,6 +16,7 @@ import 'module_page.dart';
 import 'page_frame.dart';
 import 'record_alerts.dart';
 import 'simulation_controls.dart';
+import 'space_weather_view.dart';
 
 /// Mission overview: mission context, status counts, what needs attention
 /// and every indicator against its baseline.
@@ -32,7 +33,14 @@ class MissionPage extends StatelessWidget {
       return ModulePage(
         module: module,
         emptyAction: const StartSimulationAction(),
-        header: RecordOverviewCard(record: record),
+        header: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RecordOverviewCard(record: record),
+            const SizedBox(height: RakiaSpacing.xl),
+            const SpaceWeatherSummaryCard(),
+          ],
+        ),
       );
     }
     final w = RakiaBreakpoints.of(MediaQuery.sizeOf(context).width);
@@ -49,6 +57,8 @@ class MissionPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           RecordOverviewCard(record: record),
+          const SizedBox(height: RakiaSpacing.xl),
+          const SpaceWeatherSummaryCard(),
           const SizedBox(height: RakiaSpacing.xl),
           _MissionContextCard(snapshot: snapshot),
           const SizedBox(height: RakiaSpacing.xl),

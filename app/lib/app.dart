@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'app_settings.dart';
 import 'core/analytics_core.dart';
 import 'design/theme.dart';
+import 'environment/space_weather.dart';
 import 'mission/mission_controller.dart';
 import 'navigation/router.dart';
 import 'record/record_controller.dart';
@@ -20,6 +21,7 @@ class RakiaApp extends StatefulWidget {
     this.coreLoader,
     this.mission,
     this.storeOpener,
+    this.spaceWeather,
   });
 
   final String initialLocation;
@@ -34,6 +36,10 @@ class RakiaApp extends StatefulWidget {
   /// Opens the on-device store; defaults to the platform store (a SQLite file
   /// natively, SQLite WebAssembly in a browser).
   final LocalStoreOpener? storeOpener;
+
+  /// Live space weather; by default from the API named at build time
+  /// ([kApiUrl]), or not connected when the build names none.
+  final SpaceWeatherController? spaceWeather;
 
   @override
   State<RakiaApp> createState() => _RakiaAppState();
@@ -52,6 +58,12 @@ class _RakiaAppState extends State<RakiaApp> {
   late final StoreController _store = StoreController(
     opener: widget.storeOpener,
   )..open();
+  late final SpaceWeatherController _spaceWeather =
+      widget.spaceWeather ??
+            SpaceWeatherController(
+              kApiUrl.isEmpty ? null : SpaceWeatherClient(baseUrl: kApiUrl),
+            )
+        ..start();
   final WellbeingController _wellbeing = WellbeingController();
   final RecordController _record = RecordController();
   bool _recordAttached = false;
@@ -110,6 +122,7 @@ class _RakiaAppState extends State<RakiaApp> {
     if (widget.mission == null) _mission.dispose();
     _wellbeing.dispose();
     _record.dispose();
+    if (widget.spaceWeather == null) _spaceWeather.dispose();
     super.dispose();
   }
 
@@ -125,18 +138,21 @@ class _RakiaAppState extends State<RakiaApp> {
             controller: _wellbeing,
             child: RecordScope(
               controller: _record,
-              child: AppSettings(
-                controller: _settings,
-                child: ListenableBuilder(
-                  listenable: _settings,
-                  builder: (context, _) => MaterialApp.router(
-                    title: 'RAKIA',
-                    debugShowCheckedModeBanner: false,
-                    theme: _light,
-                    darkTheme: _dark,
-                    themeMode: _settings.themeMode,
-                    themeAnimationDuration: Duration.zero,
-                    routerConfig: _router,
+              child: SpaceWeatherScope(
+                controller: _spaceWeather,
+                child: AppSettings(
+                  controller: _settings,
+                  child: ListenableBuilder(
+                    listenable: _settings,
+                    builder: (context, _) => MaterialApp.router(
+                      title: 'RAKIA',
+                      debugShowCheckedModeBanner: false,
+                      theme: _light,
+                      darkTheme: _dark,
+                      themeMode: _settings.themeMode,
+                      themeAnimationDuration: Duration.zero,
+                      routerConfig: _router,
+                    ),
                   ),
                 ),
               ),

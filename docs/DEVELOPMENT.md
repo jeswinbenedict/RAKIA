@@ -78,6 +78,8 @@ flutter test
 flutter build web --release --csp --no-web-resources-cdn
 ```
 
+Add `--dart-define=RAKIA_API_URL=<api base URL>` to `flutter run` or `flutter build` to connect the app to an API for live data (space weather); without it the app runs offline and says so. See [DEPLOYMENT.md](DEPLOYMENT.md) for the CORS and Content-Security-Policy settings this needs.
+
 The web build also needs the SQLite WebAssembly module and the database worker for the local store, prepared once (and again after updating `drift` or `sqlite3`):
 
 ```bash

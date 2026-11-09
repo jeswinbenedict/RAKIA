@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Live space-radiation environment in the app, from NOAA through the RAKIA API (`GET /v1/space-weather`):
+  - Radiation & environment shows the solar radiation storm level (NOAA S-scale) with NOAA's published effect on astronauts and what it means for the crew. From S3 that means following the mission's radiation flight rules and the ground's instructions, with spacewalks normally avoided. It also shows protons above 10 MeV over the last 24 hours on a logarithmic chart with the S1 threshold, the Kp index, the source satellite, and when it was updated.
+  - A radiation storm (S1 or above) is raised in the Action center. The Mission overview shows the current level.
+  - Data that is old, or that the server served as stale, is called out. An unreachable server is reported with a retry. A build without an API URL says it is not connected. No value is ever estimated or invented, and the page says this is the environment near Earth, not the astronaut's dose.
+  - Refreshes every five minutes while the app is open. The API URL is set at build time (`--dart-define=RAKIA_API_URL`), and `connect-src` in `app/web/_headers` allows the staging and production API origins.
+  - New dependency: `http` (Dart team, BSD licence).
+  - 31 new tests, against a real response recorded from the staging API: parsing and validation, every failure path, the controller, wording, the views in every state, a storm in the Action center and on the overview, accessibility in both themes, and layout at 200% text on four window sizes.
+- Rounded panels with a coloured edge no longer draw stray arcs on their other corners in the web build.
+
 - Alerts on the astronaut's own readings, with a confirmatory check and a log of what was done:
   - The Action center has two sections: "Your readings", where librakia's evaluation of the record raises alerts (act, watch, then not enough recent readings), and "Simulation mission", marked SIMULATED. The two are never mixed. The Mission overview shows the record's alerts above the simulation.
   - Each real alert asks for confirmation before acting. Spot measurements (resting heart rate, heart-rate variability, SpO2) take a confirmatory reading, which is evaluated at once and shows whether the alert stands. Daily totals (sleep, exercise) are checked against their source and confirmed or corrected. An act-level alert adds the instruction to contact the flight surgeon or medical support if the check agrees; RAKIA still does not diagnose.
