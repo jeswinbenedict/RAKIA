@@ -39,6 +39,9 @@ class Tx {
 /// creating the record with [new_id] if it does not exist yet.
 Account load_account(Tx& tx, const std::string& firebase_uid, const std::string& new_id);
 
+/// The caller's account, or nullopt when they have none.
+std::optional<Account> read_account(Tx& tx);
+
 class PgStore final : public Store {
  public:
   explicit PgStore(const Config& config,
@@ -57,7 +60,9 @@ class PgStore final : public Store {
 
   int schema_version() override;
   std::vector<MetricDefinition> metric_definitions() override;
-  Account account(const std::string& firebase_uid) override;
+  std::optional<Account> find_account(const std::string& firebase_uid) override;
+  Account create_account(const std::string& firebase_uid) override;
+  bool remember_turnstile_token(const std::string& hash_hex) override;
 
  private:
   pg_conn* acquire();

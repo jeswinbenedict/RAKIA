@@ -159,6 +159,9 @@ class LocalStore {
       .into(db.settings)
       .insertOnConflictUpdate(SettingsCompanion.insert(key: key, value: value));
 
+  Future<void> deleteSetting(String key) =>
+      (db.delete(db.settings)..where((s) => s.key.equals(key))).go();
+
   // --------------------------------------------------------------- wellbeing
   // The astronaut's private self-reports. They belong to no mission, so they
   // can never mix with simulated data.

@@ -83,19 +83,27 @@ class GoogleKeys final : public PublicKeys {
 /// The seconds of a Cache-Control max-age directive, or nullopt.
 std::optional<std::int64_t> cache_max_age(std::string_view cache_control);
 
+/// Checks a bearer token and names the user it belongs to.
+class TokenVerifier {
+ public:
+  virtual ~TokenVerifier() = default;
+  /// Throws AuthError when the token must be refused.
+  virtual VerifiedUser verify(std::string_view token) const = 0;
+};
+
 /// Verifies Firebase ID tokens for one project, as the Firebase
 /// documentation requires for third-party verification: RS256 signed by a
 /// current Google key; aud is the project id; iss is
 /// https://securetoken.google.com/<project id>; exp in the future; iat and
 /// auth_time in the past; sub a non-empty string of at most 128 characters.
-class FirebaseVerifier {
+class FirebaseVerifier final : public TokenVerifier {
  public:
   using Clock = std::function<std::int64_t()>;  // seconds since the epoch
 
   FirebaseVerifier(std::string project_id, PublicKeys& keys, Clock now = {});
 
   /// Throws AuthError when the token must be refused.
-  VerifiedUser verify(std::string_view token) const;
+  VerifiedUser verify(std::string_view token) const override;
 
   const std::string& project_id() const { return project_id_; }
 
@@ -109,6 +117,21 @@ class FirebaseVerifier {
   std::string issuer_;
   PublicKeys& keys_;
   Clock now_;
+};
+
+/// Verifies the unsigned ID tokens issued by the Firebase Auth emulator
+/// (header alg "none", empty signature), with the same claim checks as
+/// FirebaseVerifier. For local development only: configuration refuses the
+/// emulator outside development, because anyone can forge these tokens.
+class EmulatorVerifier final : public TokenVerifier {
+ public:
+  EmulatorVerifier(std::string project_id, FirebaseVerifier::Clock now = {});
+  VerifiedUser verify(std::string_view token) const override;
+
+ private:
+  std::string project_id_;
+  std::string issuer_;
+  FirebaseVerifier::Clock now_;
 };
 
 /// Decodes base64url without padding, as used by JWTs. Throws AuthError

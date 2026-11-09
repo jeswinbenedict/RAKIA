@@ -14,8 +14,10 @@ RAKIA is research software. These limitations are deliberate, documented, and sh
 
 ## Technical
 
-- **Sign-in exists on the API, not yet in the app.** The API verifies Firebase ID tokens and serves the signed-in user's account and mission roles (`GET /v1/me`). The app's sign-in screens, mission administration, sync and ingest need a Firebase project (owner action) and come next. Until then the API can be exercised only with tokens from a real Firebase project.
-- **Turnstile is not wired in yet.** Sign-up and password reset happen in the Firebase client SDK, so Turnstile protection belongs with the app's sign-in screens (or a Firebase blocking function); the API has no public form endpoint that would need it today. The `turnstile_replay` table and configuration names are in place.
+- **Sign-in is email and password only, and nothing syncs yet.** The app signs in with Firebase Authentication's REST API and creates the RAKIA account behind Turnstile, but readings stay on the device until sync arrives. Google sign-in needs Firebase's SDK or an OAuth redirect flow and is not offered; Phone sign-in needs Firebase's paid plan.
+- **Turnstile protects RAKIA accounts, not Firebase sign-up itself.** The API creates an account only after verifying a Turnstile token with Cloudflare, so bots cannot fill RAKIA's database. Creating the Firebase sign-in (the step before) is protected by Firebase's own abuse limits: gating it with Turnstile would need a Firebase blocking function, which requires the paid Blaze plan.
+- **Accounts are created in the web app.** Turnstile runs in a browser, so the native apps sign in to existing accounts but send people to the web app to create one.
+- **Signing out does not revoke the session on Firebase's side.** The app forgets its refresh token; revoking tokens server-side needs the Firebase Admin SDK and a service account, which RAKIA deliberately does not hold.
 - **Rate limits are per API instance.** Each instance keeps its own in-memory counters, so N instances allow up to N times the configured rate. Render's front end and Cloudflare in front of the web app add coarser protection. A shared limiter is needed only if abuse appears.
 - **The API does not terminate TLS itself.** It is meant to run behind a TLS-terminating front end (Render, Cloud Run, or a local reverse proxy); it sends HSTS outside development and requires TLS (`verify-full`) to the database.
 

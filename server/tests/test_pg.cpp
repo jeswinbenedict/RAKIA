@@ -129,6 +129,34 @@ TEST("an account is created once, as its own user, and only in that transaction"
   });
 }
 
+TEST("finding an account never creates one; creating it is idempotent") {
+  struct Rollback {};
+  const auto uid = "rakia-pg-test-" + rakia::new_uuid_v7();
+  try {
+    store().transaction(uid, [&](rakia::Tx& tx) {
+      CHECK(!rakia::read_account(tx).has_value());
+      CHECK_EQ(tx.query("SELECT count(*) FROM rakia.app_users").at(0).at(0).value(),
+               std::string("0"));
+      const auto a = rakia::load_account(tx, uid, rakia::new_uuid_v7());
+      const auto found = rakia::read_account(tx);
+      CHECK(found.has_value());
+      CHECK_EQ(found->id, a.id);
+      throw Rollback{};
+    });
+  } catch (const Rollback&) {
+  }
+}
+
+TEST("a Turnstile token hash is accepted once, then refused as a replay") {
+  const auto hash = std::string(64, 'a').replace(0, 12, rakia::new_uuid_v7().substr(0, 8) + "abcd");
+  CHECK(store().remember_turnstile_token(hash));
+  CHECK(!store().remember_turnstile_token(hash));
+  // Leave nothing behind: the test role may delete its own rows.
+  store().transaction(std::nullopt, [&](rakia::Tx& tx) {
+    tx.query("DELETE FROM rakia.turnstile_replay WHERE token_hash = decode($1, 'hex')", {hash});
+  });
+}
+
 TEST("a user cannot create an account for someone else") {
   try {
     store().transaction(std::string("caller-a"), [](rakia::Tx& tx) {

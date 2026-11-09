@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "config.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <charconv>
 #include <cstdlib>
 #include <fstream>
@@ -100,6 +102,8 @@ EnvMap process_environment() {
       "RAKIA_DB_PASSWORD",  "RAKIA_DB_SSLMODE",
       "RAKIA_DB_SSLROOTCERT",
       "RAKIA_API_DB_POOL_SIZE", "RAKIA_FIREBASE_PROJECT_ID",
+      "RAKIA_FIREBASE_AUTH_EMULATOR_HOST", "RAKIA_TURNSTILE_SECRET_KEY",
+      "RAKIA_TURNSTILE_HOSTNAMES",
   };
   EnvMap env;
   for (const char* key : keys) {
@@ -207,6 +211,29 @@ Config load_config(const EnvMap& file, const EnvMap& env) {
   if (!dev && c.firebase_project_id.empty()) {
     throw ConfigError("RAKIA_FIREBASE_PROJECT_ID is required outside development");
   }
+  c.firebase_auth_emulator_host = get("RAKIA_FIREBASE_AUTH_EMULATOR_HOST");
+  if (!c.firebase_auth_emulator_host.empty()) {
+    if (!dev) {
+      throw ConfigError("RAKIA_FIREBASE_AUTH_EMULATOR_HOST is allowed only in development: "
+                        "the emulator's tokens are unsigned");
+    }
+    if (c.firebase_project_id.empty()) {
+      throw ConfigError("RAKIA_FIREBASE_AUTH_EMULATOR_HOST needs RAKIA_FIREBASE_PROJECT_ID");
+    }
+  }
+  c.turnstile_secret = get("RAKIA_TURNSTILE_SECRET_KEY");
+  if (c.turnstile_secret.size() > 200 ||
+      std::any_of(c.turnstile_secret.begin(), c.turnstile_secret.end(),
+                  [](unsigned char ch) { return std::isspace(ch) || std::iscntrl(ch); })) {
+    throw ConfigError("RAKIA_TURNSTILE_SECRET_KEY is not a Turnstile secret key");
+  }
+  c.turnstile_hostnames = split_list(get("RAKIA_TURNSTILE_HOSTNAMES"));
+  if (c.turnstile_hostnames.empty()) {
+    for (const auto& o : c.cors_origins) {
+      const auto host = o.substr(o.find("://") + 3);
+      c.turnstile_hostnames.push_back(host.substr(0, host.find(':')));
+    }
+  }
   if (!get("RAKIA_API_DB_POOL_SIZE").empty()) {
     c.db_pool_size = parse_number<std::size_t>("RAKIA_API_DB_POOL_SIZE",
                                                get("RAKIA_API_DB_POOL_SIZE"), 1, 64);
@@ -226,7 +253,10 @@ std::string Config::describe() const {
     << " sslmode=" << db_sslmode
     << (db_sslrootcert.empty() ? "" : " sslrootcert=" + db_sslrootcert)
     << " pool=" << db_pool_size << " firebase="
-    << (firebase_project_id.empty() ? "(not configured)" : firebase_project_id);
+    << (firebase_project_id.empty() ? "(not configured)" : firebase_project_id)
+    << (firebase_auth_emulator_host.empty() ? ""
+                                            : " firebase_emulator=" + firebase_auth_emulator_host)
+    << " turnstile=" << (turnstile_secret.empty() ? "(not configured)" : "(set)");
   return s.str();
 }
 

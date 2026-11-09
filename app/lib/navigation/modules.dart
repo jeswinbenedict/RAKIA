@@ -253,6 +253,26 @@ const List<ModuleSpec> kModules = [
         'here once data ingestion is available.',
   ),
   ModuleSpec(
+    id: 'account',
+    label: 'Account',
+    shortLabel: 'Account',
+    icon: Icons.person_outline,
+    selectedIcon: Icons.person,
+    group: ModuleGroup.operations,
+    summary:
+        'Sign in to your RAKIA account. Your readings stay on this device; '
+        'signing in does not upload them.',
+    tracks: [
+      'Sign-in with email and password',
+      'Email verification and password reset',
+      'Your RAKIA account and mission roles',
+    ],
+    emptyTitle: 'Sign-in is not available in this build',
+    emptyMessage:
+        'This build is not connected to a RAKIA server, so there is nothing '
+        'to sign in to. Everything else works on this device.',
+  ),
+  ModuleSpec(
     id: 'admin',
     label: 'Mission administration',
     shortLabel: 'Admin',

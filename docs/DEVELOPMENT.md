@@ -104,6 +104,26 @@ On Windows, configure from a Visual Studio developer shell (`vcvars64.bat`). In 
 ./server/build/rakia-api      # then: curl http://127.0.0.1:8080/v1/ready
 ```
 
+#### Sign-in locally, with the Firebase Auth emulator
+
+No real accounts are needed to work on sign-in. The emulator issues unsigned tokens, which the API accepts only in development and only with `RAKIA_FIREBASE_AUTH_EMULATOR_HOST` set (configuration refuses it in any other environment). Cloudflare publishes testing keys for Turnstile: site key `1x00000000000000000000AA` and secret `1x0000000000000000000000000000000AA` always pass, and the API accepts their results in development only.
+
+```bash
+# 1. The emulator (needs Java; firebase.json with emulators.auth.port 9099)
+npx firebase-tools emulators:start --only auth --project demo-rakia
+# 2. The API, against it
+RAKIA_FIREBASE_PROJECT_ID=demo-rakia RAKIA_FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+RAKIA_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA \
+RAKIA_CORS_ORIGINS=http://127.0.0.1:5000 ./server/build/rakia-api
+# 3. The app (from app/)
+flutter run -d chrome --dart-define=RAKIA_API_URL=http://127.0.0.1:8080 \
+  --dart-define=RAKIA_FIREBASE_API_KEY=demo-key \
+  --dart-define=RAKIA_FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+  --dart-define=RAKIA_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+```
+
+The emulator lists verification and password-reset links at `http://127.0.0.1:9099/emulator/v1/projects/demo-rakia/oobCodes`. For a release web build served by `tool/web/serve_with_headers.mjs`, add `http://127.0.0.1:8080 http://127.0.0.1:9099` to `connect-src` in the build's copy of `_headers` only.
+
 `RAKIA_DB_USER` must be `rakia_api`; the API refuses the migrator and superusers. The PostgreSQL integration tests are read-only and run with `RAKIA_API_PG_TESTS=1` against a migrated database (`RAKIA_ENV_FILE` selects the settings). The endpoints are described in `docs/api/openapi.yaml`; lint it with `npx @redocly/cli@2.65.0 lint --config docs/api/redocly.yaml docs/api/openapi.yaml`.
 
 ### Database (`db/`)
