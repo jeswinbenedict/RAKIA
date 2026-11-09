@@ -55,7 +55,8 @@ add_library(rakia_api_core STATIC
   src/log.cpp
   src/pg_store.cpp
   src/rate_limit.cpp
-  src/security.cpp)
+  src/security.cpp
+  src/space_weather.cpp)
 target_include_directories(rakia_api_core PUBLIC src)
 target_link_libraries(rakia_api_core PUBLIC
   rakia_httplib rakia_json PostgreSQL::PostgreSQL OpenSSL::SSL OpenSSL::Crypto
@@ -77,7 +78,8 @@ install(TARGETS rakia-api RUNTIME DESTINATION bin)
 
 if(RAKIA_API_BUILD_TESTS)
   enable_testing()
-  set(RAKIA_API_TESTS test_config test_cors test_rate_limit test_auth test_http test_pg)
+  set(RAKIA_API_TESTS test_config test_cors test_rate_limit test_auth test_http test_pg
+    test_space_weather)
   foreach(t IN LISTS RAKIA_API_TESTS)
     add_executable(${t} tests/${t}.cpp)
     target_link_libraries(${t} PRIVATE rakia_api_core)

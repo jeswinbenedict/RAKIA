@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Live space-radiation environment: `GET /v1/space-weather` serves NOAA SWPC data, refreshed every five minutes over verified HTTPS: the GOES >=10 MeV proton flux for the last day, the current solar radiation storm level (S-scale) and the planetary K index. Each response carries its source, timestamps and a `stale` flag. Feeds are validated, a dropped connection is retried once, the last snapshot is served as stale for up to six hours, and then the endpoint answers 503 rather than inventing data. It has 10 tests, including a live fetch in CI.
 - Zero-cost hosting: every hosted service runs on a free plan that needs no payment method.
   - `render.yaml`: Render Blueprint for the API, with free Docker web services for staging (deploys on push to `main`) and production (manual). Secrets are entered in Render and never stored in the file.
   - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): a cost table with each free plan's limits; the API on Render, with Cloud Run as an alternative that needs billing; the database through Supabase's session pooler (IPv4, `verify-full`); Pages project `rakia-app`; and backups by `pg_dump`, since the free plan has none.

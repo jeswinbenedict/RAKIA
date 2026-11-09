@@ -92,6 +92,33 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Error'}
+  /v1/space-weather:
+    get:
+      summary: Live space-radiation environment (NOAA SWPC)
+      description: >-
+        GOES >=10 MeV integral proton flux for the last day, the current NOAA solar radiation
+        storm level (S-scale) and the latest planetary K index, retrieved from the NOAA Space
+        Weather Prediction Center and refreshed every five minutes. This is the environment near
+        Earth (geostationary orbit), not a dose received by any person. When NOAA cannot be
+        reached, the last retrieved snapshot is served with `stale: true` for up to six hours;
+        after that the endpoint answers 503 rather than inventing data.
+      operationId: getSpaceWeather
+      security: []
+      responses:
+        '200':
+          description: The latest snapshot, with source and timestamps.
+          headers:
+            Cache-Control:
+              schema: {type: string, example: 'public, max-age=60'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SpaceWeather'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503':
+          description: Live space weather is unavailable or not configured.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
   /v1/me:
     get:
       summary: The signed-in user's account and mission roles
@@ -166,6 +193,51 @@ components:
         ucum: {type: string, description: UCUM code of the unit, examples: [/min]}
         plausible_min: {type: number}
         plausible_max: {type: number}
+    SpaceWeather:
+      type: object
+      required: [source, retrieved_at, stale, proton_flux_10mev, radiation_storm, geomagnetic]
+      properties:
+        source:
+          type: object
+          required: [name, url, satellite, note]
+          properties:
+            name: {type: string, example: NOAA Space Weather Prediction Center}
+            url: {type: string, format: uri}
+            satellite: {type: string, example: GOES-18}
+            note: {type: string}
+        retrieved_at: {type: string, format: date-time}
+        stale: {type: boolean, description: True when NOAA could not be reached on the last refresh.}
+        proton_flux_10mev:
+          type: object
+          required: [unit, s1_threshold, latest, points]
+          properties:
+            unit: {type: string, enum: [pfu]}
+            s1_threshold: {type: number, description: NOAA S1 storm threshold in this channel.}
+            latest: {$ref: '#/components/schemas/FluxPoint'}
+            points:
+              type: array
+              description: Five-minute values for the last day, oldest first.
+              items: {$ref: '#/components/schemas/FluxPoint'}
+        radiation_storm:
+          type: object
+          required: [scale, level, text, observed_at]
+          properties:
+            scale: {type: string, example: S0}
+            level: {type: integer, minimum: 0, maximum: 5}
+            text: {type: string, example: none}
+            observed_at: {type: string, format: date-time}
+        geomagnetic:
+          type: object
+          required: [kp, observed_at]
+          properties:
+            kp: {type: number, minimum: 0, maximum: 9}
+            observed_at: {type: string, format: date-time}
+    FluxPoint:
+      type: object
+      required: [time, flux]
+      properties:
+        time: {type: string, format: date-time}
+        flux: {type: number, minimum: 0}
     Error:
       type: object
       required: [error]

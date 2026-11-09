@@ -48,7 +48,9 @@ int main() {
   } else {
     verifier = std::make_unique<rakia::FirebaseVerifier>(config.firebase_project_id, google_keys);
   }
-  rakia::App app(config, store, verifier.get());
+  rakia::NoaaSwpc noaa;
+  rakia::SpaceWeatherService space_weather(noaa);
+  rakia::App app(config, store, verifier.get(), {}, &space_weather);
   auto& server = app.server();
 
   std::signal(SIGINT, on_signal);

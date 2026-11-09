@@ -50,10 +50,11 @@ bool is_probe(const std::string& path) { return path == "/v1/health" || path == 
 }  // namespace
 
 App::App(const Config& config, Store& store, const FirebaseVerifier* verifier,
-         RateLimiter::Clock clock)
+         RateLimiter::Clock clock, SpaceWeatherService* space_weather)
     : config_(config),
       store_(store),
       verifier_(verifier),
+      space_weather_(space_weather),
       cors_(config.cors_origins),
       limiter_(config.rate_limit_per_minute, std::move(clock)) {
   server_.set_payload_max_length(kMaxBodyBytes);
@@ -197,6 +198,51 @@ void App::routes() {
                        {"plausible_max", m.plausible_max}});
     }
     send(res, 200, {{"metric_definitions", items}});
+  });
+
+  // The live space-radiation environment (NOAA SWPC), with its source and
+  // timestamps. Public: it is published open data, not personal data.
+  server_.Get("/v1/space-weather", [this](const httplib::Request&, httplib::Response& res) {
+    if (space_weather_ == nullptr) {
+      send_error(res, 503, "space_weather_not_configured",
+                 "Live space weather is not configured on this server.");
+      return;
+    }
+    SpaceWeatherService::Result r;
+    try {
+      r = space_weather_->current();
+    } catch (const SpaceWeatherError&) {
+      send_error(res, 503, "space_weather_unavailable",
+                 "Live space weather is unavailable right now. Try again shortly.");
+      return;
+    }
+    const auto& d = r.data;
+    json points = json::array();
+    for (const auto& p : d.protons_10mev) points.push_back({{"time", p.time}, {"flux", p.flux}});
+    const auto& latest = d.protons_10mev.back();
+    // Open data that changes every few minutes: let clients and proxies keep
+    // it briefly (this replaces the API-wide no-store).
+    res.headers.erase("Cache-Control");
+    res.set_header("Cache-Control", "public, max-age=60");
+    send(res, 200,
+         {{"source",
+           {{"name", "NOAA Space Weather Prediction Center"},
+            {"url", "https://www.swpc.noaa.gov/"},
+            {"satellite", "GOES-" + std::to_string(d.satellite)},
+            {"note", "Near-Earth environment at geostationary orbit, not a crew dose."}}},
+          {"retrieved_at", iso8601_utc(d.retrieved_at)},
+          {"stale", r.stale},
+          {"proton_flux_10mev",
+           {{"unit", "pfu"},
+            {"s1_threshold", 10},
+            {"latest", {{"time", latest.time}, {"flux", latest.flux}}},
+            {"points", points}}},
+          {"radiation_storm",
+           {{"scale", "S" + std::to_string(d.s_level)},
+            {"level", d.s_level},
+            {"text", d.s_text},
+            {"observed_at", d.scales_time}}},
+          {"geomagnetic", {{"kp", d.kp}, {"observed_at", d.kp_time}}}});
   });
 
   // The signed-in user's account (created on first use) and their roles.
