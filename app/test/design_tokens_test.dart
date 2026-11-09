@@ -99,4 +99,13 @@ void main() {
       expect(fg({WidgetState.disabled}), isNot(fg({})));
     });
   }
+
+  for (final b in Brightness.values) {
+    test('an empty progress bar does not look full (${b.name})', () {
+      final p = buildRakiaTheme(b).progressIndicatorTheme;
+      expect(p.color, isNotNull);
+      expect(p.linearTrackColor, isNotNull);
+      expect(contrastRatio(p.color!, p.linearTrackColor!), greaterThan(3));
+    });
+  }
 }

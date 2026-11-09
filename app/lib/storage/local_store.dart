@@ -4,10 +4,12 @@ import 'package:rakia_core/rakia_core.dart';
 
 import '../analytics/metric_definitions.dart';
 import '../analytics/metric_series.dart';
+import '../components/health_status.dart';
+import '../record/alert_response.dart';
 import '../record/record.dart';
 import '../simulation/simulated_mission.dart';
 import '../wellbeing/instruments.dart';
-import 'database.dart';
+import 'database.dart' hide AlertResponse;
 import 'uuid.dart';
 
 /// Where the local database lives in this session.
@@ -600,6 +602,83 @@ class LocalStore {
           supersedesId: r.supersedesId == null
               ? null
               : uuidToString(r.supersedesId!),
+        ),
+    ];
+  }
+
+  /// Logs what the astronaut did about an alert on their record.
+  Future<AlertResponse> addAlertResponse({
+    required String recordId,
+    required String metricCode,
+    required HealthStatus alertLevel,
+    required DateTime alertDay,
+    required AlertResponseKind kind,
+    HealthStatus? outcome,
+    String? note,
+    DateTime? now,
+  }) async {
+    if (alertLevel != HealthStatus.watch &&
+        alertLevel != HealthStatus.act &&
+        alertLevel != HealthStatus.dataQuality) {
+      throw ArgumentError.value(alertLevel, 'alertLevel', 'is not an alert');
+    }
+    final trimmed = note?.trim();
+    final text = trimmed == null || trimmed.isEmpty ? null : trimmed;
+    if (text != null && text.length > kMaxResponseNote) {
+      throw ArgumentError.value(note, 'note', 'longer than $kMaxResponseNote');
+    }
+    final at = (now ?? DateTime.now()).toUtc();
+    final id = uuidV7(now: at);
+    final day = DateTime.utc(alertDay.year, alertDay.month, alertDay.day);
+    await db
+        .into(db.alertResponses)
+        .insert(
+          AlertResponsesCompanion.insert(
+            id: id,
+            missionId: recordId,
+            metricCode: metricCode,
+            alertLevel: alertLevel.index,
+            alertDayUs: day.microsecondsSinceEpoch,
+            response: kind.code,
+            outcomeLevel: Value(outcome?.index),
+            note: Value(text),
+            recordedAtUs: at.microsecondsSinceEpoch,
+          ),
+        );
+    return AlertResponse(
+      id: uuidToString(id),
+      metricCode: metricCode,
+      alertLevel: alertLevel,
+      alertDay: day,
+      kind: kind,
+      recordedAt: at,
+      outcome: outcome,
+      note: text,
+    );
+  }
+
+  /// Every response logged on the record, oldest first.
+  Future<List<AlertResponse>> alertResponses(String recordId) async {
+    final rows =
+        await (db.select(db.alertResponses)
+              ..where((r) => r.missionId.equals(recordId))
+              ..orderBy([(r) => OrderingTerm.asc(r.recordedAtUs)]))
+            .get();
+    DateTime utc(int us) =>
+        DateTime.fromMicrosecondsSinceEpoch(us, isUtc: true);
+    return [
+      for (final r in rows)
+        AlertResponse(
+          id: uuidToString(r.id),
+          metricCode: r.metricCode,
+          alertLevel: HealthStatus.values[r.alertLevel],
+          alertDay: utc(r.alertDayUs),
+          kind: AlertResponseKind.fromCode(r.response),
+          recordedAt: utc(r.recordedAtUs),
+          outcome: r.outcomeLevel == null
+              ? null
+              : HealthStatus.values[r.outcomeLevel!],
+          note: r.note,
         ),
     ];
   }

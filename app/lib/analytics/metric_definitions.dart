@@ -17,6 +17,8 @@ class MetricDefinition {
     required this.decimals,
     required this.whyItMatters,
     required this.checkNext,
+    required this.repeatable,
+    required this.confirmatoryCheck,
   });
 
   /// librakia metric code, `[a-z0-9_.]`.
@@ -45,6 +47,14 @@ class MetricDefinition {
   final String whyItMatters;
   final String checkNext;
 
+  /// Whether a spot measurement can simply be taken again to confirm an
+  /// alert (heart rate, SpO2). Daily totals (sleep, exercise) are confirmed
+  /// by checking the recorded value instead.
+  final bool repeatable;
+
+  /// How to confirm an alert on this indicator, in one or two sentences.
+  final String confirmatoryCheck;
+
   String format(double v) => v.isFinite ? v.toStringAsFixed(decimals) : '-';
 
   String formatWithUnit(double v) =>
@@ -70,6 +80,10 @@ const restingHeartRate = MetricDefinition(
       'Repeat a resting measurement after five minutes seated, review recent '
       'sleep and exercise, and report it to your flight surgeon if it '
       'persists.',
+  repeatable: true,
+  confirmatoryCheck:
+      'Sit quietly for five minutes, then measure your resting heart rate '
+      'again.',
 );
 
 const heartRateVariability = MetricDefinition(
@@ -90,6 +104,10 @@ const heartRateVariability = MetricDefinition(
   checkNext:
       'Check that readings were taken at the same time of day and in the same '
       'posture, and look at sleep and workload over the same period.',
+  repeatable: true,
+  confirmatoryCheck:
+      'Take the reading again in your usual posture, ideally at the time of '
+      'day you normally measure.',
 );
 
 const oxygenSaturation = MetricDefinition(
@@ -110,6 +128,10 @@ const oxygenSaturation = MetricDefinition(
   checkNext:
       'Repeat the measurement at rest with the sensor seated correctly, and '
       'compare with cabin oxygen and CO2 readings.',
+  repeatable: true,
+  confirmatoryCheck:
+      'Rest for a few minutes, check that the sensor is seated correctly, and '
+      'measure again.',
 );
 
 const sleepDuration = MetricDefinition(
@@ -130,6 +152,10 @@ const sleepDuration = MetricDefinition(
   checkNext:
       'Check that the sleep device is charged and worn overnight. RAKIA will '
       'reassess once enough nights are recorded.',
+  repeatable: false,
+  confirmatoryCheck:
+      "Compare the flagged night's value with your sleep device, and correct "
+      'it if it was entered wrongly.',
 );
 
 const exerciseMinutes = MetricDefinition(
@@ -147,6 +173,10 @@ const exerciseMinutes = MetricDefinition(
       'Daily exercise is the main countermeasure against bone and muscle loss '
       'in microgravity. Adherence matters more than any single session.',
   checkNext: 'Compare completed sessions with the planned exercise schedule.',
+  repeatable: false,
+  confirmatoryCheck:
+      "Compare the flagged day's value with your exercise log, and correct it "
+      'if it was entered wrongly.',
 );
 
 /// Every indicator in display order.

@@ -59,6 +59,12 @@ ThemeData buildRakiaTheme(Brightness brightness) {
     visualDensity: VisualDensity.standard,
     splashFactory: NoSplash.splashFactory,
     focusColor: c.focusRing.withValues(alpha: 0.16),
+    // An explicit, neutral track: the default (secondary container) falls
+    // back to the brand colour, so an empty bar looked full.
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: c.action,
+      linearTrackColor: c.borderSubtle,
+    ),
     dividerTheme: DividerThemeData(
       color: c.borderSubtle,
       thickness: 1,

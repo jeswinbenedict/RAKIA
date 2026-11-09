@@ -11,8 +11,10 @@ import '../design/tokens.dart';
 import '../design/typography.dart';
 import '../mission/mission_controller.dart';
 import '../navigation/modules.dart';
+import '../record/record_controller.dart';
 import 'module_page.dart';
 import 'page_frame.dart';
+import 'record_alerts.dart';
 import 'simulation_controls.dart';
 
 /// Mission overview: mission context, status counts, what needs attention
@@ -25,10 +27,12 @@ class MissionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final snapshot = MissionScope.snapshotOf(context);
+    final record = RecordScope.of(context);
     if (snapshot == null) {
       return ModulePage(
         module: module,
         emptyAction: const StartSimulationAction(),
+        header: RecordOverviewCard(record: record),
       );
     }
     final w = RakiaBreakpoints.of(MediaQuery.sizeOf(context).width);
@@ -44,9 +48,11 @@ class MissionPage extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          RecordOverviewCard(record: record),
+          const SizedBox(height: RakiaSpacing.xl),
           _MissionContextCard(snapshot: snapshot),
           const SizedBox(height: RakiaSpacing.xl),
-          const _SectionHeading('Status across indicators'),
+          const SectionHeading('Status across indicators'),
           const SizedBox(height: RakiaSpacing.md),
           _ResponsiveGrid(
             columns: switch (w) {
@@ -69,7 +75,7 @@ class MissionPage extends StatelessWidget {
           const SizedBox(height: RakiaSpacing.xl),
           _AttentionCard(snapshot: snapshot),
           const SizedBox(height: RakiaSpacing.xl),
-          const _SectionHeading('Indicators'),
+          const SectionHeading('Indicators'),
           const SizedBox(height: RakiaSpacing.md),
           _ResponsiveGrid(
             columns: switch (w) {
@@ -92,17 +98,6 @@ class MissionPage extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SectionHeading extends StatelessWidget {
-  const _SectionHeading(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    header: true,
-    child: Text(text, style: Theme.of(context).textTheme.titleMedium),
-  );
 }
 
 /// Lays children out in equal-width columns with consistent gutters.

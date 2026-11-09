@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../analytics/day_format.dart';
 import '../analytics/metric_definitions.dart';
 import '../analytics/metric_insight.dart';
 import '../components/empty_state.dart';
@@ -12,6 +13,7 @@ import '../navigation/modules.dart';
 import '../record/record.dart';
 import '../record/record_controller.dart';
 import 'page_frame.dart';
+import 'record_alerts.dart';
 
 /// The astronaut's own health record: enter real readings, see how far the
 /// personal baseline has come, and, once it is established, librakia's
@@ -87,23 +89,7 @@ class _Notice extends StatelessWidget {
   }
 }
 
-String _date(DateTime d) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${d.day} ${months[d.month - 1]} ${d.year}';
-}
+String _date(DateTime d) => formatDay(d);
 
 /// Records a reading, or a correction of an earlier one.
 class _EntryForm extends StatefulWidget {
@@ -376,6 +362,13 @@ class _IndicatorCard extends StatelessWidget {
               'it.',
               style: t.bodySmall?.copyWith(color: c.textSecondary),
             ),
+          ],
+          if (record.responsesForMetric(m.code) case final rs
+              when rs.isNotEmpty) ...[
+            const SizedBox(height: RakiaSpacing.lg),
+            Text('Your responses to alerts', style: t.titleSmall),
+            const SizedBox(height: RakiaSpacing.xs),
+            for (final r in rs.take(5)) ResponseLine(response: r),
           ],
           if (indicator.entries.isNotEmpty) ...[
             const SizedBox(height: RakiaSpacing.lg),

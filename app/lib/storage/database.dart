@@ -15,7 +15,8 @@ class RakiaDatabase extends _$RakiaDatabase {
   /// docs/DEVELOPMENT.md). Version history:
   ///   1  settings, missions, measurements (hash-chained ledger)
   ///   2  self_checkins and reaction_tests (private wellbeing records)
-  static const int currentSchemaVersion = 2;
+  ///   3  alert_responses (what the astronaut did about an alert)
+  static const int currentSchemaVersion = 3;
 
   @override
   int get schemaVersion => currentSchemaVersion;
@@ -40,6 +41,17 @@ class RakiaDatabase extends _$RakiaDatabase {
           reactionTests,
           reactionTestsByTime,
           reactionTestsImmutable,
+        ]) {
+          await m.create(entity);
+        }
+      }
+      if (from < 3) {
+        for (final entity in <DatabaseSchemaEntity>[
+          alertResponses,
+          alertResponsesByMetric,
+          alertResponsesRealOnly,
+          alertResponsesImmutable,
+          alertResponsesKept,
         ]) {
           await m.create(entity);
         }
