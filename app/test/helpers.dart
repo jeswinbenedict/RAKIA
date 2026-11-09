@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rakia/app.dart';
 import 'package:rakia/app_settings.dart';
+import 'package:rakia/environment/space_weather.dart';
 import 'package:rakia/mission/mission_controller.dart';
 import 'package:rakia/storage/local_store.dart';
 import 'package:rakia/storage/open_store.dart';
@@ -36,6 +37,7 @@ Future<void> pumpRakia(
   String location = '/mission',
   MissionController? mission,
   LocalStoreOpener? storeOpener,
+  SpaceWeatherController? spaceWeather,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -48,6 +50,7 @@ Future<void> pumpRakia(
       settings: AppSettingsController(themeMode),
       mission: mission,
       storeOpener: storeOpener ?? memoryStoreOpener,
+      spaceWeather: spaceWeather,
     ),
   );
   await tester.pumpAndSettle();

@@ -20,6 +20,9 @@ import { join } from 'node:path';
 
 const url = process.argv[2] ?? 'http://127.0.0.1:5000/';
 const origin = new URL(url).origin;
+// A build made with --dart-define=RAKIA_API_URL calls that API; pass the
+// same URL in RAKIA_API_URL so requests to it are not reported as external.
+const apiOrigin = process.env.RAKIA_API_URL ? new URL(process.env.RAKIA_API_URL).origin : null;
 const chrome =
   process.env.CHROME ??
   (process.platform === 'win32'
@@ -114,7 +117,8 @@ for (const e of events) {
     problems.push(`request failed: ${e.params.errorText} ${e.params.blockedReason ?? ''}`);
   } else if (e.method === 'Network.requestWillBeSent') {
     const u = e.params.request.url;
-    if (!u.startsWith(origin) && !/^(data|blob):/.test(u)) problems.push(`external request: ${u}`);
+    const allowed = u.startsWith(origin) || (apiOrigin && u.startsWith(apiOrigin));
+    if (!allowed && !/^(data|blob):/.test(u)) problems.push(`external request: ${u}`);
   }
 }
 if (!rendered) problems.push('the app did not render within 60 s');

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/accent_box.dart';
 import '../components/empty_state.dart';
 import '../design/colors.dart';
 import '../design/tokens.dart';
@@ -120,15 +121,9 @@ class _TracksCard extends StatelessWidget {
               ),
             if (module.note != null) ...[
               const SizedBox(height: RakiaSpacing.md),
-              Container(
-                padding: const EdgeInsets.all(RakiaSpacing.md),
-                decoration: BoxDecoration(
-                  color: c.surface3,
-                  borderRadius: BorderRadius.circular(RakiaRadii.sm),
-                  border: Border(
-                    left: BorderSide(color: c.brandText, width: 3),
-                  ),
-                ),
+              AccentBox(
+                color: c.surface3,
+                accent: c.brandText,
                 child: Text(
                   module.note!,
                   style: t.bodySmall?.copyWith(color: c.textPrimary),

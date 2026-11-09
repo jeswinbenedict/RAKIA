@@ -110,15 +110,19 @@ cd core/dart && sh tool/build_wasm.sh ../../app/web/rakia/rakia.wasm && cd ../..
 cd app
 flutter pub get
 sh tool/build_web_sqlite.sh
-flutter build web --release --csp --no-web-resources-cdn
+flutter build web --release --csp --no-web-resources-cdn   --dart-define=RAKIA_API_URL=https://rakia-api-staging.onrender.com
 ```
 
-Check it locally under its own headers, in headless Chrome:
+`RAKIA_API_URL` names the API the build calls for live data (space weather today); use `https://rakia-api.onrender.com` for production. Without it the app says it is not connected and shows no live values. The API must list the site's origin in `RAKIA_CORS_ORIGINS`, and the API origins are allowed in `connect-src` in `app/web/_headers`.
+
+Check it locally under its own headers, in headless Chrome (with the same `RAKIA_API_URL`, requests to the API are not reported as external):
 
 ```bash
 node tool/web/serve_with_headers.mjs build/web 5000 &
-node tool/web/check_web_build.mjs http://127.0.0.1:5000/
+RAKIA_API_URL=https://rakia-api-staging.onrender.com node tool/web/check_web_build.mjs http://127.0.0.1:5000/
 ```
+
+The staging API only answers CORS for the staging site, so from `127.0.0.1` the app reports the server as unreachable. To see live data locally, run the API in development mode with `RAKIA_CORS_ORIGINS=http://127.0.0.1:5000`, build with `--dart-define=RAKIA_API_URL=http://127.0.0.1:8080`, and add that origin to `connect-src` in the build's copy of `_headers` (never in `app/web/_headers`).
 
 Deploy (after `npx wrangler login`, or with a Cloudflare API token in `CLOUDFLARE_API_TOKEN`):
 

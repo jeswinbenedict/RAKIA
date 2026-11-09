@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../analytics/metric_insight.dart';
+import '../components/accent_box.dart';
 import '../components/baseline_chart.dart';
 import '../components/health_status.dart';
 import '../components/metric_widgets.dart';
@@ -63,13 +64,9 @@ class _Note extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = RakiaColors.of(context);
-    return Container(
-      padding: const EdgeInsets.all(RakiaSpacing.md),
-      decoration: BoxDecoration(
-        color: c.surface2,
-        borderRadius: BorderRadius.circular(RakiaRadii.sm),
-        border: Border(left: BorderSide(color: c.brandText, width: 3)),
-      ),
+    return AccentBox(
+      color: c.surface2,
+      accent: c.brandText,
       child: Text(text, style: Theme.of(context).textTheme.bodySmall),
     );
   }
@@ -227,13 +224,9 @@ class _ScenarioNote extends StatelessWidget {
       container: true,
       label: 'Simulation ground truth. $text',
       excludeSemantics: true,
-      child: Container(
-        padding: const EdgeInsets.all(RakiaSpacing.md),
-        decoration: BoxDecoration(
-          color: c.surface3,
-          borderRadius: BorderRadius.circular(RakiaRadii.sm),
-          border: Border(left: BorderSide(color: c.simulated, width: 3)),
-        ),
+      child: AccentBox(
+        color: c.surface3,
+        accent: c.simulated,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
