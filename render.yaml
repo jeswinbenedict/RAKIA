@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Render Blueprint for the RAKIA API: two free web services (staging and
+# production) built from server/Dockerfile. Render's free plan needs no
+# payment method. Steps and limits: docs/DEPLOYMENT.md.
+#
+# Values marked `sync: false` are entered in the Render dashboard when the
+# Blueprint is applied, and never live in this file. The database CA
+# certificate is added as a Render secret file named supabase-ca.crt, which
+# Render mounts at /etc/secrets/supabase-ca.crt.
+
+services:
+  - type: web
+    name: rakia-api-staging
+    runtime: docker
+    plan: free
+    # Closest Render region to the Supabase project (ap-south-1, Mumbai).
+    region: singapore
+    branch: main
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    healthCheckPath: /v1/health
+    autoDeploy: true
+    envVars:
+      - key: RAKIA_ENV
+        value: staging
+      - key: RAKIA_API_HOST
+        value: 0.0.0.0
+      - key: RAKIA_TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: RAKIA_DB_PORT
+        value: "5432"
+      - key: RAKIA_DB_NAME
+        value: postgres
+      - key: RAKIA_DB_SSLMODE
+        value: verify-full
+      - key: RAKIA_DB_SSLROOTCERT
+        value: /etc/secrets/supabase-ca.crt
+      - key: RAKIA_FIREBASE_PROJECT_ID
+        value: rakia-staging
+      # Supabase session pooler host (IPv4) and user rakia_api.<project ref>.
+      - key: RAKIA_DB_HOST
+        sync: false
+      - key: RAKIA_DB_USER
+        sync: false
+      - key: RAKIA_DB_PASSWORD
+        sync: false
+      - key: RAKIA_CORS_ORIGINS
+        sync: false
+
+  - type: web
+    name: rakia-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    healthCheckPath: /v1/health
+    # Production deploys only when triggered from the dashboard.
+    autoDeploy: false
+    envVars:
+      - key: RAKIA_ENV
+        value: production
+      - key: RAKIA_API_HOST
+        value: 0.0.0.0
+      - key: RAKIA_TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: RAKIA_DB_PORT
+        value: "5432"
+      - key: RAKIA_DB_NAME
+        value: postgres
+      - key: RAKIA_DB_SSLMODE
+        value: verify-full
+      - key: RAKIA_DB_SSLROOTCERT
+        value: /etc/secrets/supabase-ca.crt
+      - key: RAKIA_FIREBASE_PROJECT_ID
+        value: rakia-production
+      - key: RAKIA_DB_HOST
+        sync: false
+      - key: RAKIA_DB_USER
+        sync: false
+      - key: RAKIA_DB_PASSWORD
+        sync: false
+      - key: RAKIA_CORS_ORIGINS
+        sync: false

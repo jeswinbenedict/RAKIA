@@ -23,7 +23,7 @@ struct Config {
   /// Requests per minute per client address.
   std::uint32_t rate_limit_per_minute = 120;
   /// Reverse proxies in front of the API that append to X-Forwarded-For
-  /// (1 on Cloud Run). 0 trusts no header and uses the socket address.
+  /// (1 on Render or Cloud Run). 0 trusts no header and uses the socket address.
   std::uint32_t trusted_proxy_hops = 0;
 
   std::string db_host;

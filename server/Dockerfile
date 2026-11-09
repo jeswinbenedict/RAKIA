@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 # SPDX-License-Identifier: Apache-2.0
 #
-# rakia-api container for Google Cloud Run (or any container host).
+# rakia-api container for Render (render.yaml), Google Cloud Run or any
+# container host.
 # Build from the repository root:
 #   docker build -f server/Dockerfile -t rakia-api server
 #
@@ -48,7 +49,7 @@ WORKDIR /tmp
 ENV RAKIA_ENV=production \
     RAKIA_API_HOST=0.0.0.0 \
     RAKIA_TRUSTED_PROXY_HOPS=1
-# Cloud Run sets PORT (8080 by default); RAKIA_API_PORT overrides it.
+# Render and Cloud Run set PORT; RAKIA_API_PORT overrides it.
 EXPOSE 8080
 # Liveness: GET /v1/health. Readiness: GET /v1/ready. Configure both as the
 # platform's probes; the image adds no shell tools for a HEALTHCHECK.

@@ -1,7 +1,7 @@
 # RAKIA — Project Status
 
 **Current phase:** Phase 5, core implementation. `librakia`, the app shell and bindings, the mission dashboard, the encrypted on-device store and the database bootstrap, the PostgreSQL schema, the API skeleton, deployment readiness, behavioural check-ins and sign-in on the API are merged. The remaining features need owner credentials (see blockers).
-**Last updated:** 2026-11-08
+**Last updated:** 2026-11-09
 
 ## Completed
 
@@ -36,7 +36,8 @@
 ## Pending
 
 - [ ] Run `db/bootstrap/bootstrap-local.ps1`, then `dart run bin/migrate.dart up` in `db/`, on your machine (owner: needs the PostgreSQL superuser password)
-- [ ] `feature/auth` (needs a Firebase project and Turnstile keys)
+- [ ] Zero-cost hosting (Render for the API, Supabase session pooler, documentation): `chore/zero-cost-hosting`, in review
+- [ ] `feature/auth`: sign-in screens in the app and Turnstile (Firebase projects and Turnstile widgets now exist)
 - [ ] `feature/ingest` (after `feature/auth`)
 
 ## Environment
@@ -64,14 +65,16 @@ Branches: `main` (protected, PR-only) plus short-lived `feature/*`, `fix/*`, `do
 | 5 Core | `feature/db-schema` · `feature/librakia-core` · `feature/api-skeleton` · `feature/app-shell` · `feature/auth` · `feature/ingest` · `feature/dashboard` |
 | 6 Intelligence | `feature/baselines-alerts` · `feature/offline-sync` · `feature/ffi-wasm` · one PR per monitoring module |
 | 7 Hardening | security review, accessibility audit, responsive goldens, sync chaos tests |
-| 8 Deploy | Cloudflare Pages + Cloud Run + Supabase, staging then production; monitoring; demo script |
+| 8 Deploy | Cloudflare Pages + Render + Supabase + Firebase, all on free plans; staging then production; monitoring; demo script |
 
 ## Active blockers / owner input needed
 
-1. **Firebase project** (blocks the app's sign-in, mission administration, sync and ingest): create it, enable the Google, Email/Password and Phone providers, register the web, Android and iOS apps, and put the project id in `RAKIA_FIREBASE_PROJECT_ID`. The API side of sign-in is ready for it.
-2. **Cloudflare Turnstile keys** for staging and production (development uses Cloudflare's published test keys). The secret goes in the platform's secret manager, never in chat or the repository.
-3. **Ruleset:** add the `Database` and `API` checks to the required checks of the `main` ruleset (repository settings; owner decision).
-4. **Hosting accounts** for the first staging deployment: Google Cloud (Cloud Run, Artifact Registry, Secret Manager), Cloudflare (Pages) and Supabase. Steps: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Done on 2026-11-09: Firebase projects `rakia-staging` and `rakia-production` (email/password and Google sign-in; Analytics off), Turnstile widgets for staging (`staging.rakia-app.pages.dev`, `localhost`) and production (`rakia-app.pages.dev`), Supabase project `rakia-staging` in ap-south-1 (Data API off), and the `Database` and `API` jobs required in the `main` ruleset.
+
+1. **Supabase roles:** run step 1 of [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) in the `rakia-staging` SQL editor with passwords you generate, then the migrations through the session pooler.
+2. **Render:** sign up (free, no payment method) and apply `render.yaml` as a Blueprint; enter the database host, user, password and CORS origin, and add the Supabase CA certificate as a secret file.
+3. **Cloudflare Pages:** create the `rakia-app` project with the first deployment (`npx wrangler pages deploy`).
+4. **Supabase production project:** the free plan allows 2 active projects per account, and the account holding `rakia-staging` has one other project.
 5. **Local database:** run `db/bootstrap/bootstrap-local.ps1` (it asks for the PostgreSQL superuser password, which only you should enter), then `dart run bin/migrate.dart up` in `db/`.
 6. Optional: accept the Android SDK licences (`flutter doctor --android-licenses`); start Docker Desktop to build the API image locally.
 

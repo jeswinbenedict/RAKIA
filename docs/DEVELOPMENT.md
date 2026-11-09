@@ -162,11 +162,11 @@ Other components add their commands here as they land.
 | Environment | App | API | Database | Auth | Turnstile |
 |---|---|---|---|---|---|
 | development | `flutter run` (Chrome/Windows/Android) | local `rakia-api` | local PostgreSQL 18 | Firebase dev project | Cloudflare test keys |
-| staging | Cloudflare Pages preview branch | Cloud Run staging service | Supabase staging project | Firebase staging project | staging widget |
-| production | Cloudflare Pages | Cloud Run production service | Supabase production project | Firebase production project | production widget |
+| staging | Cloudflare Pages, `staging` branch (`staging.rakia-app.pages.dev`) | Render `rakia-api-staging` | Supabase `rakia-staging` | Firebase `rakia-staging` | staging widget |
+| production | Cloudflare Pages (`rakia-app.pages.dev`) | Render `rakia-api` | Supabase production project | Firebase `rakia-production` | production widget |
 
-Secrets for staging and production live in the hosting providers' secret stores and in GitHub Actions environment secrets, never in the repository.
+Secrets for staging and production live in Render's encrypted environment variables and secret files, never in the repository. Every hosted service runs on a free plan without a payment method; see [DEPLOYMENT.md](DEPLOYMENT.md#zero-cost-hosting).
 
 ## Deployment
 
-Step-by-step instructions for the database, the API on Cloud Run, the web app on Cloudflare Pages and the native apps are in [DEPLOYMENT.md](DEPLOYMENT.md). The reasoning behind the hosting choices is in [architecture §9](architecture/ARCHITECTURE.md#9-deployment).
+Step-by-step instructions for the database, the API on Render, the web app on Cloudflare Pages and the native apps are in [DEPLOYMENT.md](DEPLOYMENT.md). The reasoning behind the hosting choices is in [architecture §9](architecture/ARCHITECTURE.md#9-deployment).

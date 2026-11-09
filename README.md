@@ -53,9 +53,9 @@ The reasoning and sources are in the [Research & Innovation Report](docs/researc
 |---|---|
 | App (Web, Android, iOS, desktop) | Flutter, offline store (SQLite/Drift) |
 | Analytics core | C11 (`librakia`) via `dart:ffi` and WebAssembly |
-| API service | C++20 (cpp-httplib, libpq), REST/JSON; container on Google Cloud Run |
+| API service | C++20 (cpp-httplib, libpq), REST/JSON; container on Render (free plan) |
 | Database | PostgreSQL 18 (dev: self-hosted; prod: Supabase Postgres + Row-Level Security) |
-| Authentication | Firebase Authentication (Google, email/password, phone OTP) |
+| Authentication | Firebase Authentication (Google, email/password) |
 | Bot protection | Cloudflare Turnstile (server-side verification) |
 | Web hosting | Cloudflare Pages, self-contained build with a strict Content-Security-Policy |
 
@@ -86,7 +86,7 @@ sh db/bootstrap/bootstrap-local.sh          # Windows: powershell -File dbootst
 ./server/build/rakia-api                    # then: curl http://127.0.0.1:8080/v1/ready
 ```
 
-Deploying the database, the API (Cloud Run), the web app (Cloudflare Pages) and the native apps: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+Deploying the database, the API (Render), the web app (Cloudflare Pages) and the native apps: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Documentation
 
