@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:rakia_core/rakia_core.dart';
 
 import '../components/health_status.dart';
+import 'day_format.dart';
 import 'metric_definitions.dart';
 
 import 'metric_series.dart';
@@ -41,6 +42,34 @@ class MetricInsight {
 
   /// Mission day (1-based) of an index in the monitoring window.
   static int dayOf(int index) => index + 1;
+
+  /// Whether days are calendar dates (a real record) rather than mission
+  /// days of a simulation.
+  bool get datesKnown => series.monitoringStart != null;
+
+  /// The calendar day of a monitoring index, when [datesKnown].
+  DateTime? dateOf(int index) =>
+      series.monitoringStart?.add(Duration(days: index));
+
+  /// A monitoring day in a sentence: "mission day 3" or "4 Nov".
+  String dayLabel(int index) => switch (dateOf(index)) {
+    final d? => formatDay(d, withYear: false),
+    null => 'mission day ${dayOf(index)}',
+  };
+
+  /// A monitoring day on a chart axis: "Day 3" or "4 Nov".
+  String axisLabel(int index) => switch (dateOf(index)) {
+    final d? => formatDay(d, withYear: false),
+    null => 'Day ${dayOf(index)}',
+  };
+
+  /// What the baseline days are called.
+  String get referenceNoun => datesKnown ? 'earlier days' : 'pre-flight days';
+
+  /// What the monitoring readings are called.
+  String get readingsNoun => datesKnown
+      ? 'readings from the past ${monitoring.length} days'
+      : 'mission-day readings';
 
   /// Whether the assessment carries a sustained-shift explanation.
   bool get hasShift =>
@@ -106,6 +135,25 @@ MetricInsight analyse(RakiaCore core, MetricSeries s) {
   );
 }
 
+/// Indicators that need attention, most severe first: Act, Watch, then
+/// data-quality problems. Order within a level is kept.
+List<MetricInsight> rankAlerts(Iterable<MetricInsight> insights) {
+  int rank(HealthStatus s) => switch (s) {
+    HealthStatus.act => 0,
+    HealthStatus.watch => 1,
+    HealthStatus.dataQuality => 2,
+    _ => 3,
+  };
+  final list = insights.where((i) => rank(i.status) < 3).toList();
+  // List.sort is not stable; sort by (rank, original position).
+  final pos = {for (var k = 0; k < list.length; k++) list[k]: k};
+  list.sort((a, b) {
+    final r = rank(a.status).compareTo(rank(b.status));
+    return r != 0 ? r : pos[a]!.compareTo(pos[b]!);
+  });
+  return list;
+}
+
 /// The six parts of an explainable alert (see the Action center module).
 @immutable
 class AlertExplanation {
@@ -136,6 +184,27 @@ AlertExplanation explain(MetricInsight i) {
   final usable = a.nUsable;
   final total = i.monitoring.length;
   final quality = (a.windowQuality * 100).round();
+
+  if (i.status == HealthStatus.dataQuality && i.datesKnown) {
+    final unusable = i.qualitySummary.nTotal - i.qualitySummary.nValid;
+    return AlertExplanation(
+      headline: '${m.label}: not enough recent readings',
+      whatChanged:
+          'Only $usable of the past $total days have a usable reading, below '
+          'the 70% RAKIA needs before it assesses a trend.',
+      byHowMuch: '$quality% of days usable.',
+      since: _firstRejectedDay(i),
+      evidence:
+          '$unusable of the past $total days have no reading or one outside '
+          'the plausible range.',
+      whyItMatters:
+          'A change can only be told apart from day-to-day variation when '
+          'readings are regular.',
+      checkNext:
+          'Add any missing days you have readings for (up to 90 days back), '
+          'and record one each day from now on.',
+    );
+  }
 
   if (i.status == HealthStatus.dataQuality) {
     return AlertExplanation(
@@ -171,22 +240,26 @@ AlertExplanation explain(MetricInsight i) {
     whatChanged =
         '${m.label} has shifted $direction your personal baseline and stayed '
         'there.';
-    since =
-        'Estimated onset mission day $onset; the sustained shift was '
-        'detected on day $alarm.';
+    since = i.datesKnown
+        ? 'Estimated onset ${i.dayLabel(a.cusum.onsetIndex)}; the sustained '
+              'shift was detected on ${i.dayLabel(a.cusum.alarmIndex)}.'
+        : 'Estimated onset mission day $onset; the sustained shift was '
+              'detected on day $alarm.';
   } else if (a.reasons.contains(AssessmentReason.pointDeviation)) {
     whatChanged =
         'The latest reading is unusually far $direction your baseline. One '
         'reading is not a trend, so RAKIA asks for confirmation.';
-    since =
-        'Latest reading, mission day ${MetricInsight.dayOf(a.latestIndex)}.';
+    since = 'Latest reading, ${i.dayLabel(a.latestIndex)}.';
   } else {
     final trend = trendSummary(i);
     whatChanged = trend.significant
         ? '${m.label} is within your personal baseline, but readings show a '
-              '${trend.direction} trend across the mission.'
+              '${trend.direction} trend '
+              '${i.datesKnown ? 'over the past week' : 'across the mission'}.'
         : '${m.label} is within your personal baseline.';
-    since = 'No sustained change detected in this mission.';
+    since = i.datesKnown
+        ? 'No sustained change detected in the past week.'
+        : 'No sustained change detected in this mission.';
   }
 
   return AlertExplanation(
@@ -199,8 +272,8 @@ AlertExplanation explain(MetricInsight i) {
     byHowMuch: byHowMuch,
     since: since,
     evidence:
-        '$usable usable mission-day readings compared with a baseline of '
-        '${b.n} pre-flight days (median ${m.formatWithUnit(b.center)}, '
+        '$usable usable ${i.readingsNoun} compared with a baseline of '
+        '${b.n} ${i.referenceNoun} (median ${m.formatWithUnit(b.center)}, '
         'spread ${m.format(b.spread)}).',
     whyItMatters: m.whyItMatters,
     checkNext: m.checkNext,
@@ -261,7 +334,9 @@ TrendSummary trendSummary(MetricInsight i) {
 String _firstRejectedDay(MetricInsight i) {
   for (var k = 0; k < i.monitoringQuality.length; k++) {
     if (i.monitoringQuality[k] < 0.5) {
-      return 'First rejected reading on mission day ${MetricInsight.dayOf(k)}.';
+      return i.datesKnown
+          ? 'First day without a usable reading: ${i.dayLabel(k)}.'
+          : 'First rejected reading on ${i.dayLabel(k)}.';
     }
   }
   return 'No rejected readings.';

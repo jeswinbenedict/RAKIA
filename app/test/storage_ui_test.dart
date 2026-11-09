@@ -196,6 +196,8 @@ void main() {
     testWidgets('the storage card fits ${vp.key} at 200% text', (tester) async {
       final opener = fileStore('layout-${vp.value.width.toInt()}');
       await pumpRakia(tester, size: vp.value, storeOpener: opener);
+      // On small screens the button sits below the record card.
+      await tester.ensureVisible(find.byKey(const Key('start-simulation')));
       await tester.tap(find.byKey(const Key('start-simulation')));
       await tester.pumpAndSettle();
       await quit(tester);

@@ -4,7 +4,9 @@ import 'package:rakia_core/rakia_core.dart';
 import '../analytics/metric_definitions.dart';
 import '../analytics/metric_insight.dart';
 import '../analytics/metric_series.dart';
+import '../components/health_status.dart';
 import '../storage/local_store.dart';
+import 'alert_response.dart';
 import 'record.dart';
 
 /// One indicator of the personal record: its daily series and, once the
@@ -49,6 +51,8 @@ class RecordController extends ChangeNotifier {
   String? _recordId;
   List<RecordEntry> _entries = const [];
   List<RecordIndicator> _indicators = const [];
+  List<MetricInsight> _alerts = const [];
+  List<AlertResponse> _responses = const [];
   bool _loading = false;
   bool _disposed = false;
   String? _error;
@@ -65,6 +69,37 @@ class RecordController extends ChangeNotifier {
   /// One per indicator, in display order.
   List<RecordIndicator> get indicators => _indicators;
 
+  /// Evaluated indicators that need attention, most severe first. Every
+  /// alert comes from the astronaut's own readings; none is simulated.
+  List<MetricInsight> get alerts => _alerts;
+
+  /// The current evaluation of an indicator, if its baseline is ready.
+  MetricInsight? insightFor(String metricCode) {
+    for (final i in _indicators) {
+      if (i.metric.code == metricCode) return i.insight;
+    }
+    return null;
+  }
+
+  /// Every response logged for an indicator, newest first.
+  List<AlertResponse> responsesForMetric(String metricCode) => [
+    for (final r in _responses.reversed)
+      if (r.metricCode == metricCode) r,
+  ];
+
+  /// Responses to [alert]: those logged for its indicator on or after the
+  /// day it concerns, newest first.
+  List<AlertResponse> responsesFor(MetricInsight alert) {
+    final since = alertDay(alert);
+    return [
+      for (final r in _responses.reversed)
+        if (r.metricCode == alert.metric.code &&
+            (since == null ||
+                !calendarDay(r.recordedAt.toLocal()).isBefore(since)))
+          r,
+    ];
+  }
+
   /// Today as a calendar day.
   DateTime get today => calendarDay(_clock());
 
@@ -75,7 +110,15 @@ class RecordController extends ChangeNotifier {
     _notify();
     try {
       _recordId = await store.personalRecordId();
-      if (_recordId != null) _entries = await store.recordEntries(_recordId!);
+      if (_recordId case final id?) {
+        // Read everything before publishing any of it: a frame drawn
+        // between two awaits must never see readings without their
+        // evaluation.
+        final entries = await store.recordEntries(id);
+        final responses = await store.alertResponses(id);
+        _entries = entries;
+        _responses = responses;
+      }
       _error = null;
     } on Object catch (e) {
       _error = 'Your health record could not be loaded: $e';
@@ -87,11 +130,16 @@ class RecordController extends ChangeNotifier {
 
   /// Records a reading. Returns the validation message instead of saving
   /// when the input is not acceptable.
+  ///
+  /// With [respondingTo], the reading is the confirmatory check of that
+  /// alert (or, with [correcting], its correction): once it is evaluated,
+  /// the response and the indicator's new level are logged.
   Future<String?> add({
     required MetricDefinition metric,
     required double? value,
     required DateTime day,
     RecordEntry? correcting,
+    MetricInsight? respondingTo,
   }) async {
     final store = _store;
     final core = _core;
@@ -119,6 +167,67 @@ class RecordController extends ChangeNotifier {
       return 'The reading could not be saved: $e';
     }
     _recompute();
+    if (respondingTo != null) {
+      final logged = await _log(
+        respondingTo,
+        correcting == null
+            ? AlertResponseKind.confirmatoryReading
+            : AlertResponseKind.valueCorrected,
+        outcome:
+            insightFor(metric.code)?.status ?? HealthStatus.insufficientData,
+        note:
+            '${correcting == null ? 'Reading' : 'Corrected to'} '
+            '${metric.formatWithUnit(value)}.',
+      );
+      if (logged != null) return 'The reading was saved, but $logged';
+    }
+    return null;
+  }
+
+  /// Logs a response that needs no new reading: the value was checked and
+  /// is correct, the astronaut keeps watching, or medical support was
+  /// contacted. Returns what went wrong, or null.
+  Future<String?> respond(
+    MetricInsight alert,
+    AlertResponseKind kind, {
+    String? note,
+  }) {
+    assert(
+      kind != AlertResponseKind.confirmatoryReading &&
+          kind != AlertResponseKind.valueCorrected,
+      'readings are logged through add()',
+    );
+    if (note != null && note.trim().length > kMaxResponseNote) {
+      return Future.value('Keep the note under $kMaxResponseNote characters.');
+    }
+    return _log(alert, kind, note: note);
+  }
+
+  Future<String?> _log(
+    MetricInsight alert,
+    AlertResponseKind kind, {
+    HealthStatus? outcome,
+    String? note,
+  }) async {
+    final store = _store;
+    final id = _recordId;
+    if (store == null || id == null) return 'the record is not open.';
+    try {
+      final saved = await store.addAlertResponse(
+        recordId: id,
+        metricCode: alert.metric.code,
+        alertLevel: alert.status,
+        alertDay: alertDay(alert) ?? today,
+        kind: kind,
+        outcome: outcome,
+        note: note,
+        now: _clock(),
+      );
+      _responses = [..._responses, saved];
+    } on Object catch (e) {
+      return 'the response could not be logged: $e';
+    }
+    _notify();
     return null;
   }
 
@@ -128,6 +237,7 @@ class RecordController extends ChangeNotifier {
     _indicators = [
       for (final m in kMetricDefinitions) _indicator(m, core, day),
     ];
+    _alerts = rankAlerts([for (final i in _indicators) ?i.insight]);
     _notify();
   }
 

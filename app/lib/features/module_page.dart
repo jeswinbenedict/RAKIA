@@ -9,9 +9,17 @@ import 'page_frame.dart';
 /// A module page before data exists: what the module tracks, any caveat,
 /// and an honest empty state. No placeholder numbers or fake charts.
 class ModulePage extends StatelessWidget {
-  const ModulePage({super.key, required this.module, this.emptyAction});
+  const ModulePage({
+    super.key,
+    required this.module,
+    this.emptyAction,
+    this.header,
+  });
 
   final ModuleSpec module;
+
+  /// Optional content above the empty state, e.g. the astronaut's record.
+  final Widget? header;
 
   /// Optional action under the empty state, e.g. starting the simulation.
   final Widget? emptyAction;
@@ -52,7 +60,16 @@ class ModulePage extends StatelessWidget {
       title: module.label,
       eyebrow: module.group.label,
       summary: module.summary,
-      body: body,
+      body: header == null
+          ? body
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                header!,
+                const SizedBox(height: RakiaSpacing.xl),
+                body,
+              ],
+            ),
     );
   }
 }

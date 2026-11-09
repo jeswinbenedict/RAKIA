@@ -2776,6 +2776,603 @@ class ReactionTestsCompanion extends UpdateCompanion<ReactionTest> {
   }
 }
 
+class AlertResponses extends Table
+    with TableInfo<AlertResponses, AlertResponse> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  AlertResponses(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  late final GeneratedColumn<Uint8List> id = GeneratedColumn<Uint8List>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY CHECK (length(id) = 16)',
+  );
+  static const VerificationMeta _missionIdMeta = const VerificationMeta(
+    'missionId',
+  );
+  late final GeneratedColumn<String> missionId = GeneratedColumn<String>(
+    'mission_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES missions(id)',
+  );
+  static const VerificationMeta _metricCodeMeta = const VerificationMeta(
+    'metricCode',
+  );
+  late final GeneratedColumn<String> metricCode = GeneratedColumn<String>(
+    'metric_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (length(metric_code) BETWEEN 1 AND 64)',
+  );
+  static const VerificationMeta _alertLevelMeta = const VerificationMeta(
+    'alertLevel',
+  );
+  late final GeneratedColumn<int> alertLevel = GeneratedColumn<int>(
+    'alert_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (alert_level IN (1, 3, 4))',
+  );
+  static const VerificationMeta _alertDayUsMeta = const VerificationMeta(
+    'alertDayUs',
+  );
+  late final GeneratedColumn<int> alertDayUs = GeneratedColumn<int>(
+    'alert_day_us',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _responseMeta = const VerificationMeta(
+    'response',
+  );
+  late final GeneratedColumn<int> response = GeneratedColumn<int>(
+    'response',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL CHECK (response BETWEEN 1 AND 5)',
+  );
+  static const VerificationMeta _outcomeLevelMeta = const VerificationMeta(
+    'outcomeLevel',
+  );
+  late final GeneratedColumn<int> outcomeLevel = GeneratedColumn<int>(
+    'outcome_level',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK (outcome_level IS NULL OR outcome_level BETWEEN 0 AND 4)',
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints:
+        'CHECK (note IS NULL OR length(note) BETWEEN 1 AND 500)',
+  );
+  static const VerificationMeta _recordedAtUsMeta = const VerificationMeta(
+    'recordedAtUs',
+  );
+  late final GeneratedColumn<int> recordedAtUs = GeneratedColumn<int>(
+    'recorded_at_us',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    missionId,
+    metricCode,
+    alertLevel,
+    alertDayUs,
+    response,
+    outcomeLevel,
+    note,
+    recordedAtUs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'alert_responses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AlertResponse> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('mission_id')) {
+      context.handle(
+        _missionIdMeta,
+        missionId.isAcceptableOrUnknown(data['mission_id']!, _missionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_missionIdMeta);
+    }
+    if (data.containsKey('metric_code')) {
+      context.handle(
+        _metricCodeMeta,
+        metricCode.isAcceptableOrUnknown(data['metric_code']!, _metricCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_metricCodeMeta);
+    }
+    if (data.containsKey('alert_level')) {
+      context.handle(
+        _alertLevelMeta,
+        alertLevel.isAcceptableOrUnknown(data['alert_level']!, _alertLevelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_alertLevelMeta);
+    }
+    if (data.containsKey('alert_day_us')) {
+      context.handle(
+        _alertDayUsMeta,
+        alertDayUs.isAcceptableOrUnknown(
+          data['alert_day_us']!,
+          _alertDayUsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_alertDayUsMeta);
+    }
+    if (data.containsKey('response')) {
+      context.handle(
+        _responseMeta,
+        response.isAcceptableOrUnknown(data['response']!, _responseMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_responseMeta);
+    }
+    if (data.containsKey('outcome_level')) {
+      context.handle(
+        _outcomeLevelMeta,
+        outcomeLevel.isAcceptableOrUnknown(
+          data['outcome_level']!,
+          _outcomeLevelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('recorded_at_us')) {
+      context.handle(
+        _recordedAtUsMeta,
+        recordedAtUs.isAcceptableOrUnknown(
+          data['recorded_at_us']!,
+          _recordedAtUsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recordedAtUsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AlertResponse map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AlertResponse(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}id'],
+      )!,
+      missionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mission_id'],
+      )!,
+      metricCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}metric_code'],
+      )!,
+      alertLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}alert_level'],
+      )!,
+      alertDayUs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}alert_day_us'],
+      )!,
+      response: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}response'],
+      )!,
+      outcomeLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}outcome_level'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      recordedAtUs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recorded_at_us'],
+      )!,
+    );
+  }
+
+  @override
+  AlertResponses createAlias(String alias) {
+    return AlertResponses(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class AlertResponse extends DataClass implements Insertable<AlertResponse> {
+  final Uint8List id;
+  final String missionId;
+  final String metricCode;
+
+  /// Levels are rakia_level codes (core/include/rakia/rakia.h): 0 not
+  /// enough data, 1 data quality, 2 within baseline, 3 watch, 4 act.
+  /// The alert answered: data quality, watch or act.
+  final int alertLevel;
+
+  /// The day the alert concerns (onset of a shift, or the flagged reading),
+  /// as microseconds since the Unix epoch at 00:00 UTC of that date.
+  final int alertDayUs;
+
+  /// 1 confirmatory reading, 2 value checked and correct, 3 value
+  /// corrected, 4 keep watching, 5 contacted medical support.
+  final int response;
+
+  /// For a confirmatory reading or correction: the indicator's level once
+  /// the new value was evaluated.
+  final int? outcomeLevel;
+  final String? note;
+  final int recordedAtUs;
+  const AlertResponse({
+    required this.id,
+    required this.missionId,
+    required this.metricCode,
+    required this.alertLevel,
+    required this.alertDayUs,
+    required this.response,
+    this.outcomeLevel,
+    this.note,
+    required this.recordedAtUs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<Uint8List>(id);
+    map['mission_id'] = Variable<String>(missionId);
+    map['metric_code'] = Variable<String>(metricCode);
+    map['alert_level'] = Variable<int>(alertLevel);
+    map['alert_day_us'] = Variable<int>(alertDayUs);
+    map['response'] = Variable<int>(response);
+    if (!nullToAbsent || outcomeLevel != null) {
+      map['outcome_level'] = Variable<int>(outcomeLevel);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['recorded_at_us'] = Variable<int>(recordedAtUs);
+    return map;
+  }
+
+  AlertResponsesCompanion toCompanion(bool nullToAbsent) {
+    return AlertResponsesCompanion(
+      id: Value(id),
+      missionId: Value(missionId),
+      metricCode: Value(metricCode),
+      alertLevel: Value(alertLevel),
+      alertDayUs: Value(alertDayUs),
+      response: Value(response),
+      outcomeLevel: outcomeLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(outcomeLevel),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      recordedAtUs: Value(recordedAtUs),
+    );
+  }
+
+  factory AlertResponse.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AlertResponse(
+      id: serializer.fromJson<Uint8List>(json['id']),
+      missionId: serializer.fromJson<String>(json['mission_id']),
+      metricCode: serializer.fromJson<String>(json['metric_code']),
+      alertLevel: serializer.fromJson<int>(json['alert_level']),
+      alertDayUs: serializer.fromJson<int>(json['alert_day_us']),
+      response: serializer.fromJson<int>(json['response']),
+      outcomeLevel: serializer.fromJson<int?>(json['outcome_level']),
+      note: serializer.fromJson<String?>(json['note']),
+      recordedAtUs: serializer.fromJson<int>(json['recorded_at_us']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<Uint8List>(id),
+      'mission_id': serializer.toJson<String>(missionId),
+      'metric_code': serializer.toJson<String>(metricCode),
+      'alert_level': serializer.toJson<int>(alertLevel),
+      'alert_day_us': serializer.toJson<int>(alertDayUs),
+      'response': serializer.toJson<int>(response),
+      'outcome_level': serializer.toJson<int?>(outcomeLevel),
+      'note': serializer.toJson<String?>(note),
+      'recorded_at_us': serializer.toJson<int>(recordedAtUs),
+    };
+  }
+
+  AlertResponse copyWith({
+    Uint8List? id,
+    String? missionId,
+    String? metricCode,
+    int? alertLevel,
+    int? alertDayUs,
+    int? response,
+    Value<int?> outcomeLevel = const Value.absent(),
+    Value<String?> note = const Value.absent(),
+    int? recordedAtUs,
+  }) => AlertResponse(
+    id: id ?? this.id,
+    missionId: missionId ?? this.missionId,
+    metricCode: metricCode ?? this.metricCode,
+    alertLevel: alertLevel ?? this.alertLevel,
+    alertDayUs: alertDayUs ?? this.alertDayUs,
+    response: response ?? this.response,
+    outcomeLevel: outcomeLevel.present ? outcomeLevel.value : this.outcomeLevel,
+    note: note.present ? note.value : this.note,
+    recordedAtUs: recordedAtUs ?? this.recordedAtUs,
+  );
+  AlertResponse copyWithCompanion(AlertResponsesCompanion data) {
+    return AlertResponse(
+      id: data.id.present ? data.id.value : this.id,
+      missionId: data.missionId.present ? data.missionId.value : this.missionId,
+      metricCode: data.metricCode.present
+          ? data.metricCode.value
+          : this.metricCode,
+      alertLevel: data.alertLevel.present
+          ? data.alertLevel.value
+          : this.alertLevel,
+      alertDayUs: data.alertDayUs.present
+          ? data.alertDayUs.value
+          : this.alertDayUs,
+      response: data.response.present ? data.response.value : this.response,
+      outcomeLevel: data.outcomeLevel.present
+          ? data.outcomeLevel.value
+          : this.outcomeLevel,
+      note: data.note.present ? data.note.value : this.note,
+      recordedAtUs: data.recordedAtUs.present
+          ? data.recordedAtUs.value
+          : this.recordedAtUs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlertResponse(')
+          ..write('id: $id, ')
+          ..write('missionId: $missionId, ')
+          ..write('metricCode: $metricCode, ')
+          ..write('alertLevel: $alertLevel, ')
+          ..write('alertDayUs: $alertDayUs, ')
+          ..write('response: $response, ')
+          ..write('outcomeLevel: $outcomeLevel, ')
+          ..write('note: $note, ')
+          ..write('recordedAtUs: $recordedAtUs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    $driftBlobEquality.hash(id),
+    missionId,
+    metricCode,
+    alertLevel,
+    alertDayUs,
+    response,
+    outcomeLevel,
+    note,
+    recordedAtUs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AlertResponse &&
+          $driftBlobEquality.equals(other.id, this.id) &&
+          other.missionId == this.missionId &&
+          other.metricCode == this.metricCode &&
+          other.alertLevel == this.alertLevel &&
+          other.alertDayUs == this.alertDayUs &&
+          other.response == this.response &&
+          other.outcomeLevel == this.outcomeLevel &&
+          other.note == this.note &&
+          other.recordedAtUs == this.recordedAtUs);
+}
+
+class AlertResponsesCompanion extends UpdateCompanion<AlertResponse> {
+  final Value<Uint8List> id;
+  final Value<String> missionId;
+  final Value<String> metricCode;
+  final Value<int> alertLevel;
+  final Value<int> alertDayUs;
+  final Value<int> response;
+  final Value<int?> outcomeLevel;
+  final Value<String?> note;
+  final Value<int> recordedAtUs;
+  final Value<int> rowid;
+  const AlertResponsesCompanion({
+    this.id = const Value.absent(),
+    this.missionId = const Value.absent(),
+    this.metricCode = const Value.absent(),
+    this.alertLevel = const Value.absent(),
+    this.alertDayUs = const Value.absent(),
+    this.response = const Value.absent(),
+    this.outcomeLevel = const Value.absent(),
+    this.note = const Value.absent(),
+    this.recordedAtUs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AlertResponsesCompanion.insert({
+    required Uint8List id,
+    required String missionId,
+    required String metricCode,
+    required int alertLevel,
+    required int alertDayUs,
+    required int response,
+    this.outcomeLevel = const Value.absent(),
+    this.note = const Value.absent(),
+    required int recordedAtUs,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       missionId = Value(missionId),
+       metricCode = Value(metricCode),
+       alertLevel = Value(alertLevel),
+       alertDayUs = Value(alertDayUs),
+       response = Value(response),
+       recordedAtUs = Value(recordedAtUs);
+  static Insertable<AlertResponse> custom({
+    Expression<Uint8List>? id,
+    Expression<String>? missionId,
+    Expression<String>? metricCode,
+    Expression<int>? alertLevel,
+    Expression<int>? alertDayUs,
+    Expression<int>? response,
+    Expression<int>? outcomeLevel,
+    Expression<String>? note,
+    Expression<int>? recordedAtUs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (missionId != null) 'mission_id': missionId,
+      if (metricCode != null) 'metric_code': metricCode,
+      if (alertLevel != null) 'alert_level': alertLevel,
+      if (alertDayUs != null) 'alert_day_us': alertDayUs,
+      if (response != null) 'response': response,
+      if (outcomeLevel != null) 'outcome_level': outcomeLevel,
+      if (note != null) 'note': note,
+      if (recordedAtUs != null) 'recorded_at_us': recordedAtUs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AlertResponsesCompanion copyWith({
+    Value<Uint8List>? id,
+    Value<String>? missionId,
+    Value<String>? metricCode,
+    Value<int>? alertLevel,
+    Value<int>? alertDayUs,
+    Value<int>? response,
+    Value<int?>? outcomeLevel,
+    Value<String?>? note,
+    Value<int>? recordedAtUs,
+    Value<int>? rowid,
+  }) {
+    return AlertResponsesCompanion(
+      id: id ?? this.id,
+      missionId: missionId ?? this.missionId,
+      metricCode: metricCode ?? this.metricCode,
+      alertLevel: alertLevel ?? this.alertLevel,
+      alertDayUs: alertDayUs ?? this.alertDayUs,
+      response: response ?? this.response,
+      outcomeLevel: outcomeLevel ?? this.outcomeLevel,
+      note: note ?? this.note,
+      recordedAtUs: recordedAtUs ?? this.recordedAtUs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<Uint8List>(id.value);
+    }
+    if (missionId.present) {
+      map['mission_id'] = Variable<String>(missionId.value);
+    }
+    if (metricCode.present) {
+      map['metric_code'] = Variable<String>(metricCode.value);
+    }
+    if (alertLevel.present) {
+      map['alert_level'] = Variable<int>(alertLevel.value);
+    }
+    if (alertDayUs.present) {
+      map['alert_day_us'] = Variable<int>(alertDayUs.value);
+    }
+    if (response.present) {
+      map['response'] = Variable<int>(response.value);
+    }
+    if (outcomeLevel.present) {
+      map['outcome_level'] = Variable<int>(outcomeLevel.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (recordedAtUs.present) {
+      map['recorded_at_us'] = Variable<int>(recordedAtUs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AlertResponsesCompanion(')
+          ..write('id: $id, ')
+          ..write('missionId: $missionId, ')
+          ..write('metricCode: $metricCode, ')
+          ..write('alertLevel: $alertLevel, ')
+          ..write('alertDayUs: $alertDayUs, ')
+          ..write('response: $response, ')
+          ..write('outcomeLevel: $outcomeLevel, ')
+          ..write('note: $note, ')
+          ..write('recordedAtUs: $recordedAtUs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$RakiaDatabase extends GeneratedDatabase {
   _$RakiaDatabase(QueryExecutor e) : super(e);
   $RakiaDatabaseManager get managers => $RakiaDatabaseManager(this);
@@ -2832,6 +3429,23 @@ abstract class _$RakiaDatabase extends GeneratedDatabase {
     'CREATE TRIGGER reaction_tests_immutable BEFORE UPDATE ON reaction_tests BEGIN SELECT RAISE (ABORT, \'rakia: test results are not edited\');END',
     'reaction_tests_immutable',
   );
+  late final AlertResponses alertResponses = AlertResponses(this);
+  late final Index alertResponsesByMetric = Index(
+    'alert_responses_by_metric',
+    'CREATE INDEX alert_responses_by_metric ON alert_responses (mission_id, metric_code, recorded_at_us)',
+  );
+  late final Trigger alertResponsesRealOnly = Trigger(
+    'CREATE TRIGGER alert_responses_real_only BEFORE INSERT ON alert_responses WHEN (SELECT is_simulation FROM missions WHERE id = NEW.mission_id) IS NOT 0 BEGIN SELECT RAISE (ABORT, \'rakia: responses belong to a real record\');END',
+    'alert_responses_real_only',
+  );
+  late final Trigger alertResponsesImmutable = Trigger(
+    'CREATE TRIGGER alert_responses_immutable BEFORE UPDATE ON alert_responses BEGIN SELECT RAISE (ABORT, \'rakia: responses are not edited\');END',
+    'alert_responses_immutable',
+  );
+  late final Trigger alertResponsesKept = Trigger(
+    'CREATE TRIGGER alert_responses_kept BEFORE DELETE ON alert_responses BEGIN SELECT RAISE (ABORT, \'rakia: responses are kept\');END',
+    'alert_responses_kept',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2854,6 +3468,11 @@ abstract class _$RakiaDatabase extends GeneratedDatabase {
     reactionTests,
     reactionTestsByTime,
     reactionTestsImmutable,
+    alertResponses,
+    alertResponsesByMetric,
+    alertResponsesRealOnly,
+    alertResponsesImmutable,
+    alertResponsesKept,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2924,6 +3543,27 @@ abstract class _$RakiaDatabase extends GeneratedDatabase {
       on: TableUpdateQuery.onTableName(
         'reaction_tests',
         limitUpdateKind: UpdateKind.update,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'alert_responses',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'alert_responses',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'alert_responses',
+        limitUpdateKind: UpdateKind.delete,
       ),
       result: [],
     ),
@@ -3111,6 +3751,24 @@ final class $MissionsReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<AlertResponses, List<AlertResponse>>
+  _alertResponsesRefsTable(_$RakiaDatabase db) => MultiTypedResultKey.fromTable(
+    db.alertResponses,
+    aliasName: 'missions__id__alert_responses__mission_id',
+  );
+
+  $AlertResponsesProcessedTableManager get alertResponsesRefs {
+    final manager = $AlertResponsesTableManager(
+      $_db,
+      $_db.alertResponses,
+    ).filter((f) => f.missionId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_alertResponsesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $MissionsFilterComposer extends Composer<_$RakiaDatabase, Missions> {
@@ -3192,6 +3850,31 @@ class $MissionsFilterComposer extends Composer<_$RakiaDatabase, Missions> {
           }) => $MeasurementsFilterComposer(
             $db: $db,
             $table: $db.measurements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> alertResponsesRefs(
+    Expression<bool> Function($AlertResponsesFilterComposer f) f,
+  ) {
+    final $AlertResponsesFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.alertResponses,
+      getReferencedColumn: (t) => t.missionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $AlertResponsesFilterComposer(
+            $db: $db,
+            $table: $db.alertResponses,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3345,6 +4028,31 @@ class $MissionsAnnotationComposer extends Composer<_$RakiaDatabase, Missions> {
     );
     return f(composer);
   }
+
+  Expression<T> alertResponsesRefs<T extends Object>(
+    Expression<T> Function($AlertResponsesAnnotationComposer a) f,
+  ) {
+    final $AlertResponsesAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.alertResponses,
+      getReferencedColumn: (t) => t.missionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $AlertResponsesAnnotationComposer(
+            $db: $db,
+            $table: $db.alertResponses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $MissionsTableManager
@@ -3360,7 +4068,10 @@ class $MissionsTableManager
           $MissionsUpdateCompanionBuilder,
           (Mission, $MissionsReferences),
           Mission,
-          PrefetchHooks Function({bool measurementsRefs})
+          PrefetchHooks Function({
+            bool measurementsRefs,
+            bool alertResponsesRefs,
+          })
         > {
   $MissionsTableManager(_$RakiaDatabase db, Missions table)
     : super(
@@ -3437,33 +4148,59 @@ class $MissionsTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({measurementsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (measurementsRefs) db.measurements],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (measurementsRefs)
-                    await $_getPrefetchedDataByColumns<
-                      Mission,
-                      Missions,
-                      Measurement,
-                      Measurements
-                    >(
-                      currentTable: table,
-                      referencedTable: $MissionsReferences
-                          ._measurementsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $MissionsReferences(db, table, p0).measurementsRefs,
-                      currentColumn: 'id',
-                      referencedColumn: 'mission_id',
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({measurementsRefs = false, alertResponsesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (measurementsRefs) db.measurements,
+                    if (alertResponsesRefs) db.alertResponses,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (measurementsRefs)
+                        await $_getPrefetchedDataByColumns<
+                          Mission,
+                          Missions,
+                          Measurement,
+                          Measurements
+                        >(
+                          currentTable: table,
+                          referencedTable: $MissionsReferences
+                              ._measurementsRefsTable(db),
+                          managerFromTypedResult: (p0) => $MissionsReferences(
+                            db,
+                            table,
+                            p0,
+                          ).measurementsRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'mission_id',
+                          typedResults: items,
+                        ),
+                      if (alertResponsesRefs)
+                        await $_getPrefetchedDataByColumns<
+                          Mission,
+                          Missions,
+                          AlertResponse,
+                          AlertResponses
+                        >(
+                          currentTable: table,
+                          referencedTable: $MissionsReferences
+                              ._alertResponsesRefsTable(db),
+                          managerFromTypedResult: (p0) => $MissionsReferences(
+                            db,
+                            table,
+                            p0,
+                          ).alertResponsesRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'mission_id',
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3480,7 +4217,7 @@ typedef $MissionsProcessedTableManager =
       $MissionsUpdateCompanionBuilder,
       (Mission, $MissionsReferences),
       Mission,
-      PrefetchHooks Function({bool measurementsRefs})
+      PrefetchHooks Function({bool measurementsRefs, bool alertResponsesRefs})
     >;
 typedef $MeasurementsCreateCompanionBuilder = MeasurementsCompanion Function({
   required Uint8List id,
@@ -4576,6 +5313,407 @@ typedef $ReactionTestsProcessedTableManager =
       ReactionTest,
       PrefetchHooks Function()
     >;
+typedef $AlertResponsesCreateCompanionBuilder =
+    AlertResponsesCompanion Function({
+      required Uint8List id,
+      required String missionId,
+      required String metricCode,
+      required int alertLevel,
+      required int alertDayUs,
+      required int response,
+      Value<int?> outcomeLevel,
+      Value<String?> note,
+      required int recordedAtUs,
+      Value<int> rowid,
+    });
+typedef $AlertResponsesUpdateCompanionBuilder =
+    AlertResponsesCompanion Function({
+      Value<Uint8List> id,
+      Value<String> missionId,
+      Value<String> metricCode,
+      Value<int> alertLevel,
+      Value<int> alertDayUs,
+      Value<int> response,
+      Value<int?> outcomeLevel,
+      Value<String?> note,
+      Value<int> recordedAtUs,
+      Value<int> rowid,
+    });
+
+final class $AlertResponsesReferences
+    extends BaseReferences<_$RakiaDatabase, AlertResponses, AlertResponse> {
+  $AlertResponsesReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static Missions _missionIdTable(_$RakiaDatabase db) =>
+      db.missions.createAlias('alert_responses__mission_id__missions__id');
+
+  $MissionsProcessedTableManager get missionId {
+    final $_column = $_itemColumn<String>('mission_id')!;
+
+    final manager = $MissionsTableManager(
+      $_db,
+      $_db.missions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_missionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $AlertResponsesFilterComposer
+    extends Composer<_$RakiaDatabase, AlertResponses> {
+  $AlertResponsesFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<Uint8List> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get metricCode => $composableBuilder(
+    column: $table.metricCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get alertLevel => $composableBuilder(
+    column: $table.alertLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get alertDayUs => $composableBuilder(
+    column: $table.alertDayUs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get response => $composableBuilder(
+    column: $table.response,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get outcomeLevel => $composableBuilder(
+    column: $table.outcomeLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $MissionsFilterComposer get missionId {
+    final $MissionsFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.missionId,
+      referencedTable: $db.missions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $MissionsFilterComposer(
+            $db: $db,
+            $table: $db.missions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $AlertResponsesOrderingComposer
+    extends Composer<_$RakiaDatabase, AlertResponses> {
+  $AlertResponsesOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<Uint8List> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get metricCode => $composableBuilder(
+    column: $table.metricCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get alertLevel => $composableBuilder(
+    column: $table.alertLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get alertDayUs => $composableBuilder(
+    column: $table.alertDayUs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get response => $composableBuilder(
+    column: $table.response,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get outcomeLevel => $composableBuilder(
+    column: $table.outcomeLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $MissionsOrderingComposer get missionId {
+    final $MissionsOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.missionId,
+      referencedTable: $db.missions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $MissionsOrderingComposer(
+            $db: $db,
+            $table: $db.missions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $AlertResponsesAnnotationComposer
+    extends Composer<_$RakiaDatabase, AlertResponses> {
+  $AlertResponsesAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<Uint8List> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get metricCode => $composableBuilder(
+    column: $table.metricCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get alertLevel => $composableBuilder(
+    column: $table.alertLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get alertDayUs => $composableBuilder(
+    column: $table.alertDayUs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get response =>
+      $composableBuilder(column: $table.response, builder: (column) => column);
+
+  GeneratedColumn<int> get outcomeLevel => $composableBuilder(
+    column: $table.outcomeLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get recordedAtUs => $composableBuilder(
+    column: $table.recordedAtUs,
+    builder: (column) => column,
+  );
+
+  $MissionsAnnotationComposer get missionId {
+    final $MissionsAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.missionId,
+      referencedTable: $db.missions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $MissionsAnnotationComposer(
+            $db: $db,
+            $table: $db.missions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $AlertResponsesTableManager
+    extends
+        RootTableManager<
+          _$RakiaDatabase,
+          AlertResponses,
+          AlertResponse,
+          $AlertResponsesFilterComposer,
+          $AlertResponsesOrderingComposer,
+          $AlertResponsesAnnotationComposer,
+          $AlertResponsesCreateCompanionBuilder,
+          $AlertResponsesUpdateCompanionBuilder,
+          (AlertResponse, $AlertResponsesReferences),
+          AlertResponse,
+          PrefetchHooks Function({bool missionId})
+        > {
+  $AlertResponsesTableManager(_$RakiaDatabase db, AlertResponses table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $AlertResponsesFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $AlertResponsesOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $AlertResponsesAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<Uint8List> id = const Value.absent(),
+                Value<String> missionId = const Value.absent(),
+                Value<String> metricCode = const Value.absent(),
+                Value<int> alertLevel = const Value.absent(),
+                Value<int> alertDayUs = const Value.absent(),
+                Value<int> response = const Value.absent(),
+                Value<int?> outcomeLevel = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<int> recordedAtUs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AlertResponsesCompanion(
+                id: id,
+                missionId: missionId,
+                metricCode: metricCode,
+                alertLevel: alertLevel,
+                alertDayUs: alertDayUs,
+                response: response,
+                outcomeLevel: outcomeLevel,
+                note: note,
+                recordedAtUs: recordedAtUs,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required Uint8List id,
+                required String missionId,
+                required String metricCode,
+                required int alertLevel,
+                required int alertDayUs,
+                required int response,
+                Value<int?> outcomeLevel = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                required int recordedAtUs,
+                Value<int> rowid = const Value.absent(),
+              }) => AlertResponsesCompanion.insert(
+                id: id,
+                missionId: missionId,
+                metricCode: metricCode,
+                alertLevel: alertLevel,
+                alertDayUs: alertDayUs,
+                response: response,
+                outcomeLevel: outcomeLevel,
+                note: note,
+                recordedAtUs: recordedAtUs,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<AlertResponses, AlertResponse>(table),
+                  $AlertResponsesReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({missionId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (missionId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.missionId,
+                        referencedTable: $AlertResponsesReferences
+                            ._missionIdTable(db),
+                        referencedColumn: $AlertResponsesReferences
+                            ._missionIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $AlertResponsesProcessedTableManager =
+    ProcessedTableManager<
+      _$RakiaDatabase,
+      AlertResponses,
+      AlertResponse,
+      $AlertResponsesFilterComposer,
+      $AlertResponsesOrderingComposer,
+      $AlertResponsesAnnotationComposer,
+      $AlertResponsesCreateCompanionBuilder,
+      $AlertResponsesUpdateCompanionBuilder,
+      (AlertResponse, $AlertResponsesReferences),
+      AlertResponse,
+      PrefetchHooks Function({bool missionId})
+    >;
 
 class $RakiaDatabaseManager {
   final _$RakiaDatabase _db;
@@ -4590,4 +5728,6 @@ class $RakiaDatabaseManager {
       $SelfCheckinsTableManager(_db, _db.selfCheckins);
   $ReactionTestsTableManager get reactionTests =>
       $ReactionTestsTableManager(_db, _db.reactionTests);
+  $AlertResponsesTableManager get alertResponses =>
+      $AlertResponsesTableManager(_db, _db.alertResponses);
 }

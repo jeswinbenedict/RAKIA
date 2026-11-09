@@ -109,6 +109,7 @@ MetricSeries recordSeries(
     reference: [for (var k = mon + ref - 1; k >= mon; k--) at(k)],
     monitoring: [for (var k = mon - 1; k >= 0; k--) at(k)],
     sensorFlags: List.filled(mon, 0),
+    monitoringStart: today.subtract(const Duration(days: mon - 1)),
   );
 }
 

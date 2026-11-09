@@ -1,5 +1,6 @@
--- RAKIA on-device store, schema version 2 (version 1 plus the private
--- wellbeing tables at the end of this file).
+-- RAKIA on-device store, schema version 3 (version 1, the private
+-- wellbeing tables of version 2 and the alert responses of version 3 at
+-- the end of this file).
 --
 -- The rules that protect data integrity are enforced by SQLite itself, not
 -- only by Dart code, so no caller can bypass them:
@@ -176,4 +177,54 @@ CREATE TRIGGER reaction_tests_immutable
 BEFORE UPDATE ON reaction_tests
 BEGIN
   SELECT RAISE(ABORT, 'rakia: test results are not edited');
+END;
+
+-- ----------------------------------------- alert responses (schema 3)
+-- What the astronaut did about an alert raised on their own record: a
+-- confirmatory reading, checking or correcting the value, choosing to keep
+-- watching, or contacting medical support. Only real records have
+-- responses (simulated alerts are practice). Responses are a log: never
+-- edited, never deleted.
+
+CREATE TABLE alert_responses (
+  id BLOB NOT NULL PRIMARY KEY CHECK (length(id) = 16),
+  mission_id TEXT NOT NULL REFERENCES missions (id),
+  metric_code TEXT NOT NULL CHECK (length(metric_code) BETWEEN 1 AND 64),
+  -- Levels are rakia_level codes (core/include/rakia/rakia.h): 0 not
+  -- enough data, 1 data quality, 2 within baseline, 3 watch, 4 act.
+  -- The alert answered: data quality, watch or act.
+  alert_level INTEGER NOT NULL CHECK (alert_level IN (1, 3, 4)),
+  -- The day the alert concerns (onset of a shift, or the flagged reading),
+  -- as microseconds since the Unix epoch at 00:00 UTC of that date.
+  alert_day_us INTEGER NOT NULL,
+  -- 1 confirmatory reading, 2 value checked and correct, 3 value
+  -- corrected, 4 keep watching, 5 contacted medical support.
+  response INTEGER NOT NULL CHECK (response BETWEEN 1 AND 5),
+  -- For a confirmatory reading or correction: the indicator's level once
+  -- the new value was evaluated.
+  outcome_level INTEGER CHECK (outcome_level IS NULL OR outcome_level BETWEEN 0 AND 4),
+  note TEXT CHECK (note IS NULL OR length(note) BETWEEN 1 AND 500),
+  recorded_at_us INTEGER NOT NULL
+) STRICT;
+
+CREATE INDEX alert_responses_by_metric
+  ON alert_responses (mission_id, metric_code, recorded_at_us);
+
+CREATE TRIGGER alert_responses_real_only
+BEFORE INSERT ON alert_responses
+WHEN (SELECT is_simulation FROM missions WHERE id = NEW.mission_id) IS NOT 0
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: responses belong to a real record');
+END;
+
+CREATE TRIGGER alert_responses_immutable
+BEFORE UPDATE ON alert_responses
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: responses are not edited');
+END;
+
+CREATE TRIGGER alert_responses_kept
+BEFORE DELETE ON alert_responses
+BEGIN
+  SELECT RAISE(ABORT, 'rakia: responses are kept');
 END;

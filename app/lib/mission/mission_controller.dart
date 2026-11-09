@@ -32,17 +32,7 @@ class MissionSnapshot {
 
   /// Indicators that need attention, most severe first: Act, Watch, then
   /// data-quality problems.
-  List<MetricInsight> get alerts {
-    int rank(HealthStatus s) => switch (s) {
-      HealthStatus.act => 0,
-      HealthStatus.watch => 1,
-      HealthStatus.dataQuality => 2,
-      _ => 3,
-    };
-    final list = insights.where((i) => rank(i.status) < 3).toList()
-      ..sort((a, b) => rank(a.status).compareTo(rank(b.status)));
-    return list;
-  }
+  List<MetricInsight> get alerts => rankAlerts(insights);
 
   int count(HealthStatus s) => insights.where((i) => i.status == s).length;
 }

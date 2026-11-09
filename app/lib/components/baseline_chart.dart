@@ -44,14 +44,15 @@ class BaselineChart extends StatelessWidget {
     final low = b.center - watchZ * b.spread;
     final high = b.center + watchZ * b.spread;
     final onset = insight.hasShift
-        ? ' Estimated onset mission day '
-              '${MetricInsight.dayOf(a.cusum.onsetIndex)}.'
+        ? ' Estimated onset ${insight.dayLabel(a.cusum.onsetIndex)}.'
         : '';
     final latest = a.latestValue.isFinite
         ? ' Latest ${m.formatWithUnit(a.latestValue)}.'
         : ' No usable latest reading.';
-    return 'Chart of ${m.label.toLowerCase()} over ${insight.monitoring.length} '
-        'mission days. Expected range ${m.format(low)} to '
+    final span = insight.datesKnown
+        ? 'the past ${insight.monitoring.length} days'
+        : '${insight.monitoring.length} mission days';
+    return 'Chart of ${m.label.toLowerCase()} over $span. Expected range ${m.format(low)} to '
         '${m.formatWithUnit(high)}.$latest$onset'
         '${simulated ? ' Simulated data.' : ''}';
   }
@@ -224,7 +225,7 @@ class _BaselinePainter extends CustomPainter {
       );
       if (!compact) {
         final label =
-            'Onset day ${MetricInsight.dayOf(insight.assessment.cusum.onsetIndex)}';
+            'Onset ${insight.datesKnown ? insight.dayLabel(insight.assessment.cusum.onsetIndex) : 'day ${MetricInsight.dayOf(insight.assessment.cusum.onsetIndex)}'}';
         final style = labelStyle.copyWith(color: statusColor);
         final w = _measure(label, style);
         final fitsRight = ox + 4 + w <= plot.right;
@@ -246,9 +247,16 @@ class _BaselinePainter extends CustomPainter {
 
     if (refShown > 0) {
       final p = Path();
+      // Days without a reading (a real record has gaps) break the line.
+      var drawing = false;
       for (var k = 0; k < refShown; k++) {
         final v = ref[refStart + k];
-        k == 0 ? p.moveTo(x(k), y(v)) : p.lineTo(x(k), y(v));
+        if (!v.isFinite) {
+          drawing = false;
+          continue;
+        }
+        drawing ? p.lineTo(x(k), y(v)) : p.moveTo(x(k), y(v));
+        drawing = true;
       }
       canvas.drawPath(
         p,
@@ -312,15 +320,25 @@ class _BaselinePainter extends CustomPainter {
     final axisY = plot.bottom + 6;
     if (refShown > 0 &&
         x(refShown) - plot.left >= _measure('Pre-flight', labelStyle) + 8) {
-      _text(canvas, 'Pre-flight', Offset(plot.left + 2, axisY), labelStyle);
+      _text(
+        canvas,
+        insight.datesKnown ? 'Baseline' : 'Pre-flight',
+        Offset(plot.left + 2, axisY),
+        labelStyle,
+      );
     }
-    _text(canvas, 'Day 1', Offset(x(refShown) + 2, axisY), labelStyle);
     _text(
       canvas,
-      'Day ${mon.length}',
-      Offset(plot.right - 40, axisY),
+      insight.axisLabel(0),
+      Offset(x(refShown) + 2, axisY),
       labelStyle,
-      maxWidth: 40,
+    );
+    _text(
+      canvas,
+      insight.axisLabel(mon.length - 1),
+      Offset(plot.right - 48, axisY),
+      labelStyle,
+      maxWidth: 48,
       alignRight: true,
     );
 
@@ -382,10 +400,17 @@ class _BaselinePainter extends CustomPainter {
 
 /// Key for [BaselineChart]. Every mark is a shape as well as a colour.
 class ChartLegend extends StatelessWidget {
-  const ChartLegend({super.key, this.onsetColor});
+  const ChartLegend({
+    super.key,
+    this.onsetColor,
+    this.readingsLabel = 'Mission readings',
+  });
 
   /// Colour of the onset marker; null hides the onset entry.
   final Color? onsetColor;
+
+  /// What the plotted readings are called.
+  final String readingsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -396,7 +421,8 @@ class ChartLegend extends StatelessWidget {
       children: [
         SizedBox(width: 18, height: 12, child: Center(child: swatch)),
         const SizedBox(width: RakiaSpacing.xs + 2),
-        Text(label, style: t.bodySmall),
+        // Wraps at large text sizes instead of overflowing the card.
+        Flexible(child: Text(label, style: t.bodySmall)),
       ],
     );
     return ExcludeSemantics(
@@ -418,7 +444,7 @@ class ChartLegend extends StatelessWidget {
           ),
           item(
             Container(height: 2, width: 18, color: c.brandText),
-            'Mission readings',
+            readingsLabel,
           ),
           item(
             Container(

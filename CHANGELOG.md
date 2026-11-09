@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Alerts on the astronaut's own readings, with a confirmatory check and a log of what was done:
+  - The Action center has two sections: "Your readings", where librakia's evaluation of the record raises alerts (act, watch, then not enough recent readings), and "Simulation mission", marked SIMULATED. The two are never mixed. The Mission overview shows the record's alerts above the simulation.
+  - Each real alert asks for confirmation before acting. Spot measurements (resting heart rate, heart-rate variability, SpO2) take a confirmatory reading, which is evaluated at once and shows whether the alert stands. Daily totals (sleep, exercise) are checked against their source and confirmed or corrected. An act-level alert adds the instruction to contact the flight surgeon or medical support if the check agrees; RAKIA still does not diagnose.
+  - Responses (confirmatory reading with its outcome, value checked, value corrected, keep watching, contacted medical support, each with an optional note) are logged on the device and shown with the alert and on the record. They are immutable, cannot be deleted, and SQLite refuses them on simulation missions.
+  - Explanations and charts of real readings name calendar dates ("4 Nov"), not mission days, and missing days are explained as missing days.
+  - On-device schema version 3 (`alert_responses`), with a tested migration from version 2.
+  - 28 new tests: alerts, dates, confirmatory readings that settle or confirm an alert, corrections, the response log and its rules, the migration, the Action center and Mission overview flows, accessibility in both themes, and layout at 200% text on four window sizes.
+- Chart legends wrap at large text sizes instead of overflowing.
 - My health record: the astronaut records their own readings (resting heart rate, heart-rate variability, SpO2, sleep duration, exercise minutes) and the app evaluates them against their personal baseline.
   - Readings are validated (plausible range; not in the future; up to 90 days back, to load existing history) and appended to the on-device hash-chained ledger as real, manual data. They are never simulated, never edited and never deleted. A correction is a new linked record that replaces the original in every evaluation.
   - Evaluation uses librakia on a rolling window: the usual range is learned from up to 35 days before the past week (at least 14 needed), and the past 7 days are compared with it. Until the baseline exists, the page shows its progress ("9 of 14 days") rather than a verdict. Once it does, it shows the status and the plain-language explanation.

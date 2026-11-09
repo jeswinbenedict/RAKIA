@@ -4,6 +4,8 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart' show SqliteException;
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rakia/components/health_status.dart';
+import 'package:rakia/record/alert_response.dart';
 import 'package:rakia/storage/database.dart';
 import 'package:rakia/storage/local_store.dart';
 
@@ -44,8 +46,36 @@ void main() {
     await store.close();
   });
 
-  test('a database from a newer build is refused, not reinterpreted', () async {
+  test('upgrading from version 2 keeps the record and adds alert responses '
+      'with their rules', () async {
     final schema = await verifier.schemaAt(2);
+    schema.rawDatabase.execute(
+      "INSERT INTO settings (\"key\", value) VALUES ('theme_mode', 'dark')",
+    );
+
+    final db = RakiaDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, 3);
+    final store = LocalStore(db, kind: StorageKind.memory);
+    expect(await store.setting('theme_mode'), 'dark');
+
+    final id = await store.createPersonalRecord(label: 'Me');
+    await store.addAlertResponse(
+      recordId: id,
+      metricCode: 'heart_rate.resting',
+      alertLevel: HealthStatus.watch,
+      alertDay: DateTime.utc(2026, 11, 9),
+      kind: AlertResponseKind.keepWatching,
+    );
+    expect(await store.alertResponses(id), hasLength(1));
+    await expectLater(
+      db.customStatement('DELETE FROM alert_responses'),
+      throwsA(isA<SqliteException>()),
+    );
+    await store.close();
+  });
+
+  test('a database from a newer build is refused, not reinterpreted', () async {
+    final schema = await verifier.schemaAt(3);
     schema.rawDatabase.execute('PRAGMA user_version = 99');
     final db = RakiaDatabase(schema.newConnection());
     await expectLater(

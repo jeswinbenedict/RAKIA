@@ -14,6 +14,7 @@ class MetricSeries {
     required this.sensorFlags,
     this.scenario,
     this.changeDay,
+    this.monitoringStart,
   });
 
   final MetricDefinition metric;
@@ -32,4 +33,8 @@ class MetricSeries {
 
   /// For a simulation: day (1-based) on which the injected change starts.
   final int? changeDay;
+
+  /// For a real record: the calendar day of the first monitoring value
+  /// (UTC midnight). Days are then named by date rather than mission day.
+  final DateTime? monitoringStart;
 }

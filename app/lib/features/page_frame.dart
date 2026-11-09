@@ -73,3 +73,15 @@ class PageFrame extends StatelessWidget {
     );
   }
 }
+
+/// A section title inside a page, announced as a heading.
+class SectionHeading extends StatelessWidget {
+  const SectionHeading(this.text, {super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    header: true,
+    child: Text(text, style: Theme.of(context).textTheme.titleMedium),
+  );
+}
