@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rakia/design/colors.dart';
 import 'package:rakia/design/contrast.dart';
+import 'package:rakia/design/theme.dart';
 import 'package:rakia/design/tokens.dart';
 
 void main() {
@@ -88,4 +89,14 @@ void main() {
     expect(RakiaBreakpoints.of(1024), RakiaWindowClass.expanded);
     expect(RakiaBreakpoints.of(1440), RakiaWindowClass.large);
   });
+
+  for (final b in Brightness.values) {
+    test('a disabled filled button does not look enabled (${b.name})', () {
+      final style = buildRakiaTheme(b).filledButtonTheme.style!;
+      Color? bg(Set<WidgetState> s) => style.backgroundColor!.resolve(s);
+      Color? fg(Set<WidgetState> s) => style.foregroundColor!.resolve(s);
+      expect(bg({WidgetState.disabled}), isNot(bg({})));
+      expect(fg({WidgetState.disabled}), isNot(fg({})));
+    });
+  }
 }

@@ -2,8 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:rakia_core/rakia_core.dart';
 
 import '../components/health_status.dart';
-import '../simulation/simulated_mission.dart';
 import 'metric_definitions.dart';
+
+import 'metric_series.dart';
 
 /// Everything librakia computed for one indicator, plus the inputs needed to
 /// draw it. No value here is invented by the UI layer.
@@ -22,7 +23,7 @@ class MetricInsight {
   });
 
   final MetricDefinition metric;
-  final SimulatedSeries series;
+  final MetricSeries series;
   final List<double> reference;
   final List<double> monitoring;
 
@@ -52,7 +53,7 @@ class MetricInsight {
 /// Runs the librakia pipeline for one simulated indicator: quality gate on
 /// both windows, robust baseline from the reference window, quality-gated
 /// assessment of the mission window, and Theil-Sen trend.
-MetricInsight analyse(RakiaCore core, SimulatedSeries s) {
+MetricInsight analyse(RakiaCore core, MetricSeries s) {
   final m = s.metric;
   final qcfg = QualityConfig(
     plausibleMin: m.plausibleMin,

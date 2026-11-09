@@ -31,3 +31,17 @@ String uuidToString(List<int> b) {
   return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
       '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
 }
+
+/// Parses the canonical form back to 16 bytes. Throws [FormatException]
+/// for anything else.
+Uint8List uuidFromString(String s) {
+  final re = RegExp(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+  );
+  if (!re.hasMatch(s)) throw FormatException('not a UUID', s);
+  final hex = s.replaceAll('-', '');
+  return Uint8List.fromList([
+    for (var i = 0; i < 32; i += 2)
+      int.parse(hex.substring(i, i + 2), radix: 16),
+  ]);
+}

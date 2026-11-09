@@ -94,6 +94,28 @@ const List<ModuleSpec> kModules = [
         'flight surgeon and mission medical procedures.',
   ),
   ModuleSpec(
+    id: 'record',
+    label: 'My health record',
+    shortLabel: 'Record',
+    icon: Icons.edit_note_outlined,
+    selectedIcon: Icons.edit_note,
+    group: ModuleGroup.overview,
+    summary:
+        'Record your own readings, build your personal baseline and see how '
+        'your latest week compares with it.',
+    tracks: [
+      'Resting heart rate, heart-rate variability and SpO2',
+      'Sleep duration and exercise minutes',
+      'Baseline progress per indicator',
+      'Evaluation of the past week against your usual range',
+    ],
+    emptyTitle: 'No readings yet',
+    emptyMessage: 'Add your first reading to start your personal baseline.',
+    note:
+        'Only readings you enter are shown here. Nothing is simulated, and '
+        'the evaluation is a trend check, not a diagnosis.',
+  ),
+  ModuleSpec(
     id: 'cardio',
     label: 'Cardiovascular',
     shortLabel: 'Heart',

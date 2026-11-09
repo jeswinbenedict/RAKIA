@@ -1,39 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import '../analytics/metric_definitions.dart';
+import '../analytics/metric_series.dart';
 import 'seeded_random.dart';
-
-/// One simulated indicator: a pre-flight reference window and an in-mission
-/// monitoring window of daily values, plus the change that was deliberately
-/// injected (the ground truth used to judge detection).
-@immutable
-class SimulatedSeries {
-  const SimulatedSeries({
-    required this.metric,
-    required this.reference,
-    required this.monitoring,
-    required this.sensorFlags,
-    required this.scenario,
-    this.changeDay,
-  });
-
-  final MetricDefinition metric;
-
-  /// One value per pre-flight day.
-  final List<double> reference;
-
-  /// One value per mission day; NaN where no reading was recorded.
-  final List<double> monitoring;
-
-  /// Non-zero where the simulated device reported a sensor problem.
-  final List<int> sensorFlags;
-
-  /// Plain-language description of what was simulated.
-  final String scenario;
-
-  /// Mission day (1-based) on which the injected change starts, if any.
-  final int? changeDay;
-}
 
 /// A deterministic, clearly labelled simulation mission.
 ///
@@ -66,7 +35,7 @@ class SimulatedMission {
     // Resting heart rate: step increase of 5 bpm (about 2.5 baseline SD)
     // from mission day 28.
     const rhrChange = 28;
-    final rhr = SimulatedSeries(
+    final rhr = MetricSeries(
       metric: restingHeartRate,
       reference: normalSeries(refDays, 58, 2),
       monitoring: [
@@ -83,7 +52,7 @@ class SimulatedMission {
     // Heart-rate variability: gradual decline reaching 1 SD below baseline
     // by the last mission day.
     const hrvChange = 15;
-    final hrv = SimulatedSeries(
+    final hrv = MetricSeries(
       metric: heartRateVariability,
       reference: normalSeries(refDays, 55, 5),
       monitoring: [
@@ -103,7 +72,7 @@ class SimulatedMission {
     );
 
     // Oxygen saturation: no change.
-    final spo2 = SimulatedSeries(
+    final spo2 = MetricSeries(
       metric: oxygenSaturation,
       reference: normalSeries(refDays, 97.6, 0.5),
       monitoring: [
@@ -129,7 +98,7 @@ class SimulatedMission {
         sleep.add(v);
       }
     }
-    final sleepSeries = SimulatedSeries(
+    final sleepSeries = MetricSeries(
       metric: sleepDuration,
       reference: normalSeries(refDays, 7.1, 0.45),
       monitoring: sleep,
@@ -142,7 +111,7 @@ class SimulatedMission {
     );
 
     // Exercise: stable adherence.
-    final exercise = SimulatedSeries(
+    final exercise = MetricSeries(
       metric: exerciseMinutes,
       reference: normalSeries(refDays, 92, 12),
       monitoring: [
@@ -176,5 +145,5 @@ class SimulatedMission {
   /// Current mission day (1-based); also the monitoring window length.
   final int missionDay;
   final int plannedDays;
-  final List<SimulatedSeries> series;
+  final List<MetricSeries> series;
 }

@@ -67,8 +67,17 @@ ThemeData buildRakiaTheme(Brightness brightness) {
     iconTheme: IconThemeData(color: c.textSecondary, size: 22),
     filledButtonTheme: FilledButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: WidgetStatePropertyAll(c.action),
-        foregroundColor: WidgetStatePropertyAll(c.onAction),
+        // Disabled must look disabled: a muted surface, not the action
+        // colour, so an unavailable action is never mistaken for one.
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.disabled) ? c.surface3 : c.action,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.disabled)
+              ? c.textSecondary
+              : c.onAction,
+        ),
         textStyle: WidgetStatePropertyAll(text.labelLarge),
         minimumSize: const WidgetStatePropertyAll(buttonMinSize),
         padding: const WidgetStatePropertyAll(buttonPadding),

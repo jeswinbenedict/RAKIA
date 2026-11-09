@@ -153,7 +153,7 @@ class MetricDetailCard extends StatelessWidget {
         Text(m.whyItMatters, style: t.bodyMedium),
         if (simulated) ...[
           const SizedBox(height: RakiaSpacing.lg),
-          _ScenarioNote(text: insight.series.scenario),
+          if (insight.series.scenario case final s?) _ScenarioNote(text: s),
         ],
       ],
     );
