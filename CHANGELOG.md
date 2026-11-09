@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- CI keeps building through a GitHub download outage: pinned dependency archives (nlohmann/json, cpp-httplib), the Gradle distribution and the SQLite native and WebAssembly binaries are cached between runs and reused only when they match their pinned SHA-256. The Gradle wrapper now verifies its distribution checksum, and the API image accepts the cached archives as an optional build context.
 - Sign-in on the API: Firebase ID-token verification and `GET /v1/me`:
   - Tokens are verified as Firebase documents for third-party servers: RS256 only (never `none` or HMAC), a key id from Google's published X.509 certificates, a valid signature, `aud` and `iss` naming the project, `exp`, `iat` and `auth_time` within 60 s of clock leeway, and a well-formed `sub`. No Firebase service account or admin secret is used.
   - Google's certificates are fetched over verified HTTPS, cached for their advertised `max-age` (between a minute and a day) and refreshed at most once a minute when an unknown key id appears.

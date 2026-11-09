@@ -49,6 +49,12 @@ sha256() {
 
 fetch() {
   url=$1 dest=$2 expected=$3
+  # A file already there (for example restored from CI's cache) is reused
+  # only if it has the pinned hash.
+  if [ -f "$dest" ] && [ "$(sha256 "$dest")" = "$expected" ]; then
+    echo "OK  $(basename "$dest")  $expected  (already present)"
+    return
+  fi
   tmp="$dest.download"
   curl --fail --silent --show-error --location --proto '=https' \
     --retry 3 --output "$tmp" "$url"
