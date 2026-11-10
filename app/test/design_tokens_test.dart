@@ -74,11 +74,25 @@ void main() {
     });
   }
 
-  test('reference palette values are preserved', () {
-    // From the owner-supplied references (docs/design/DESIGN_SYSTEM.md §2).
-    expect(RakiaPalette.violet, const Color(0xFF7D39EB));
-    expect(RakiaPalette.lime, const Color(0xFFC6FF33));
-    expect(RakiaPalette.canvasDark, const Color(0xFF08060E));
+  for (final entry in {
+    'dark': RakiaColors.dark,
+    'light': RakiaColors.light,
+  }.entries) {
+    test('neumorphic surfaces (${entry.key}): one background, a deeper '
+        'well, a lighter highlight and a darker shadow', () {
+      final c = entry.value;
+      double lum(Color x) => x.computeLuminance();
+      expect(c.surface1, c.canvas);
+      expect(c.surface2, c.canvas);
+      expect(lum(c.surface3), lessThan(lum(c.canvas)));
+      expect(lum(c.highlight), greaterThan(lum(c.canvas)));
+      expect(lum(c.shadow), lessThan(lum(c.canvas)));
+    });
+  }
+
+  test('one radius per size class, increasing', () {
+    expect(RakiaRadii.sm, lessThan(RakiaRadii.md));
+    expect(RakiaRadii.md, lessThan(RakiaRadii.lg));
   });
 
   test('breakpoints classify widths', () {

@@ -1,6 +1,6 @@
 # RAKIA Design System — Direction & Token Specification
 
-> Phase 2 deliverable · Status: **DRAFT FOR APPROVAL**
+> Status: **in use**. Neumorphic ("soft UI") system, implemented in `app/lib/design/`.
 
 ## 1. Inputs studied
 
@@ -15,59 +15,60 @@
 
 Nothing is copied from these repos into the product; they are design knowledge only. They live in `_reference/` (git-ignored).
 
-## 2. Colour — extracted from the four references
+## 2. Neumorphism: references and principles
 
-All four images independently converge on the same four-colour system. Values were measured (median-cut quantisation + 7×7 averaged pixel samples), not guessed:
+The visual direction follows four Figma Community kits chosen by the owner, studied for their principles rather than copied:
 
-| Reference | Measured / labelled values |
+1. Neomorphic UI Kit (Zvonimir Juranko): light cool-grey kit, basic raised and pressed states, buttons, toggles, inputs.
+2. Neumorphism UI Kit (Lichin): pill controls, pagination, switches and progress on one soft surface.
+3. Neomorphism UI Kit for Figma, free soft UI elements: normal and pressed buttons, search fields, sliders and toggles.
+4. Neomorphism style, visual: tinted soft cards with icon wells.
+
+What they share, and what RAKIA takes:
+
+| Principle | In RAKIA |
 |---|---|
-| 1 · Activity Planner app | Lilac backdrop `#ADA4BF`; dark surfaces `#1F1F26`, `#252736`, `#0E0E15`; violet `#6D44C7` / screen `#6137BD`; lime card `#B2EF2A`; teal progress `#3A5C65`; violet tint `#9576D1` |
-| 2 · "GridsterGP" palette card | Labelled: Black `#000000`, Violet `#7D39EB`, Lime `#C6FF33`, White `#FFFFFF` (measured matches: `#813DED`, `#C6FF34`) |
-| 3 · Palette card | Labelled: Blanche White `#FEFFFC`, Banana Yellow `#D0FF00`, Plum Violet `#8116E0` on `#000000` |
-| 4 · Cubix smart-home app | Violet-tinted blacks `#08060E`, `#0E0A15`, `#1C1927`, `#241E31`; nav `#383442`; muted `#554A69`; violet `#955ECC` / tile `#9C40DC`; lilac glow `#B997D8` / `#DAB0FD`; lime-cream `#E3F1BF` |
+| One soft surface per theme; elements are made of the background, separated by light and shadow, not by fills or borders | `canvas`, `surface1` and `surface2` are one colour; cards and controls have no border |
+| Paired shadows: a dark one down-right, a light one up-left | `raisedShadows()` in `app/lib/design/neumorphism.dart`, depth `RakiaDepth.panel` (8) for cards and `RakiaDepth.control` (4) for controls; blur is twice the offset |
+| Pressed and recessed elements carry the same pair inside | `NeuStyle.inset`: inputs, progress tracks, icon wells, note callouts, the selected navigation item, the alert response area |
+| Generous, consistent rounding | `RakiaRadii`: 12 small (wells, nav items), 20 panels, 28 dialogs, pills for buttons, inputs and chips |
+| Restrained colour: muted slate text and one accent | One indigo-violet accent per theme for actions, focus and selection; status colours only where status is shown |
+| Press feedback | Interactive cards sink in (`AnimatedNeuSurface`, 120 ms, none under reduced motion); buttons rest raised and lie flat while pressed |
 
-**Synthesis:** a violet-tinted near-black canvas (from ref 4, softer on the eye than pure `#000` for long sessions), electric violet as the brand colour (ref 2), acid lime as the action/"nominal" signal (refs 1–4 use lime for *done / connected / go*), and warm off-white text (ref 3).
+Deliberately not taken: reference 3's magenta-to-violet gradient on active controls (the brief asks for no excessive gradients), and tinted card backgrounds (colour is reserved for meaning).
 
-### 2.1 Core tokens — dark theme (default: "Mission")
+**Accessibility comes first.** Neumorphism's known weakness is low contrast, because elements barely differ from the background. RAKIA keeps every text colour at WCAG AA (4.5:1) on both the surface and the inset well. Controls keep a visible edge where shadow alone would be too faint: a faint outline on secondary buttons, a 3:1 border on inputs, and a 2 px accent focus ring everywhere. Status is never shown by colour alone. `test/design_tokens_test.dart` checks all of this in both themes, and the accessibility tests check tap targets and text contrast on every page.
 
-| Token | Value | Source | Use |
-|---|---|---|---|
-| `bg.canvas` | `#08060E` | ref 4 | App background |
-| `bg.surface1` | `#100C18` | between ref 4 `#0E0A15`/`#1C1927` | Panels |
-| `bg.surface2` | `#16121F` | ref 4 family | Cards, inputs |
-| `bg.surface3` | `#1F1A2B` | ref 4 `#1C1927`/`#241E31` | Raised / hover |
-| `border.subtle` | `#2A2438` | ref 4 | Dividers (decorative) |
-| `border.control` | `#7A7192` | ref 4 `#554A69` lightened | Input/control outlines (WCAG 1.4.11): 3.7–4.4:1 on every dark surface. The earlier candidate `#6E6585` passed on `surface2` only (3.4:1) with no margin. |
-| `text.primary` | `#F5F3FA` | ref 3 `#FEFFFC` tinted | 18.3:1 on canvas |
-| `text.secondary` | `#A69FB8` | ref 1 `#ADA4BF` | 7.3:1 on surface2 |
-| `brand.violet` | `#7D39EB` | ref 2 | Brand fills, selected nav, chart series 1. **Not for text on dark** (3.5:1); white on violet = 5.7:1 (passes) |
-| `brand.violetSoft` | `#B79CFF` | ref 4 `#B997D8`/`#DAB0FD` | Violet *text*/icons on dark (8.1:1) |
-| `accent.lime` | `#C6FF33` | ref 2 | Primary CTA fill (text on it `#08060E`, 17:1), focus ring, nominal |
-| `accent.limeDeep` | `#D0FF00` | ref 3 | Pressed state |
-| `accent.teal` | `#3A5C65` → `#5FB8C6` text | ref 1 | Info / secondary data series |
+### 2.1 Tokens
+
+| Role | Light ("Ground") | Dark ("Mission") |
+|---|---|---|
+| Surface (`canvas`, `surface1`, `surface2`) | `#E6EAF0` | `#1F232B` |
+| Inset well (`surface3`) | `#DAE0E8` | `#171A20` |
+| Highlight (light side) | `#FFFFFF` | `#2B303A` |
+| Shadow (dark side) | `#A9B6C8` | `#0F1115` |
+| Divider (decorative) | `#CFD6E0` | `#2E333D` |
+| Control edge (3:1) | `#687284` | `#7D8697` |
+| Text primary | `#1C2430` (12.9:1) | `#E8EBF1` (13.2:1) |
+| Text secondary | `#4A5465` (6.3:1) | `#A9B2C1` (7.4:1) |
+| Accent: actions, focus, selection | `#4334B0`, white text 8.9:1 | `#A594FF` fill with `#14121C` text 7.3:1; `#B5A8FF` as text |
+
+Contrast figures are against the surface; all also pass on the inset well. The RAKIA logo keeps its violet and lime.
 
 ### 2.2 Health-status tokens (never colour alone)
 
 Status is always **colour + glyph shape + word**, so it survives colour-blindness, greyscale and screen readers.
 
-| Status | Colour | Glyph | Word | Contrast on surface2 |
+| Status | Light | Dark | Glyph | Word |
 |---|---|---|---|---|
-| Within baseline | `#C6FF33` lime (ref) | ● filled circle | "Within baseline" | 15.6:1 |
-| Watch | `#FFB547` amber *(functional, not in refs)* | ▲ triangle | "Watch" | 10.5:1 |
-| Act | `#FF6B78` coral *(functional, not in refs)* | ◆ diamond | "Act now" | 6.7:1 |
-| Insufficient data | `#A69FB8` | ◌ dashed circle | "Not enough data" | 7.3:1 |
-| Data quality | `#5FB8C6` teal (ref 1) | ■ square | "Check data quality" | 8.0:1 |
-| Simulated | `#B79CFF` + diagonal hatch | ⧄ | "SIMULATED DATA" | 8.1:1 |
+| Within baseline | `#2A6439` | `#B9EC6B` | filled circle | "Within baseline" |
+| Watch | `#7E4F00` | `#FFB547` | triangle | "Watch" |
+| Act | `#A8231C` | `#FF7A84` | diamond | "Act now" |
+| Insufficient data | text secondary | text secondary | dashed circle | "Not enough data" |
+| Data quality | `#1C6370` | `#6FC4D1` | square | "Check data quality" |
+| Simulated | accent + diagonal hatch | accent + diagonal hatch | hatch | "SIMULATED DATA" |
 
-Amber and coral are not present in the references; they are added deliberately because safety semantics require them, and tuned to sit with the violet/lime palette.
-
-### 2.3 Light theme ("Ground")
-
-Canvas `#F4F2F8`, surface `#FFFFFF`, lilac band `#ADA4BF` (ref 1), text `#14101C` (16.9:1), secondary `#6B6480` (5.0:1), violet text `#5B2BC4` (7.3:1), lime becomes a **fill only** with dark text; lime-as-text uses `#4E5F00` (6.4:1); amber text `#8A5A00` (5.3:1), coral text `#C2283A` (5.2:1), teal text `#1F6B78` (5.5:1), control border `#7A7290` (≥ 3.7:1 on every light surface). The light theme's primary action is violet `#5B2BC4` with white text (8.1:1), because a lime fill has no visible edge on white.
-
-### 2.4 Gradients (used sparingly)
-
-Only two, both from ref 4's lighting: `violet-glow` (`#7D39EB` → transparent, radial, ≤ 12 % opacity) behind the mission header, and `lime-progress` (`#B2EF2A` → `#D0FF00`) on progress fills. No gradients on cards, text, or buttons. No glassmorphism.
+Every status colour is at least 5.1:1 on both the surface and the well.
 
 ## 3. Typography
 
@@ -92,7 +93,7 @@ Only two, both from ref 4's lighting: `violet-glow` (`#7D39EB` → transparent, 
 
 ## 6. Component inventory (each with Do/Don't + states: default, hover, focus, pressed, disabled, loading, error, empty)
 
-Buttons (primary lime, secondary violet outline, ghost, destructive) · inputs/selects/date-time · status chip · **metric tile** (value, unit, Δ vs baseline, sparkline, provenance badge, quality badge) · **baseline band chart** (line + personal baseline band + onset marker + anomaly highlights) · bullet chart grid · cumulative dose chart vs limit · sleep timeline (hypnogram-style bars + circadian misalignment marker) · mission timeline · **alert card** (six-question layout) · evidence drawer · consent toggle · sync status pill ("Ground has data up to …") · modal / sheet · skeleton loaders · empty states (explain what data is missing and how to add it) · error states (what failed, what still works offline, retry).
+Buttons (primary: raised accent pill; secondary: raised surface pill; text; destructive) · inputs/selects/date-time · status chip · **metric tile** (value, unit, Δ vs baseline, sparkline, provenance badge, quality badge) · **baseline band chart** (line + personal baseline band + onset marker + anomaly highlights) · bullet chart grid · cumulative dose chart vs limit · sleep timeline (hypnogram-style bars + circadian misalignment marker) · mission timeline · **alert card** (six-question layout) · evidence drawer · consent toggle · sync status pill ("Ground has data up to …") · modal / sheet · skeleton loaders · empty states (explain what data is missing and how to add it) · error states (what failed, what still works offline, retry).
 
 ### 6.1 Implemented components (`app/lib/components`)
 
@@ -114,7 +115,7 @@ Interface rules: no emoji anywhere (enforced in CI by `.github/scripts/check-no-
 1. Every chart has a title that states the measurement and unit, an axis with units, and a text summary for screen readers ("Resting HR 7-day mean 64 bpm, 6 above your baseline since 3 Nov").
 2. Baseline is drawn as a band, not a line; population ranges, if shown, are visually secondary and labelled.
 3. Estimated values use dashed strokes; manual entries use hollow markers; simulated data is hatched + watermarked.
-4. Max 4 series per chart; categorical order violet → lime → teal → lilac.
+4. Max 4 series per chart; categorical order accent → within-baseline → data-quality → secondary text.
 5. Charts are keyboard-navigable (arrow keys step points, announcing value/time).
 
 ## 8. Motion
@@ -123,4 +124,4 @@ Emil-weighted: route transitions 180 ms, state changes 120 ms, ease-out; no anim
 
 ## 9. Accessibility (built in)
 
-WCAG 2.2 AA target: automated contrast test over every token pair used; 44×44 dp targets; visible lime focus ring (2 px + 2 px offset); `Semantics` labels on all controls and charts; text scaling to 200 %; focus order follows reading order; status never colour-only; no time-limited interactions; reduced motion honoured.
+WCAG 2.2 AA target: automated contrast test over every token pair used; 44×44 dp targets; visible accent focus ring (2 px); `Semantics` labels on all controls and charts; text scaling to 200 %; focus order follows reading order; status never colour-only; no time-limited interactions; reduced motion honoured.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../analytics/metric_insight.dart';
 import '../design/colors.dart';
+import '../design/neumorphism.dart';
 import '../design/tokens.dart';
 import '../design/typography.dart';
 import 'baseline_chart.dart';
@@ -129,15 +130,12 @@ class StatusCountTile extends StatelessWidget {
           '$count ${count == 1 ? 'indicator' : 'indicators'}: '
           '${status.label}',
       excludeSemantics: true,
-      child: Container(
+      child: NeuSurface(
+        depth: RakiaDepth.control,
+        radius: RakiaRadii.md,
         padding: const EdgeInsets.symmetric(
           horizontal: RakiaSpacing.lg,
           vertical: RakiaSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: c.surface2,
-          borderRadius: BorderRadius.circular(RakiaRadii.md),
-          border: Border.all(color: c.borderSubtle),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

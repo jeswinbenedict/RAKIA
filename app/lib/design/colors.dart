@@ -26,6 +26,8 @@ class RakiaColors extends ThemeExtension<RakiaColors> {
     required this.statusInsufficient,
     required this.statusDataQuality,
     required this.simulated,
+    required this.highlight,
+    required this.shadow,
   });
 
   final Color canvas;
@@ -61,50 +63,63 @@ class RakiaColors extends ThemeExtension<RakiaColors> {
   final Color statusDataQuality;
   final Color simulated;
 
+  /// The light side of a raised or inset element.
+  final Color highlight;
+
+  /// The dark side of a raised or inset element.
+  final Color shadow;
+
+  // canvas, surface1 and surface2 are one colour: in neumorphism elements
+  // are made of the background and separated from it by light and shadow,
+  // not by a different fill. surface3 is the inset well.
   static const RakiaColors dark = RakiaColors(
-    canvas: RakiaPalette.canvasDark,
-    surface1: RakiaPalette.surface1Dark,
-    surface2: RakiaPalette.surface2Dark,
-    surface3: RakiaPalette.surface3Dark,
-    borderSubtle: RakiaPalette.borderSubtleDark,
-    borderControl: RakiaPalette.borderControlDark,
+    canvas: RakiaPalette.surfaceDark,
+    surface1: RakiaPalette.surfaceDark,
+    surface2: RakiaPalette.surfaceDark,
+    surface3: RakiaPalette.wellDark,
+    borderSubtle: RakiaPalette.dividerDark,
+    borderControl: RakiaPalette.controlDark,
     textPrimary: RakiaPalette.textPrimaryDark,
     textSecondary: RakiaPalette.textSecondaryDark,
-    brand: RakiaPalette.violet,
-    onBrand: Color(0xFFFFFFFF),
-    brandText: RakiaPalette.violetSoft,
-    action: RakiaPalette.lime,
-    onAction: RakiaPalette.onLime,
-    focusRing: RakiaPalette.lime,
-    statusWithinBaseline: RakiaPalette.lime,
-    statusWatch: RakiaPalette.amber,
-    statusAct: RakiaPalette.coral,
+    brand: RakiaPalette.accentDark,
+    onBrand: RakiaPalette.onAccentDark,
+    brandText: RakiaPalette.accentTextDark,
+    action: RakiaPalette.accentDark,
+    onAction: RakiaPalette.onAccentDark,
+    focusRing: RakiaPalette.accentTextDark,
+    statusWithinBaseline: RakiaPalette.okDark,
+    statusWatch: RakiaPalette.watchDark,
+    statusAct: RakiaPalette.actDark,
     statusInsufficient: RakiaPalette.textSecondaryDark,
-    statusDataQuality: RakiaPalette.teal,
-    simulated: RakiaPalette.violetSoft,
+    statusDataQuality: RakiaPalette.dataQualityDark,
+    simulated: RakiaPalette.accentTextDark,
+    highlight: RakiaPalette.highlightDark,
+    shadow: RakiaPalette.shadowDark,
   );
 
   static const RakiaColors light = RakiaColors(
-    canvas: RakiaPalette.canvasLight,
-    surface1: RakiaPalette.surface1Light,
-    surface2: RakiaPalette.surface2Light,
-    surface3: RakiaPalette.surface3Light,
-    borderSubtle: RakiaPalette.borderSubtleLight,
-    borderControl: RakiaPalette.borderControlLight,
+    canvas: RakiaPalette.surfaceLight,
+    surface1: RakiaPalette.surfaceLight,
+    surface2: RakiaPalette.surfaceLight,
+    surface3: RakiaPalette.wellLight,
+    borderSubtle: RakiaPalette.dividerLight,
+    borderControl: RakiaPalette.controlLight,
     textPrimary: RakiaPalette.textPrimaryLight,
     textSecondary: RakiaPalette.textSecondaryLight,
-    brand: RakiaPalette.violet,
+    brand: RakiaPalette.accentLight,
     onBrand: Color(0xFFFFFFFF),
-    brandText: RakiaPalette.violetText,
-    action: RakiaPalette.violetText,
+    brandText: RakiaPalette.accentLight,
+    action: RakiaPalette.accentLight,
     onAction: Color(0xFFFFFFFF),
-    focusRing: RakiaPalette.violetText,
-    statusWithinBaseline: RakiaPalette.limeText,
-    statusWatch: RakiaPalette.amberText,
-    statusAct: RakiaPalette.coralText,
+    focusRing: RakiaPalette.accentLight,
+    statusWithinBaseline: RakiaPalette.okLight,
+    statusWatch: RakiaPalette.watchLight,
+    statusAct: RakiaPalette.actLight,
     statusInsufficient: RakiaPalette.textSecondaryLight,
-    statusDataQuality: RakiaPalette.tealText,
-    simulated: RakiaPalette.violetText,
+    statusDataQuality: RakiaPalette.dataQualityLight,
+    simulated: RakiaPalette.accentLight,
+    highlight: RakiaPalette.highlightLight,
+    shadow: RakiaPalette.shadowLight,
   );
 
   static RakiaColors of(BuildContext context) =>

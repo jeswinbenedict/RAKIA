@@ -7,6 +7,7 @@ import '../analytics/metric_insight.dart';
 import '../components/health_status.dart';
 import '../components/surface_card.dart';
 import '../design/colors.dart';
+import '../design/neumorphism.dart';
 import '../design/tokens.dart';
 import '../record/alert_response.dart';
 import '../record/record.dart';
@@ -176,12 +177,12 @@ class AlertResponsePanel extends StatelessWidget {
       guidance = m.confirmatoryCheck;
     }
 
-    return Container(
-      padding: const EdgeInsets.all(RakiaSpacing.md),
-      decoration: BoxDecoration(
-        color: c.surface2,
-        borderRadius: BorderRadius.circular(RakiaRadii.sm),
-      ),
+    // The response area is a well inside the alert card.
+    return NeuSurface(
+      style: NeuStyle.inset,
+      depth: RakiaDepth.control,
+      radius: RakiaRadii.sm,
+      padding: const EdgeInsets.all(RakiaSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

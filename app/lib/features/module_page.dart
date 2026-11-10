@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../components/accent_box.dart';
 import '../components/empty_state.dart';
 import '../design/colors.dart';
+import '../design/neumorphism.dart';
 import '../design/tokens.dart';
 import '../navigation/modules.dart';
 import 'page_frame.dart';
@@ -84,7 +85,8 @@ class _TracksCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = RakiaColors.of(context);
     final t = Theme.of(context).textTheme;
-    return Card(
+    return NeuSurface(
+      radius: RakiaRadii.md,
       child: Padding(
         padding: const EdgeInsets.all(RakiaSpacing.xl),
         child: Column(
