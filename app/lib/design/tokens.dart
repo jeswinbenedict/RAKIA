@@ -1,48 +1,67 @@
 // Design tokens for RAKIA. Source of truth: docs/design/DESIGN_SYSTEM.md.
-// Colour values were measured from the four owner-supplied references.
-// Never hard-code colours, sizes or durations in widgets; use these tokens.
+// Neumorphic ("soft UI") system after the four owner-supplied Figma
+// Community kits: one soft surface per theme that elements rise out of or
+// sink into, paired light and dark shadows, generous rounding and a single
+// accent. Never hard-code colours, sizes or durations in widgets.
 import 'package:flutter/widgets.dart';
 
 /// Raw palette. Widgets should use the semantic [RakiaColors] extension, not
-/// these values directly.
+/// these values directly. Every text colour is checked against both the
+/// surface and the inset well in test/design_tokens_test.dart (WCAG AA).
 abstract final class RakiaPalette {
-  // Dark ("Mission") surfaces: violet-tinted blacks from reference 4.
-  static const Color canvasDark = Color(0xFF08060E);
-  static const Color surface1Dark = Color(0xFF100C18);
-  static const Color surface2Dark = Color(0xFF16121F);
-  static const Color surface3Dark = Color(0xFF1F1A2B);
-  static const Color borderSubtleDark = Color(0xFF2A2438);
-  static const Color borderControlDark = Color(0xFF7A7192);
-  static const Color textPrimaryDark = Color(0xFFF5F3FA);
-  static const Color textSecondaryDark = Color(0xFFA69FB8);
+  // Light ("Ground"): the cool grey of the kits.
+  static const Color surfaceLight = Color(0xFFE6EAF0);
+  static const Color wellLight = Color(0xFFDAE0E8);
+  static const Color highlightLight = Color(0xFFFFFFFF);
+  static const Color shadowLight = Color(0xFFA9B6C8);
+  static const Color dividerLight = Color(0xFFCFD6E0);
+  static const Color controlLight = Color(0xFF687284);
+  static const Color textPrimaryLight = Color(0xFF1C2430);
+  static const Color textSecondaryLight = Color(0xFF4A5465);
+  static const Color accentLight = Color(0xFF4334B0);
 
-  // Brand (reference 2) and accents.
+  // Dark ("Mission"): the same system on a deep slate.
+  static const Color surfaceDark = Color(0xFF1F232B);
+  static const Color wellDark = Color(0xFF171A20);
+  static const Color highlightDark = Color(0xFF2B303A);
+  static const Color shadowDark = Color(0xFF0F1115);
+  static const Color dividerDark = Color(0xFF2E333D);
+  static const Color controlDark = Color(0xFF7D8697);
+  static const Color textPrimaryDark = Color(0xFFE8EBF1);
+  static const Color textSecondaryDark = Color(0xFFA9B2C1);
+  static const Color accentDark = Color(0xFFA594FF);
+  static const Color accentTextDark = Color(0xFFB5A8FF);
+  static const Color onAccentDark = Color(0xFF14121C);
+
+  // Brand mark (logo only).
   static const Color violet = Color(0xFF7D39EB);
-  static const Color violetSoft = Color(0xFFB79CFF);
+  static const Color violetDeep = Color(0xFF5B2BC4);
   static const Color lime = Color(0xFFC6FF33);
-  static const Color limeDeep = Color(0xFFD0FF00);
-  static const Color onLime = Color(0xFF08060E);
-  static const Color teal = Color(0xFF5FB8C6);
 
-  // Functional status colours (not in the references; required for safety).
-  static const Color amber = Color(0xFFFFB547);
-  static const Color coral = Color(0xFFFF6B78);
+  // Functional status colours, one hue per meaning, always paired with a
+  // glyph and a word.
+  static const Color okLight = Color(0xFF2A6439);
+  static const Color watchLight = Color(0xFF7E4F00);
+  static const Color actLight = Color(0xFFA8231C);
+  static const Color dataQualityLight = Color(0xFF1C6370);
+  static const Color okDark = Color(0xFFB9EC6B);
+  static const Color watchDark = Color(0xFFFFB547);
+  static const Color actDark = Color(0xFFFF7A84);
+  static const Color dataQualityDark = Color(0xFF6FC4D1);
+}
 
-  // Light ("Ground") theme.
-  static const Color canvasLight = Color(0xFFF4F2F8);
-  static const Color surface1Light = Color(0xFFFFFFFF);
-  static const Color surface2Light = Color(0xFFFAF9FC);
-  static const Color surface3Light = Color(0xFFECE9F2);
-  static const Color borderSubtleLight = Color(0xFFE0DCE8);
-  static const Color borderControlLight = Color(0xFF7A7290);
-  static const Color lilac = Color(0xFFADA4BF);
-  static const Color textPrimaryLight = Color(0xFF14101C);
-  static const Color textSecondaryLight = Color(0xFF6B6480);
-  static const Color violetText = Color(0xFF5B2BC4);
-  static const Color limeText = Color(0xFF4E5F00);
-  static const Color amberText = Color(0xFF8A5A00);
-  static const Color coralText = Color(0xFFC2283A);
-  static const Color tealText = Color(0xFF1F6B78);
+/// Raised and inset depths. A raised element casts its dark shadow down and
+/// to the right and catches light up and to the left; an inset one has the
+/// same pair on the inside.
+abstract final class RakiaDepth {
+  /// Cards and panels.
+  static const double panel = 8;
+
+  /// Buttons, chips and other controls.
+  static const double control = 4;
+
+  /// Blur is twice the offset, so edges stay soft but readable.
+  static double blur(double depth) => depth * 2;
 }
 
 /// 4-point spacing scale.
@@ -60,10 +79,12 @@ abstract final class RakiaSpacing {
   static const double minTarget = 48;
 }
 
+/// One radius per size class, used everywhere: small elements (icons,
+/// wells), panels, and pills (buttons, inputs, chips).
 abstract final class RakiaRadii {
-  static const double sm = 8;
-  static const double md = 14;
-  static const double lg = 24;
+  static const double sm = 12;
+  static const double md = 20;
+  static const double lg = 28;
   static const double pill = 999;
 }
 

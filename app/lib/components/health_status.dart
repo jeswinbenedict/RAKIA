@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../design/colors.dart';
+import '../design/neumorphism.dart';
 import '../design/tokens.dart';
 
 /// Assessment levels, mirroring `rakia_level` in librakia
@@ -128,15 +129,12 @@ class StatusChip extends StatelessWidget {
       container: true,
       label: 'Status: ${status.label}',
       excludeSemantics: true,
-      child: Container(
+      child: NeuSurface(
+        depth: RakiaDepth.control / 2,
+        radius: RakiaRadii.pill,
         padding: const EdgeInsets.symmetric(
           horizontal: RakiaSpacing.md,
           vertical: RakiaSpacing.xs + 2,
-        ),
-        decoration: BoxDecoration(
-          color: c.surface3,
-          borderRadius: BorderRadius.circular(RakiaRadii.pill),
-          border: Border.all(color: color.withValues(alpha: 0.6)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

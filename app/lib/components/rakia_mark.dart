@@ -22,7 +22,7 @@ class RakiaMark extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [RakiaPalette.violet, RakiaPalette.violetText],
+              colors: [RakiaPalette.violet, RakiaPalette.violetDeep],
             ),
           ),
           child: Stack(

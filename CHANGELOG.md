@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Neumorphic ("soft UI") redesign across the whole app, after the four Figma Community kits the owner chose (docs/design/DESIGN_SYSTEM.md section 2):
+  - One soft surface per theme, cool grey in light and deep slate in dark. Elements are made of the background and separated by paired light and dark shadows, not by fills or borders.
+  - Raised cards, metric tiles, status chips and buttons. Inset input fields, progress tracks, icon wells, note callouts, the alert response area, and the selected navigation item, which is pressed into the sidebar.
+  - One radius per size class (12, 20, 28, pills) and one accent per theme for actions, focus and selection. No gradients outside the logo.
+  - Interactive cards sink in when pressed, and buttons rest raised and lie flat while pressed. Nothing moves under reduced motion.
+  - New primitives: `NeuSurface` and `AnimatedNeuSurface` (`app/lib/design/neumorphism.dart`), with inner shadows drawn by a small painter, since Flutter has none. Theme updates cover buttons, inputs, switches, dialogs, snack bars, menus and the compact navigation bar.
+  - Accessibility kept: every text and status colour passes WCAG AA on both the surface and the inset well, in both themes. Controls keep a visible edge where shadow alone would be faint, and the focus ring is unchanged. New token tests check the neumorphic structure.
+
 - Optional backup of the astronaut's own readings to the RAKIA server (`POST /v1/sync/batches`):
   - Off by default. On the Account page, once signed in, "Back up my readings" sends the readings in My health record. It reports progress ("2 of 2 readings backed up"), runs again after each new reading, resumes where it stopped, and says why when it cannot run (not signed in, no lasting storage on this device, server unreachable). Check-ins, reaction tests and simulated data are never sent.
   - Each reading is sent as the hash-chained record the device holds. The API recomputes every hash with librakia (now compiled into the API) and checks the chain before touching the database. The database then checks the batch continues the chain it holds, with its existing triggers, as the user under row-level security.

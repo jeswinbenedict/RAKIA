@@ -43,6 +43,22 @@ ThemeData buildRakiaTheme(Brightness brightness) {
       });
 
   const buttonShape = StadiumBorder();
+
+  // Buttons rest raised and sink when pressed; disabled ones lie flat.
+  final softElevation = WidgetStateProperty.resolveWith<double>((states) {
+    if (states.contains(WidgetState.disabled)) return 0;
+    if (states.contains(WidgetState.pressed)) return 0;
+    if (states.contains(WidgetState.hovered)) return 6;
+    return 3;
+  });
+  WidgetStateProperty<Color?> pressOverlay(Color on) =>
+      WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.pressed)
+            ? on.withValues(alpha: 0.08)
+            : states.contains(WidgetState.hovered)
+            ? on.withValues(alpha: 0.04)
+            : null,
+      );
   const buttonMinSize = Size(64, RakiaSpacing.minTarget);
   const buttonPadding = EdgeInsets.symmetric(horizontal: RakiaSpacing.xl);
 
@@ -63,7 +79,9 @@ ThemeData buildRakiaTheme(Brightness brightness) {
     // back to the brand colour, so an empty bar looked full.
     progressIndicatorTheme: ProgressIndicatorThemeData(
       color: c.action,
-      linearTrackColor: c.borderSubtle,
+      linearTrackColor: c.surface3,
+      linearMinHeight: 6,
+      borderRadius: BorderRadius.circular(RakiaRadii.pill),
     ),
     dividerTheme: DividerThemeData(
       color: c.borderSubtle,
@@ -89,16 +107,28 @@ ThemeData buildRakiaTheme(Brightness brightness) {
         padding: const WidgetStatePropertyAll(buttonPadding),
         shape: const WidgetStatePropertyAll(buttonShape),
         side: focusSide(null),
+        elevation: softElevation,
+        shadowColor: WidgetStatePropertyAll(c.shadow),
+        overlayColor: pressOverlay(c.onAction),
       ),
     ),
+    // Secondary actions: raised pills made of the surface. A faint outline
+    // keeps the button's edge visible where shadows are weak.
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: ButtonStyle(
         foregroundColor: WidgetStatePropertyAll(c.textPrimary),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.pressed) ? c.surface3 : c.surface2,
+        ),
         textStyle: WidgetStatePropertyAll(text.labelLarge),
         minimumSize: const WidgetStatePropertyAll(buttonMinSize),
         padding: const WidgetStatePropertyAll(buttonPadding),
         shape: const WidgetStatePropertyAll(buttonShape),
-        side: focusSide(BorderSide(color: c.borderControl)),
+        side: focusSide(BorderSide(color: c.borderSubtle)),
+        elevation: softElevation,
+        shadowColor: WidgetStatePropertyAll(c.shadow),
+        overlayColor: pressOverlay(c.textPrimary),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -112,22 +142,92 @@ ThemeData buildRakiaTheme(Brightness brightness) {
     ),
     cardTheme: CardThemeData(
       color: c.surface2,
-      elevation: 0,
+      elevation: 6,
+      shadowColor: c.shadow,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(RakiaRadii.md),
-        side: BorderSide(color: c.borderSubtle),
+      ),
+    ),
+    // Inputs are wells pressed into the surface; focus draws the accent.
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: c.surface3,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: RakiaSpacing.lg,
+        vertical: RakiaSpacing.md,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RakiaRadii.sm),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RakiaRadii.sm),
+        borderSide: BorderSide(color: c.borderSubtle),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RakiaRadii.sm),
+        borderSide: BorderSide(color: c.focusRing, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RakiaRadii.sm),
+        borderSide: BorderSide(color: c.statusAct),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(RakiaRadii.sm),
+        borderSide: BorderSide(color: c.statusAct, width: 2),
+      ),
+      labelStyle: text.bodyMedium?.copyWith(color: c.textSecondary),
+      floatingLabelStyle: text.bodySmall?.copyWith(color: c.textSecondary),
+      helperStyle: text.bodySmall,
+      hintStyle: text.bodyMedium?.copyWith(color: c.textSecondary),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? c.onAction
+            : c.textSecondary,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.selected) ? c.action : c.surface3,
+      ),
+      trackOutlineColor: WidgetStatePropertyAll(c.borderControl),
+    ),
+    dropdownMenuTheme: DropdownMenuThemeData(
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(c.surface2),
+        elevation: const WidgetStatePropertyAll(8),
+        shadowColor: WidgetStatePropertyAll(c.shadow),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: c.surface2,
+      elevation: 12,
+      shadowColor: c.shadow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(RakiaRadii.lg),
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: c.textPrimary,
+      contentTextStyle: text.bodyMedium?.copyWith(color: c.canvas),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(RakiaRadii.sm),
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: c.surface1,
-      indicatorColor: c.brand,
+      elevation: 8,
+      shadowColor: c.shadow,
+      indicatorColor: c.surface3,
       height: 72,
       labelTextStyle: WidgetStatePropertyAll(text.labelMedium),
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
           color: states.contains(WidgetState.selected)
-              ? c.onBrand
+              ? c.brandText
               : c.textSecondary,
         ),
       ),
@@ -152,14 +252,16 @@ ThemeData buildRakiaTheme(Brightness brightness) {
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
         minimumSize: const WidgetStatePropertyAll(buttonMinSize),
-        side: WidgetStatePropertyAll(BorderSide(color: c.borderControl)),
+        side: WidgetStatePropertyAll(BorderSide(color: c.borderSubtle)),
         foregroundColor: WidgetStateProperty.resolveWith(
-          (states) =>
-              states.contains(WidgetState.selected) ? c.onBrand : c.textPrimary,
+          (states) => states.contains(WidgetState.selected)
+              ? c.brandText
+              : c.textPrimary,
         ),
+        // The chosen segment is pressed in.
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) =>
-              states.contains(WidgetState.selected) ? c.brand : c.surface2,
+              states.contains(WidgetState.selected) ? c.surface3 : c.surface2,
         ),
       ),
     ),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../design/neumorphism.dart';
 import '../design/tokens.dart';
 
-/// A rounded panel with a coloured stripe on its leading edge. The stripe is
-/// clipped by the rounded corners; a one-sided border with a border radius
-/// draws stray arcs on the other corners in the web renderer.
+/// An inset well with a coloured stripe on its leading edge, for notes and
+/// callouts. [color] is kept for callers that tint the well.
 class AccentBox extends StatelessWidget {
   const AccentBox({
     super.key,
@@ -22,11 +22,12 @@ class AccentBox extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(RakiaRadii.sm),
+  Widget build(BuildContext context) => NeuSurface(
+    style: NeuStyle.inset,
+    depth: RakiaDepth.control,
+    radius: RakiaRadii.sm,
     child: DecoratedBox(
       decoration: BoxDecoration(
-        color: color,
         border: BorderDirectional(
           start: BorderSide(color: accent, width: accentWidth),
         ),

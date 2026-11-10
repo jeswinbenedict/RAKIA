@@ -6,6 +6,7 @@ import '../components/health_status.dart';
 import '../components/simulated_data_badge.dart';
 import '../core/analytics_core.dart';
 import '../design/colors.dart';
+import '../design/neumorphism.dart';
 import '../design/tokens.dart';
 import 'page_frame.dart';
 
@@ -18,7 +19,8 @@ class AboutPage extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final settings = AppSettings.of(context);
 
-    Widget section(String title, List<Widget> children) => Card(
+    Widget section(String title, List<Widget> children) => NeuSurface(
+      radius: RakiaRadii.md,
       child: Padding(
         padding: const EdgeInsets.all(RakiaSpacing.xl),
         child: Column(

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../components/rakia_mark.dart';
 import '../components/simulation_banner.dart';
 import '../design/colors.dart';
+import '../design/neumorphism.dart';
 import '../design/tokens.dart';
 import 'modules.dart';
 
@@ -258,7 +259,7 @@ class _Sidebar extends StatelessWidget {
               children: items,
             ),
           ),
-          Divider(color: c.borderSubtle),
+          const SizedBox(height: RakiaSpacing.sm),
           _NavItem(
             icon: Icons.info_outline,
             selectedIcon: Icons.info,
@@ -318,7 +319,7 @@ class _NavItemState extends State<_NavItem> {
   Widget build(BuildContext context) {
     final c = RakiaColors.of(context);
     final t = Theme.of(context).textTheme;
-    final fg = widget.selected ? c.onBrand : c.textSecondary;
+    final fg = widget.selected ? c.brandText : c.textSecondary;
 
     Widget item = Semantics(
       button: true,
@@ -329,40 +330,45 @@ class _NavItemState extends State<_NavItem> {
         onTap: widget.onTap,
         onFocusChange: (f) => setState(() => _focused = f),
         borderRadius: BorderRadius.circular(RakiaRadii.sm),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: RakiaSpacing.minTarget),
+        child: NeuSurface(
+          // The selected page is pressed into the surface.
+          style: widget.selected ? NeuStyle.inset : NeuStyle.flat,
+          depth: RakiaDepth.control,
+          radius: RakiaRadii.sm,
+          border: Border.all(
+            color: _focused ? c.focusRing : const Color(0x00000000),
+            width: 2,
+          ),
           padding: EdgeInsets.symmetric(
             horizontal: widget.extended ? RakiaSpacing.md : 0,
           ),
-          decoration: BoxDecoration(
-            color: widget.selected ? c.brand : null,
-            borderRadius: BorderRadius.circular(RakiaRadii.sm),
-            border: Border.all(
-              color: _focused ? c.focusRing : const Color(0x00000000),
-              width: 2,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: RakiaSpacing.minTarget - 4,
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: widget.extended
-                ? MainAxisAlignment.start
-                : MainAxisAlignment.center,
-            children: [
-              Icon(
-                widget.selected ? widget.selectedIcon : widget.icon,
-                color: fg,
-              ),
-              if (widget.extended) ...[
-                const SizedBox(width: RakiaSpacing.md),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    style: t.labelLarge?.copyWith(
-                      color: widget.selected ? c.onBrand : c.textPrimary,
+            child: Row(
+              mainAxisAlignment: widget.extended
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.center,
+              children: [
+                Icon(
+                  widget.selected ? widget.selectedIcon : widget.icon,
+                  color: fg,
+                ),
+                if (widget.extended) ...[
+                  const SizedBox(width: RakiaSpacing.md),
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      style: t.labelLarge?.copyWith(
+                        color: widget.selected ? c.brandText : c.textPrimary,
+                        fontWeight: widget.selected ? FontWeight.w600 : null,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
