@@ -127,6 +127,72 @@ class StoredSimulation {
 
 /// Thrown when stored data contradicts what the app expects (for example a
 /// unit that does not match the indicator). Such data is never guessed at.
+String _hex(List<int> bytes) =>
+    [for (final b in bytes) b.toRadixString(16).padLeft(2, '0')].join();
+
+/// A real record's identity, for a backup.
+@immutable
+class LedgerMission {
+  const LedgerMission({
+    required this.id,
+    required this.name,
+    required this.subjectId,
+    required this.startAtUs,
+    required this.plannedDays,
+  });
+  final String id;
+  final String name;
+  final String subjectId;
+  final int startAtUs;
+  final int plannedDays;
+}
+
+/// One ledger record with every hashed field, as the server verifies it.
+@immutable
+class LedgerUpload {
+  const LedgerUpload({
+    required this.id,
+    required this.metricCode,
+    required this.value,
+    required this.unit,
+    required this.observedAtUs,
+    required this.method,
+    required this.provenance,
+    required this.qualityFlags,
+    required this.clientSeq,
+    required this.prevHash,
+    required this.hash,
+    this.supersedesId,
+  });
+  final String id;
+  final String metricCode;
+  final double value;
+  final String unit;
+  final int observedAtUs;
+  final int method;
+  final int provenance;
+  final int qualityFlags;
+  final int clientSeq;
+  final String prevHash;
+  final String hash;
+  final String? supersedesId;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'metric_code': metricCode,
+    'value': value,
+    'unit': unit,
+    'observed_at_us': observedAtUs,
+    'method': method,
+    'provenance': provenance,
+    'quality_flags': qualityFlags,
+    'client_seq': clientSeq,
+    'prev_hash': prevHash,
+    'hash': hash,
+    'supersedes_id': ?supersedesId,
+  };
+}
+
 class StoreIntegrityError extends StateError {
   StoreIntegrityError(super.message);
 }
@@ -682,6 +748,71 @@ class LocalStore {
               ? null
               : HealthStatus.values[r.outcomeLevel!],
           note: r.note,
+        ),
+    ];
+  }
+
+  // ------------------------------------------------------------------ backup
+
+  /// The astronaut's real record, as a backup names it; null before the
+  /// first reading.
+  Future<LedgerMission?> personalRecord() async {
+    final id = await personalRecordId();
+    if (id == null) return null;
+    final m = await (db.select(
+      db.missions,
+    )..where((t) => t.id.equals(id))).getSingle();
+    return LedgerMission(
+      id: m.id,
+      name: m.name,
+      subjectId: uuidToString(m.subjectId),
+      startAtUs: m.startAtUs,
+      plannedDays: m.plannedDays,
+    );
+  }
+
+  /// The highest sequence number in a mission's ledger (0 when empty).
+  Future<int> lastSeq(String missionId) async {
+    final max = db.measurements.clientSeq.max();
+    final q = db.selectOnly(db.measurements)
+      ..addColumns([max])
+      ..where(db.measurements.missionId.equals(missionId));
+    return (await q.getSingle()).read(max) ?? 0;
+  }
+
+  /// Ledger records after [afterSeq], in order, exactly as stored.
+  Future<List<LedgerUpload>> ledgerAfter(
+    String missionId,
+    int afterSeq, {
+    int limit = 200,
+  }) async {
+    final rows =
+        await (db.select(db.measurements)
+              ..where(
+                (m) =>
+                    m.missionId.equals(missionId) &
+                    m.clientSeq.isBiggerThanValue(afterSeq),
+              )
+              ..orderBy([(m) => OrderingTerm.asc(m.clientSeq)])
+              ..limit(limit))
+            .get();
+    return [
+      for (final r in rows)
+        LedgerUpload(
+          id: uuidToString(r.id),
+          metricCode: r.metricCode,
+          value: r.value,
+          unit: r.unit,
+          observedAtUs: r.observedAtUs,
+          method: r.method,
+          provenance: r.provenance,
+          qualityFlags: r.qualityFlags,
+          clientSeq: r.clientSeq,
+          prevHash: _hex(r.prevHash),
+          hash: _hex(r.hash),
+          supersedesId: r.supersedesId == null
+              ? null
+              : uuidToString(r.supersedesId!),
         ),
     ];
   }

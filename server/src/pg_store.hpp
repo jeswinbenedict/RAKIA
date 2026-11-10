@@ -42,6 +42,15 @@ Account load_account(Tx& tx, const std::string& firebase_uid, const std::string&
 /// The caller's account, or nullopt when they have none.
 std::optional<Account> read_account(Tx& tx);
 
+/// Stores a batch whose hashes were already verified (verify_batch), as the
+/// caller of [tx]: creates their record (mission, roles, crew member) and
+/// client on first use, skips records the server already holds, and appends
+/// the rest. Throws SyncError when the batch does not fit what is stored.
+SyncResult apply_sync_batch(Tx& tx, const SyncBatch& batch);
+
+/// Real records one account may create.
+inline constexpr int kMaxRecordsPerAccount = 5;
+
 class PgStore final : public Store {
  public:
   explicit PgStore(const Config& config,
@@ -63,6 +72,7 @@ class PgStore final : public Store {
   std::optional<Account> find_account(const std::string& firebase_uid) override;
   Account create_account(const std::string& firebase_uid) override;
   bool remember_turnstile_token(const std::string& hash_hex) override;
+  SyncResult sync_batch(const std::string& firebase_uid, const SyncBatch& batch) override;
 
  private:
   pg_conn* acquire();

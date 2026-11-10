@@ -173,7 +173,7 @@ jobs:
       - name: Container image builds (tests run inside) and serves as a non-root user
         run: |
           docker build -f server/Dockerfile -t rakia-api:ci \
-            --build-context "downloads=$RUNNER_TEMP/rakia-downloads" server
+            --build-context "downloads=$RUNNER_TEMP/rakia-downloads" .
           test "$(docker image inspect rakia-api:ci --format '{{.Config.User}}')" = 10001
           # Production mode refuses a database connection without verified TLS.
           # (-e wins over --env-file; the .env from the bootstrap says development.)

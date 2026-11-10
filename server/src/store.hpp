@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "sync.hpp"
+
 namespace rakia {
 
 /// The database schema this build of the API expects (db/migrations).
@@ -70,6 +72,9 @@ class Store {
   /// Records a Turnstile token's SHA-256 (hex) for ten minutes. False when
   /// it is already recorded: the token is being replayed.
   virtual bool remember_turnstile_token(const std::string& hash_hex) = 0;
+  /// Stores a verified batch of [firebase_uid]'s own record, as that user.
+  /// Throws SyncError when the batch cannot be accepted.
+  virtual SyncResult sync_batch(const std::string& firebase_uid, const SyncBatch& batch) = 0;
 };
 
 }  // namespace rakia

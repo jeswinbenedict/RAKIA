@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 cmake_minimum_required(VERSION 3.24)
-project(rakia_api VERSION 0.1.0 LANGUAGES CXX)
+project(rakia_api VERSION 0.1.0 LANGUAGES C CXX)
 
 option(RAKIA_API_BUILD_TESTS "Build the API tests" ON)
 option(RAKIA_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
@@ -46,6 +46,12 @@ function(rakia_api_harden target)
   endif()
 endfunction()
 
+# librakia (C11, ../core): the API recomputes record hashes with the same
+# code that produced them on the device. Its own tests run in its own build.
+set(RAKIA_CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../core" CACHE PATH "librakia sources")
+set(RAKIA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory("${RAKIA_CORE_DIR}" rakia_core EXCLUDE_FROM_ALL)
+
 # Everything but main(), so the tests exercise the same code the binary runs.
 add_library(rakia_api_core STATIC
   src/app.cpp
@@ -57,10 +63,11 @@ add_library(rakia_api_core STATIC
   src/rate_limit.cpp
   src/security.cpp
   src/space_weather.cpp
+  src/sync.cpp
   src/turnstile.cpp)
 target_include_directories(rakia_api_core PUBLIC src)
 target_link_libraries(rakia_api_core PUBLIC
-  rakia_httplib rakia_json PostgreSQL::PostgreSQL OpenSSL::SSL OpenSSL::Crypto
+  rakia::rakia rakia_httplib rakia_json PostgreSQL::PostgreSQL OpenSSL::SSL OpenSSL::Crypto
   Threads::Threads)
 # HTTPS client support in cpp-httplib (for Google's token certificates); the
 # server itself still speaks plain HTTP behind a TLS-terminating front end.
@@ -81,6 +88,7 @@ if(RAKIA_API_BUILD_TESTS)
   enable_testing()
   set(RAKIA_API_TESTS test_config test_cors test_rate_limit test_auth test_http test_pg
     test_space_weather
+    test_sync
     test_turnstile)
   foreach(t IN LISTS RAKIA_API_TESTS)
     add_executable(${t} tests/${t}.cpp)

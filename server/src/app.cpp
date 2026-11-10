@@ -174,6 +174,7 @@ App::App(const Config& config, Store& store, const TokenVerifier* verifier,
   });
 
   routes();
+  sync_routes();
 }
 
 void App::routes() {
@@ -308,6 +309,33 @@ void App::routes() {
       }
     }
     send(res, 201, account_json(store_.create_account(user->uid)));
+  });
+}
+
+void App::sync_routes() {
+  // A batch of the signed-in user's own hash-chained measurements.
+  server_.Post("/v1/sync/batches", [this](const httplib::Request& req, httplib::Response& res) {
+    const auto user = authenticate(req, res);
+    if (!user) return;
+    const json body = json::parse(req.body, nullptr, /*allow_exceptions=*/false);
+    if (body.is_discarded()) {
+      send_error(res, 400, "invalid_json", "The request body is not JSON.");
+      return;
+    }
+    try {
+      const auto batch = parse_sync_batch(body);
+      // Hashes are recomputed before the database is touched.
+      verify_batch(batch);
+      const auto r = store_.sync_batch(user->uid, batch);
+      send(res, 200,
+           {{"batch_id", batch.batch_id},
+            {"acked_through_seq", r.acked_through_seq},
+            {"accepted", r.accepted},
+            {"duplicate", r.duplicate}});
+    } catch (const SyncError& e) {
+      log::info("sync refused", {{"request_id", request_id(res)}, {"code", e.code}});
+      send_error(res, e.status, e.code, e.what());
+    }
   });
 }
 

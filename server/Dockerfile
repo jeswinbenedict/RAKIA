@@ -4,7 +4,7 @@
 # rakia-api container for Render (render.yaml), Google Cloud Run or any
 # container host.
 # Build from the repository root:
-#   docker build -f server/Dockerfile -t rakia-api server
+#   docker build -f server/Dockerfile -t rakia-api .
 #
 # The image holds no configuration and no secrets: every setting comes from
 # environment variables at run time (see .env.example), secrets through the
@@ -24,16 +24,21 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates cmake g++ libpq-dev libssl-dev make \
  && rm -rf /var/lib/apt/lists/*
+# librakia (core/) is compiled into the API, which verifies record hashes
+# with it.
 WORKDIR /src
-COPY CMakeLists.txt ./
-COPY cmake ./cmake
-COPY src ./src
-COPY tests ./tests
+COPY core/CMakeLists.txt core/
+COPY core/include core/include
+COPY core/src core/src
+COPY server/CMakeLists.txt server/
+COPY server/cmake server/cmake
+COPY server/src server/src
+COPY server/tests server/tests
 # Warnings are errors; the unit and HTTP tests must pass for the image to
 # build. (The PostgreSQL tests skip without RAKIA_API_PG_TESTS.)
 RUN --mount=type=bind,from=downloads,target=/downloads-in \
     mkdir -p /downloads && cp -R /downloads-in/. /downloads/ \
- && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DRAKIA_DOWNLOAD_DIR=/downloads \
+ && cmake -S server -B build -DCMAKE_BUILD_TYPE=Release -DRAKIA_DOWNLOAD_DIR=/downloads \
  && cmake --build build --parallel \
  && ctest --test-dir build --output-on-failure \
  && strip build/rakia-api

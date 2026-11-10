@@ -11,6 +11,7 @@
 #include "app.hpp"
 #include "log.hpp"
 #include "rk_test.hpp"
+#include "sync_fixture.hpp"
 #include "token_fixture.hpp"
 
 using namespace std::chrono_literals;
@@ -66,6 +67,15 @@ struct FakeStore final : rakia::Store {
   }
   bool remember_turnstile_token(const std::string& hash) override {
     return seen_tokens.insert(hash).second;
+  }
+  std::vector<rakia::SyncBatch> batches;
+  std::optional<rakia::SyncError> sync_error;
+  rakia::SyncResult sync_batch(const std::string& firebase_uid,
+                               const rakia::SyncBatch& batch) override {
+    account_calls.push_back(firebase_uid);
+    if (sync_error) throw *sync_error;
+    batches.push_back(batch);
+    return {batch.records.back().client_seq, static_cast<int>(batch.records.size()), false};
   }
 };
 
@@ -485,6 +495,49 @@ TEST("POST /v1/me in development: unchecked without Turnstile; testing keys acce
                        {"X-Turnstile-Token", "XXXX.DUMMY.TOKEN.XXXX"}},
       "", "application/json");
   CHECK_EQ(r2->status, 201);
+}
+
+TEST("POST /v1/sync/batches: sign-in required; hashes verified before the store is reached") {
+  FakeStore store;
+  TestAuth auth;
+  rakia::App app(config(), store, &auth.verifier);
+  Running run(app);
+  auto c = run.client();
+  rk::Device d;
+  const auto good = d.batch(json::array({d.record("heart_rate.resting", 58.0, "/min"),
+                                         d.record("heart_rate.resting", 59.0, "/min")}));
+
+  auto r = c.Post("/v1/sync/batches", good.dump(), "application/json");
+  CHECK_EQ(r->status, 401);
+
+  const httplib::Headers bearer{{"Authorization", "Bearer " + auth.token("astronaut-7")}};
+  r = c.Post("/v1/sync/batches", bearer, "{not json", "application/json");
+  CHECK_EQ(r->status, 400);
+  CHECK_EQ(body(r)["error"]["code"], "invalid_json");
+
+  auto tampered = good;
+  tampered["records"][1]["value"] = 95.0;
+  r = c.Post("/v1/sync/batches", bearer, tampered.dump(), "application/json");
+  CHECK_EQ(r->status, 400);
+  CHECK_EQ(body(r)["error"]["code"], "hash_mismatch");
+  // The refusal does not echo health values.
+  CHECK(r->body.find("95") == std::string::npos);
+  CHECK(store.batches.empty());
+
+  r = c.Post("/v1/sync/batches", bearer, good.dump(), "application/json");
+  CHECK_EQ(r->status, 200);
+  CHECK_EQ(body(r)["acked_through_seq"], 2);
+  CHECK_EQ(body(r)["accepted"], 2);
+  CHECK_EQ(body(r)["duplicate"], false);
+  CHECK_EQ(store.batches.size(), std::size_t{1});
+  CHECK_EQ(store.batches[0].records[1].value, 59.0);
+  CHECK_EQ(store.account_calls.back(), std::string("astronaut-7"));
+
+  // What the store refuses reaches the client with its code and status.
+  store.sync_error = rakia::SyncError(409, "chain_gap", "The batch does not continue.");
+  r = c.Post("/v1/sync/batches", bearer, good.dump(), "application/json");
+  CHECK_EQ(r->status, 409);
+  CHECK_EQ(body(r)["error"]["code"], "chain_gap");
 }
 
 TEST("bodies over the limit are refused") {
