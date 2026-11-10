@@ -77,6 +77,9 @@ struct NoStore final : rakia::Store {
   std::optional<rakia::Account> find_account(const std::string&) override { return {}; }
   rakia::Account create_account(const std::string&) override { return {}; }
   bool remember_turnstile_token(const std::string&) override { return true; }
+  rakia::SyncResult sync_batch(const std::string&, const rakia::SyncBatch&) override {
+    return {};
+  }
 };
 
 rakia::Config config() {

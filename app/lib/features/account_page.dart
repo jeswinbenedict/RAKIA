@@ -8,11 +8,13 @@ import '../components/surface_card.dart';
 import '../config/build_config.dart';
 import '../design/colors.dart';
 import '../design/tokens.dart';
+import '../environment/space_weather.dart' show formatAge;
 import '../navigation/modules.dart';
+import '../sync/sync_controller.dart';
 import 'page_frame.dart';
 
-/// Sign-in and the RAKIA account. Readings stay on the device; signing in
-/// does not upload anything.
+/// Sign-in, the RAKIA account, and the optional backup of readings.
+/// Readings stay on the device unless the astronaut turns backup on.
 class AccountPage extends StatelessWidget {
   const AccountPage({super.key, required this.module, this.turnstileSiteKey});
 
@@ -56,11 +58,15 @@ class AccountPage extends StatelessWidget {
             const SizedBox(height: RakiaSpacing.lg),
           ],
           body,
+          if (account.status == AccountStatus.signedIn) ...[
+            const SizedBox(height: RakiaSpacing.lg),
+            const BackupCard(),
+          ],
           const SizedBox(height: RakiaSpacing.lg),
           const _Note(
             text:
                 'Your readings stay on this device. Signing in does not upload '
-                'them.',
+                'them; only turning on backup does.',
           ),
         ],
       ),
@@ -452,6 +458,88 @@ class _SignedIn extends StatelessWidget {
               'This browser cannot keep data, so you will need to sign in '
               'again next time.',
               style: t.bodySmall?.copyWith(color: c.textSecondary),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Opt-in backup of the astronaut's own readings to the RAKIA server.
+class BackupCard extends StatelessWidget {
+  const BackupCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final sync = SyncScope.of(context);
+    final t = Theme.of(context).textTheme;
+    final c = RakiaColors.of(context);
+    final status = sync.status;
+    final canToggle =
+        status != SyncStatus.unavailable && status != SyncStatus.needsStorage;
+    final String line = switch (status) {
+      SyncStatus.unavailable => 'Backup is not available in this build.',
+      SyncStatus.needsStorage =>
+        'This browser cannot keep data between visits, so there is no '
+            'lasting record to back up.',
+      SyncStatus.off => 'Off. Nothing has been sent from this device.',
+      SyncStatus.needsSignIn => 'Sign in to back up.',
+      SyncStatus.syncing =>
+        'Backing up: ${sync.backedUp} of ${sync.total} readings.',
+      SyncStatus.failed =>
+        '${sync.backedUp} of ${sync.total} readings backed up. The last '
+            'attempt failed: ${sync.error}',
+      SyncStatus.idle =>
+        sync.total == 0
+            ? 'On. There are no readings to back up yet.'
+            : '${sync.backedUp} of ${sync.total} readings backed up'
+                  '${sync.lastSynced == null ? '' : ', last ${formatAge(sync.lastSynced!, now: DateTime.now().toUtc())}'}.',
+    };
+    return SurfaceCard(
+      key: const Key('backup-card'),
+      title: 'Back up my readings',
+      subtitle: 'Optional, to the RAKIA server',
+      leadingIcon: Icons.cloud_upload_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Sends a copy of the readings in My health record to the RAKIA '
+            'server, where only your account can read them. Each reading '
+            'is sent with its tamper-evident hash, and the server checks '
+            'every one. Check-ins, reaction tests and simulated data are '
+            'never sent. This is a backup: it does not yet restore to '
+            'another device, and readings already sent stay on the server '
+            'if you turn it off.',
+          ),
+          const SizedBox(height: RakiaSpacing.sm),
+          SwitchListTile(
+            key: const Key('backup-switch'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Back up my readings'),
+            value: sync.enabled,
+            onChanged: canToggle ? sync.setEnabled : null,
+          ),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              key: const Key('backup-status'),
+              line,
+              style: t.bodyMedium?.copyWith(
+                color: status == SyncStatus.failed
+                    ? Theme.of(context).colorScheme.error
+                    : c.textSecondary,
+              ),
+            ),
+          ),
+          if (sync.enabled && status != SyncStatus.needsSignIn) ...[
+            const SizedBox(height: RakiaSpacing.md),
+            OutlinedButton.icon(
+              key: const Key('backup-now'),
+              onPressed: status == SyncStatus.syncing ? null : sync.syncNow,
+              icon: const Icon(Icons.sync, size: 18),
+              label: const Text('Back up now'),
             ),
           ],
         ],

@@ -7,6 +7,7 @@ import 'package:rakia/app.dart';
 import 'package:rakia/app_settings.dart';
 import 'package:rakia/environment/space_weather.dart';
 import 'package:rakia/mission/mission_controller.dart';
+import 'package:rakia/storage/database.dart';
 import 'package:rakia/storage/local_store.dart';
 import 'package:rakia/storage/open_store.dart';
 import 'package:rakia/storage/store_controller.dart';
@@ -24,6 +25,16 @@ LocalStore newMemoryStore() {
   // Each test opens its own database; that is intended here.
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   return memoryStore(NativeDatabase.memory());
+}
+
+/// An in-memory database that reports itself as persistent, for features
+/// that only run with lasting storage (backup).
+LocalStore fileLikeStore() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  return LocalStore(
+    RakiaDatabase(NativeDatabase.memory()),
+    kind: StorageKind.nativeFile,
+  );
 }
 
 /// Opens [newMemoryStore]; the default for widget tests.

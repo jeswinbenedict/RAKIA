@@ -63,13 +63,26 @@ void main() {
     final api = FakeApi()..accounts.add('uid-1');
     await open(tester, controller(firebase(), api));
     expect(find.byKey(const Key('account-signed-out')), findsOneWidget);
-    expect(find.textContaining('does not upload them'), findsWidgets);
+    expect(find.textContaining('Signing in does not upload'), findsWidgets);
 
     await signIn(tester, 'correct-horse');
     expect(find.byKey(const Key('account-signed-in')), findsOneWidget);
     expect(find.text('astro@example.test'), findsOneWidget);
     expect(find.textContaining('Email not verified yet'), findsOneWidget);
     expect(find.textContaining('No mission roles yet'), findsOneWidget);
+    // Backup is shown once signed in. This test build names no API, so
+    // the switch is disabled and the page says why.
+    expect(find.byKey(const Key('backup-card')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('backup-status'))).data,
+      'Backup is not available in this build.',
+    );
+    expect(
+      tester
+          .widget<SwitchListTile>(find.byKey(const Key('backup-switch')))
+          .onChanged,
+      isNull,
+    );
 
     await tapKey(tester, 'account-sign-out');
     expect(find.byKey(const Key('account-signed-out')), findsOneWidget);

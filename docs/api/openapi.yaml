@@ -189,6 +189,71 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/Error'}
+  /v1/sync/batches:
+    post:
+      summary: Back up a batch of the user's own readings
+      description: |
+        Records from the device's hash-chained ledger of the user's own
+        health record, with every hashed field. The API recomputes each hash
+        with librakia and checks the chain inside the batch before touching
+        the database. The first batch creates the user's record (a real
+        mission with them as owner and astronaut). Records the server
+        already holds are skipped if their hashes match; a resent batch id
+        is answered without doing anything again. Simulated data is never
+        accepted. Requires an existing RAKIA account (POST /v1/me).
+      operationId: syncBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SyncBatch'}
+      responses:
+        '200':
+          description: Stored. The server holds every record of this device up to `acked_through_seq`.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batch_id, acked_through_seq, accepted, duplicate]
+                properties:
+                  batch_id: {type: string, format: uuid}
+                  acked_through_seq: {type: integer, minimum: 0}
+                  accepted: {type: integer, minimum: 0}
+                  duplicate: {type: boolean}
+        '400':
+          description: >-
+            Invalid (`invalid_json`, `invalid_batch`, `batch_too_large`), a record that does not match
+            its hash (`hash_mismatch`), a broken chain (`chain_broken`), simulated data
+            (`simulated_data`), or an indicator or unit the server does not know (`unknown_metric`,
+            `wrong_unit`).
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+        '401': {$ref: '#/components/responses/Unauthenticated'}
+        '403':
+          description: The record belongs to another account (`not_your_record`).
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+        '409':
+          description: >-
+            No RAKIA account (`no_account`), a gap after what the server holds (`chain_gap`), a different
+            history for this device (`chain_conflict`), too many records (`too_many_records`), or
+            another database conflict (`sync_conflict`). Nothing was changed.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+        '413':
+          description: The body is larger than 1 MiB.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '503':
+          description: Sign-in is not configured, or the database is unavailable.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
 components:
   securitySchemes:
     firebase:
@@ -199,6 +264,42 @@ components:
         A Firebase ID token, verified by the API against Google's public
         keys. Endpoints marked `security: []` are public.
   schemas:
+    SyncBatch:
+      type: object
+      required: [batch_id, client_id, subject_id, mission, records]
+      properties:
+        batch_id: {type: string, format: uuid, description: New for each request; resending it is harmless.}
+        client_id: {type: string, format: uuid, description: This installation of the app.}
+        subject_id: {type: string, format: uuid, description: The crew member the records are about (hashed).}
+        mission:
+          type: object
+          required: [id, name, start_at_us, planned_days]
+          properties:
+            id: {type: string, format: uuid}
+            name: {type: string, maxLength: 200}
+            start_at_us: {type: integer}
+            planned_days: {type: integer, minimum: 1, maximum: 3650}
+        records:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            type: object
+            required: [id, metric_code, value, unit, observed_at_us, method, provenance, quality_flags,
+                       client_seq, prev_hash, hash]
+            properties:
+              id: {type: string, format: uuid}
+              metric_code: {type: string}
+              value: {type: number}
+              unit: {type: string, description: 'UCUM code, as hashed'}
+              observed_at_us: {type: integer}
+              method: {type: integer, minimum: 1, maximum: 4}
+              provenance: {type: integer, minimum: 1, maximum: 2, description: '1 real, 2 imported; simulated (3) is refused'}
+              quality_flags: {type: integer, minimum: 0}
+              client_seq: {type: integer, minimum: 1}
+              prev_hash: {type: string, pattern: '^[0-9a-f]{64}$'}
+              hash: {type: string, pattern: '^[0-9a-f]{64}$'}
+              supersedes_id: {type: [string, 'null'], format: uuid}
     AccountWithRoles:
       type: object
       required: [user, memberships]

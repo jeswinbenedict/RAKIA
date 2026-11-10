@@ -36,6 +36,7 @@ class App {
 
  private:
   void routes();
+  void sync_routes();
   /// The verified user of a request, or nullopt after answering 401/503.
   std::optional<VerifiedUser> authenticate(const httplib::Request& req,
                                            httplib::Response& res) const;

@@ -10,6 +10,7 @@
 #include "pg_store.hpp"
 #include "rk_test.hpp"
 #include "security.hpp"
+#include "sync_fixture.hpp"
 
 namespace {
 
@@ -154,6 +155,125 @@ TEST("a Turnstile token hash is accepted once, then refused as a replay") {
   // Leave nothing behind: the test role may delete its own rows.
   store().transaction(std::nullopt, [&](rakia::Tx& tx) {
     tx.query("DELETE FROM rakia.turnstile_replay WHERE token_hash = decode($1, 'hex')", {hash});
+  });
+}
+
+TEST("sync: a first batch creates the record, later batches extend it, resends are harmless") {
+  struct Rollback {};
+  using nlohmann::json;
+  const auto uid = "rakia-pg-sync-" + rakia::new_uuid_v7();
+  const auto parse = [](const json& j) {
+    auto b = rakia::parse_sync_batch(j);
+    rakia::verify_batch(b);
+    return b;
+  };
+  const auto refused = [](rakia::Tx& tx, const rakia::SyncBatch& b) {
+    try {
+      rakia::apply_sync_batch(tx, b);
+    } catch (const rakia::SyncError& e) {
+      return e.code;
+    }
+    return std::string("accepted");
+  };
+  try {
+    store().transaction(uid, [&](rakia::Tx& tx) {
+      rk::Device d;
+      const auto first = parse(d.batch(json::array({d.record("heart_rate.resting", 58.0, "/min"),
+                                                    d.record("sleep.duration", 7.25, "h")})));
+      // No RAKIA account yet: nothing is stored.
+      CHECK_EQ(refused(tx, first), std::string("no_account"));
+      rakia::load_account(tx, uid, rakia::new_uuid_v7());
+
+      auto r = rakia::apply_sync_batch(tx, first);
+      CHECK_EQ(r.acked_through_seq, std::int64_t{2});
+      CHECK_EQ(r.accepted, 2);
+      CHECK(!r.duplicate);
+
+      // The record is the caller's: a real mission with them as astronaut.
+      const auto a = rakia::read_account(tx);
+      CHECK_EQ(a->memberships.size(), std::size_t{2});
+      CHECK(!a->memberships[0].is_simulation);
+      // Stored exactly: value, display unit, microsecond time, provenance.
+      const auto rows = tx.query(
+          "SELECT value::text, unit, provenance::text, method::text, "
+          "(extract(epoch FROM observed_at) * 1000000)::bigint::text, encode(hash, 'hex') "
+          "FROM rakia.measurements WHERE mission_id = $1::uuid ORDER BY client_seq",
+          {d.mission_id});
+      CHECK_EQ(rows.size(), std::size_t{2});
+      CHECK_EQ(rows[1].at(0).value(), std::string("7.25"));
+      CHECK_EQ(rows[0].at(1).value(), std::string("bpm"));
+      CHECK_EQ(rows[0].at(2).value(), std::string("real"));
+      CHECK_EQ(rows[0].at(3).value(), std::string("manual"));
+      CHECK_EQ(rows[0].at(4).value(), std::string("1794225600000000"));
+      CHECK_EQ(rows[1].at(5).value(), first.records[1].hash);
+
+      // The same batch again: recognised by its id.
+      r = rakia::apply_sync_batch(tx, first);
+      CHECK(r.duplicate);
+      CHECK_EQ(r.acked_through_seq, std::int64_t{2});
+
+      // A new batch that overlaps what is held and adds one record.
+      auto third = d.record("heart_rate.resting", 60.0, "/min");
+      auto resend = d.batch(json::array());
+      {
+        // Rebuild the first two records as JSON from the parsed batch.
+        json recs = json::array();
+        for (const auto& rec : first.records) {
+          recs.push_back({{"id", rec.id},
+                          {"metric_code", rec.metric_code},
+                          {"value", rec.value},
+                          {"unit", rec.unit},
+                          {"observed_at_us", rec.observed_at_us},
+                          {"method", rec.method},
+                          {"provenance", rec.provenance},
+                          {"quality_flags", rec.quality_flags},
+                          {"client_seq", rec.client_seq},
+                          {"prev_hash", rec.prev_hash},
+                          {"hash", rec.hash}});
+        }
+        recs.push_back(third);
+        resend["records"] = recs;
+      }
+      r = rakia::apply_sync_batch(tx, parse(resend));
+      CHECK_EQ(r.accepted, 1);
+      CHECK_EQ(r.acked_through_seq, std::int64_t{3});
+
+      // A gap (record 5 without 4) is refused.
+      d.record("heart_rate.resting", 61.0, "/min");  // 4, never sent
+      const auto fifth = parse(d.batch(json::array({d.record("heart_rate.resting", 62.0, "/min")})));
+      CHECK_EQ(refused(tx, fifth), std::string("chain_gap"));
+
+      // A different history for the same device and sequence is refused.
+      rk::Device fork = d;
+      fork.seq = 0;
+      fork.last_hash = std::string(64, '0');
+      const auto other = parse(fork.batch(json::array({fork.record("heart_rate.resting", 99.0, "/min")})));
+      CHECK_EQ(refused(tx, other), std::string("chain_conflict"));
+
+      // Units and indicators the server does not know.
+      rk::Device e;
+      e.mission_id = d.mission_id;
+      e.subject_id = d.subject_id;
+      CHECK_EQ(refused(tx, parse(e.batch(json::array({e.record("heart_rate.resting", 58.0, "bpm")})))),
+               std::string("wrong_unit"));
+      rk::Device f;
+      f.mission_id = d.mission_id;
+      f.subject_id = d.subject_id;
+      CHECK_EQ(refused(tx, parse(f.batch(json::array({f.record("blood.pressure", 120.0, "mm[Hg]")})))),
+               std::string("unknown_metric"));
+
+      // Someone else's subject in this record.
+      rk::Device g;
+      g.mission_id = d.mission_id;
+      CHECK_EQ(refused(tx, parse(g.batch(json::array({g.record("heart_rate.resting", 58.0, "/min")})))),
+               std::string("not_your_record"));
+      throw Rollback{};  // real records cannot be deleted; leave nothing behind
+    });
+  } catch (const Rollback&) {
+  }
+  store().transaction(uid, [&](rakia::Tx& tx) {
+    CHECK_EQ(tx.query("SELECT count(*) FROM rakia.missions").at(0).at(0).value(),
+             std::string("0"));
   });
 }
 

@@ -14,7 +14,7 @@ RAKIA is research software. These limitations are deliberate, documented, and sh
 
 ## Technical
 
-- **Sign-in is email and password only, and nothing syncs yet.** The app signs in with Firebase Authentication's REST API and creates the RAKIA account behind Turnstile, but readings stay on the device until sync arrives. Google sign-in needs Firebase's SDK or an OAuth redirect flow and is not offered; Phone sign-in needs Firebase's paid plan.
+- **Sign-in is email and password only, and backup is upload only.** The app signs in with Firebase Authentication's REST API and creates the RAKIA account behind Turnstile. Turning on backup sends the astronaut's readings to the server; restoring them to another device, and showing medical staff a crew member's data, are not built yet. Backup needs lasting storage on the device, so a browser that cannot keep data offers none. Google sign-in needs Firebase's SDK or an OAuth redirect flow and is not offered; Phone sign-in needs Firebase's paid plan.
 - **Turnstile protects RAKIA accounts, not Firebase sign-up itself.** The API creates an account only after verifying a Turnstile token with Cloudflare, so bots cannot fill RAKIA's database. Creating the Firebase sign-in (the step before) is protected by Firebase's own abuse limits: gating it with Turnstile would need a Firebase blocking function, which requires the paid Blaze plan.
 - **Accounts are created in the web app.** Turnstile runs in a browser, so the native apps sign in to existing accounts but send people to the web app to create one.
 - **Signing out does not revoke the session on Firebase's side.** The app forgets its refresh token; revoking tokens server-side needs the Firebase Admin SDK and a service account, which RAKIA deliberately does not hold.

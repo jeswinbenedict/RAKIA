@@ -18,7 +18,7 @@ services:
     region: singapore
     branch: main
     dockerfilePath: ./server/Dockerfile
-    dockerContext: ./server
+    dockerContext: .
     healthCheckPath: /v1/health
     autoDeploy: true
     envVars:
@@ -59,7 +59,7 @@ services:
     region: singapore
     branch: main
     dockerfilePath: ./server/Dockerfile
-    dockerContext: ./server
+    dockerContext: .
     healthCheckPath: /v1/health
     # Production deploys only when triggered from the dashboard.
     autoDeploy: false

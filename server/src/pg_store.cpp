@@ -3,6 +3,8 @@
 
 #include <libpq-fe.h>
 
+#include <cstdio>
+#include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -253,6 +255,167 @@ bool PgStore::remember_turnstile_token(const std::string& hash_hex) {
                 .empty();
   });
   return fresh;
+}
+
+namespace {
+
+/// A double as text that PostgreSQL parses back to the same value.
+std::string exact(double v) {
+  char buf[40];
+  std::snprintf(buf, sizeof buf, "%.17g", v);
+  return buf;
+}
+
+constexpr const char* kMethods[] = {"measured", "manual", "estimated", "derived"};
+constexpr const char* kProvenance[] = {"real", "imported"};
+const std::string kZeroHash(64, '0');
+
+}  // namespace
+
+SyncResult apply_sync_batch(Tx& tx, const SyncBatch& b) {
+  if (!read_account(tx)) {
+    throw SyncError(409, "no_account", "Create your RAKIA account before syncing.");
+  }
+  if (const auto done = tx.query(
+          "SELECT acked_through_seq::text FROM rakia.sync_batches WHERE id = $1::uuid",
+          {b.batch_id});
+      !done.empty()) {
+    return {std::stoll(done[0].at(0).value()), 0, true};
+  }
+
+  const auto mission =
+      tx.query("SELECT is_simulation FROM rakia.missions WHERE id = $1::uuid", {b.mission_id});
+  if (mission.empty()) {
+    const auto owned = tx.query(
+        "SELECT count(*)::text FROM rakia.missions "
+        "WHERE created_by = rakia.current_user_id() AND NOT is_simulation");
+    if (std::stoi(owned[0].at(0).value()) >= kMaxRecordsPerAccount) {
+      throw SyncError(409, "too_many_records",
+                      "This account already has the most health records it may hold.");
+    }
+    tx.query(
+        "INSERT INTO rakia.missions (id, name, is_simulation, starts_at, planned_days, created_by) "
+        "VALUES ($1::uuid, $2, false, "
+        "'epoch'::timestamptz + $3::bigint * interval '1 microsecond', $4::int, "
+        "rakia.current_user_id())",
+        {b.mission_id, b.mission_name, std::to_string(b.mission_start_us),
+         std::to_string(b.planned_days)});
+    // The creator claims the record, then is its astronaut: the only person
+    // (with medical staff they may add later) who can read its health data.
+    for (const char* role : {"mission_admin", "astronaut"}) {
+      tx.query(
+          "INSERT INTO rakia.mission_members (mission_id, user_id, role) "
+          "VALUES ($1::uuid, rakia.current_user_id(), $2::rakia.member_role)",
+          {b.mission_id, std::string(role)});
+    }
+    tx.query(
+        "INSERT INTO rakia.crew_members (id, mission_id, user_id, label) "
+        "VALUES ($1::uuid, $2::uuid, rakia.current_user_id(), 'Me')",
+        {b.subject_id, b.mission_id});
+  } else {
+    if (mission[0].at(0).value() == "t") {
+      throw SyncError(400, "simulated_data", "Simulation missions are never synced.");
+    }
+    if (tx.query("SELECT 1 FROM rakia.crew_members WHERE id = $1::uuid AND mission_id = $2::uuid "
+                 "AND user_id = rakia.current_user_id()",
+                 {b.subject_id, b.mission_id})
+            .empty()) {
+      throw SyncError(403, "not_your_record", "This health record belongs to another account.");
+    }
+  }
+
+  if (tx.query("SELECT 1 FROM rakia.clients WHERE id = $1::uuid", {b.client_id}).empty()) {
+    tx.query("INSERT INTO rakia.clients (id, user_id) VALUES ($1::uuid, rakia.current_user_id())",
+             {b.client_id});
+  }
+
+  std::map<std::string, std::string> ucum;
+  for (const auto& r : tx.query("SELECT code, ucum FROM rakia.metric_definitions")) {
+    ucum[r.at(0).value()] = r.at(1).value();
+  }
+
+  std::int64_t last_seq = 0;
+  std::string last_hash = kZeroHash;
+  if (const auto last = tx.query(
+          "SELECT client_seq::text, encode(hash, 'hex') FROM rakia.measurements "
+          "WHERE client_id = $1::uuid AND mission_id = $2::uuid "
+          "ORDER BY client_seq DESC LIMIT 1",
+          {b.client_id, b.mission_id});
+      !last.empty()) {
+    last_seq = std::stoll(last[0].at(0).value());
+    last_hash = last[0].at(1).value();
+  }
+
+  SyncResult result;
+  for (const auto& r : b.records) {
+    const auto unit = ucum.find(r.metric_code);
+    if (unit == ucum.end()) {
+      throw SyncError(400, "unknown_metric", "The server does not know one of the indicators.");
+    }
+    if (r.unit != unit->second) {
+      throw SyncError(400, "wrong_unit", "A record is not in its indicator's unit.");
+    }
+    if (r.client_seq <= last_seq) {
+      // Already held (a batch resent after a lost answer): it must be the
+      // same record.
+      const auto held = tx.query(
+          "SELECT encode(hash, 'hex') FROM rakia.measurements "
+          "WHERE client_id = $1::uuid AND mission_id = $2::uuid AND client_seq = $3::bigint",
+          {b.client_id, b.mission_id, std::to_string(r.client_seq)});
+      if (held.empty() || held[0].at(0).value() != r.hash) {
+        throw SyncError(409, "chain_conflict",
+                        "The server holds different records for this device. Nothing was "
+                        "changed.");
+      }
+      continue;
+    }
+    if (r.client_seq != last_seq + 1 || r.prev_hash != last_hash) {
+      throw SyncError(409, "chain_gap",
+                      "The batch does not continue the records the server holds (it expects "
+                      "sequence " + std::to_string(last_seq + 1) + ").");
+    }
+    tx.query(
+        "INSERT INTO rakia.measurements (id, mission_id, crew_member_id, metric_code, value, "
+        "unit, observed_at, method, provenance, quality_flags, client_id, client_seq, "
+        "prev_hash, hash, supersedes_id) VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::float8, "
+        "(SELECT unit FROM rakia.metric_definitions WHERE code = $4), "
+        "'epoch'::timestamptz + $6::bigint * interval '1 microsecond', "
+        "$7::rakia.measurement_method, $8::rakia.provenance, $9::int, $10::uuid, $11::bigint, "
+        "decode($12, 'hex'), decode($13, 'hex'), $14::uuid)",
+        {r.id, b.mission_id, b.subject_id, r.metric_code, exact(r.value),
+         std::to_string(r.observed_at_us), std::string(kMethods[r.method - 1]),
+         std::string(kProvenance[r.provenance - 1]), std::to_string(r.quality_flags),
+         b.client_id, std::to_string(r.client_seq), r.prev_hash, r.hash, r.supersedes_id});
+    last_seq = r.client_seq;
+    last_hash = r.hash;
+    ++result.accepted;
+  }
+
+  tx.query(
+      "INSERT INTO rakia.sync_batches (id, client_id, mission_id, record_count, "
+      "acked_through_seq) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::int, $5::bigint)",
+      {b.batch_id, b.client_id, b.mission_id, std::to_string(b.records.size()),
+       std::to_string(last_seq)});
+  result.acked_through_seq = last_seq;
+  return result;
+}
+
+SyncResult PgStore::sync_batch(const std::string& firebase_uid, const SyncBatch& batch) {
+  SyncResult result;
+  try {
+    transaction(firebase_uid, [&](Tx& tx) { result = apply_sync_batch(tx, batch); });
+  } catch (const QueryError& e) {
+    // Integrity rules (23xxx: keys, checks, the ledger triggers) and
+    // row-level security (42501) refuse records that do not belong here.
+    if (e.sqlstate.rfind("23", 0) == 0 || e.sqlstate == "42501") {
+      log::info("sync refused by the database", {{"sqlstate", e.sqlstate}});
+      throw SyncError(409, "sync_conflict",
+                      "The server could not accept these records: they conflict with what it "
+                      "holds. Nothing was changed.");
+    }
+    throw;
+  }
+  return result;
 }
 
 }  // namespace rakia

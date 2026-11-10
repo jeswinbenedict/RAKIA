@@ -260,12 +260,13 @@ const List<ModuleSpec> kModules = [
     selectedIcon: Icons.person,
     group: ModuleGroup.operations,
     summary:
-        'Sign in to your RAKIA account. Your readings stay on this device; '
-        'signing in does not upload them.',
+        'Sign in to your RAKIA account. Your readings stay on this device '
+        'unless you turn on backup.',
     tracks: [
       'Sign-in with email and password',
       'Email verification and password reset',
       'Your RAKIA account and mission roles',
+      'Optional backup of your readings to the RAKIA server',
     ],
     emptyTitle: 'Sign-in is not available in this build',
     emptyMessage:

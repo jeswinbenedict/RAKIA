@@ -1,0 +1,9 @@
+# Only the sources server/Dockerfile copies are sent to the build.
+*
+!core/CMakeLists.txt
+!core/include/
+!core/src/
+!server/CMakeLists.txt
+!server/cmake/
+!server/src/
+!server/tests/

@@ -15,6 +15,8 @@ import 'mission/mission_controller.dart';
 import 'navigation/router.dart';
 import 'record/record_controller.dart';
 import 'storage/store_controller.dart';
+import 'sync/sync_api.dart';
+import 'sync/sync_controller.dart';
 import 'wellbeing/wellbeing_controller.dart';
 
 class RakiaApp extends StatefulWidget {
@@ -27,6 +29,7 @@ class RakiaApp extends StatefulWidget {
     this.storeOpener,
     this.spaceWeather,
     this.account,
+    this.syncApi,
   });
 
   final String initialLocation;
@@ -49,6 +52,9 @@ class RakiaApp extends StatefulWidget {
   /// Sign-in; by default from the build's Firebase key and API URL, or
   /// unavailable when the build names neither.
   final AccountController? account;
+
+  /// Uploads backups; by default to the build's API (tests supply one).
+  final SyncApi? syncApi;
 
   @override
   State<RakiaApp> createState() => _RakiaAppState();
@@ -87,6 +93,11 @@ class _RakiaAppState extends State<RakiaApp> {
             : AccountApi(baseUrl: kApiUrl),
       );
   bool _accountAttached = false;
+  late final SyncController _sync = SyncController(
+    api: widget.syncApi ?? (kApiUrl.isEmpty ? null : SyncApi(baseUrl: kApiUrl)),
+    account: _account,
+    changes: _record,
+  );
   final WellbeingController _wellbeing = WellbeingController();
   final RecordController _record = RecordController();
   bool _recordAttached = false;
@@ -120,6 +131,7 @@ class _RakiaAppState extends State<RakiaApp> {
     if (!_accountAttached && _store.state is! StoreOpening) {
       _accountAttached = true;
       unawaited(_account.attach(_store.store));
+      unawaited(_sync.attach(_store.store));
     }
     final store = _store.store;
     if (store == null) return;
@@ -152,6 +164,7 @@ class _RakiaAppState extends State<RakiaApp> {
     _wellbeing.dispose();
     _record.dispose();
     if (widget.spaceWeather == null) _spaceWeather.dispose();
+    _sync.dispose();
     if (widget.account == null) _account.dispose();
     super.dispose();
   }
@@ -172,18 +185,21 @@ class _RakiaAppState extends State<RakiaApp> {
                 controller: _spaceWeather,
                 child: AccountScope(
                   controller: _account,
-                  child: AppSettings(
-                    controller: _settings,
-                    child: ListenableBuilder(
-                      listenable: _settings,
-                      builder: (context, _) => MaterialApp.router(
-                        title: 'RAKIA',
-                        debugShowCheckedModeBanner: false,
-                        theme: _light,
-                        darkTheme: _dark,
-                        themeMode: _settings.themeMode,
-                        themeAnimationDuration: Duration.zero,
-                        routerConfig: _router,
+                  child: SyncScope(
+                    controller: _sync,
+                    child: AppSettings(
+                      controller: _settings,
+                      child: ListenableBuilder(
+                        listenable: _settings,
+                        builder: (context, _) => MaterialApp.router(
+                          title: 'RAKIA',
+                          debugShowCheckedModeBanner: false,
+                          theme: _light,
+                          darkTheme: _dark,
+                          themeMode: _settings.themeMode,
+                          themeAnimationDuration: Duration.zero,
+                          routerConfig: _router,
+                        ),
                       ),
                     ),
                   ),
