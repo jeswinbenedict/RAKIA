@@ -91,7 +91,9 @@ class AboutPage extends StatelessWidget {
           section('Open source', [
             Text(
               'Licensed under the Apache License 2.0. Typeface: Geist and Geist '
-              'Mono, SIL Open Font License 1.1.',
+              'Mono, SIL Open Font License 1.1. The astronaut is an original '
+              'drawing whose style was inspired by "100 followers" by heyvlad '
+              '(Spline Community, CC BY 4.0).',
               style: t.bodyMedium,
             ),
             const SizedBox(height: RakiaSpacing.md),

@@ -22,6 +22,7 @@ void main() {
     expect(find.text('No active mission'), findsOneWidget);
     expect(find.byKey(const Key('simulation-banner')), findsNothing);
 
+    await tester.ensureVisible(find.byKey(const Key('start-simulation')));
     await tester.tap(find.byKey(const Key('start-simulation')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('simulation-banner')), findsOneWidget);

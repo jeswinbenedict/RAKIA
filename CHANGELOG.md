@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- The RAKIA astronaut on the sign-in page and the Mission overview:
+  - An original character drawn in code, in a clay style inspired by the CC BY 4.0 Spline scene "100 followers" by heyvlad (credited in About). It wears a NASA-inspired white spacesuit with a bubble helmet and visor reflection, a blue neck ring, a chest control panel, a commander's red arm stripe, a name tag, and RAKIA's own mission patch. It carries no NASA insignia.
+  - Its eyes follow the mouse, or the last touch, anywhere in the app, and its head turns slightly. Motion is smoothed and frame-rate independent, settles to a stop, and looks ahead when the pointer leaves. It blinks now and then. Under reduced motion it follows without easing or blinking, and screen readers skip it.
+  - Sign-in page: the form beside a window onto space with the astronaut and "Welcome aboard", stacked on phones. Every sign-in, account-creation and Turnstile control works as before.
+  - Mission overview: a greeting card with the astronaut, a time-of-day greeting with the signed-in email, and one honest line from the astronaut's record and the live space weather.
+  - 9 new tests: the gaze maths, smoothing, the eyes following real mouse and touch events and settling, reduced motion, and both layouts.
+
 - Neumorphic ("soft UI") redesign across the whole app, after the four Figma Community kits the owner chose (docs/design/DESIGN_SYSTEM.md section 2):
   - One soft surface per theme, cool grey in light and deep slate in dark. Elements are made of the background and separated by paired light and dark shadows, not by fills or borders.
   - Raised cards, metric tiles, status chips and buttons. Inset input fields, progress tracks, icon wells, note callouts, the alert response area, and the selected navigation item, which is pressed into the sidebar.

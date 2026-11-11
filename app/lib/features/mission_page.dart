@@ -12,6 +12,7 @@ import '../design/typography.dart';
 import '../mission/mission_controller.dart';
 import '../navigation/modules.dart';
 import '../record/record_controller.dart';
+import 'crew_greeting.dart';
 import 'module_page.dart';
 import 'page_frame.dart';
 import 'record_alerts.dart';
@@ -36,6 +37,8 @@ class MissionPage extends StatelessWidget {
         header: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const CrewGreetingCard(),
+            const SizedBox(height: RakiaSpacing.xl),
             RecordOverviewCard(record: record),
             const SizedBox(height: RakiaSpacing.xl),
             const SpaceWeatherSummaryCard(),
@@ -56,6 +59,8 @@ class MissionPage extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const CrewGreetingCard(),
+          const SizedBox(height: RakiaSpacing.xl),
           RecordOverviewCard(record: record),
           const SizedBox(height: RakiaSpacing.xl),
           const SpaceWeatherSummaryCard(),

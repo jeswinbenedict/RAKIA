@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../account/account_controller.dart';
 import '../account/turnstile_field.dart';
 import '../analytics/day_format.dart';
+import '../components/astronaut/mission_window.dart';
 import '../components/empty_state.dart';
 import '../components/surface_card.dart';
 import '../config/build_config.dart';
@@ -34,10 +35,11 @@ class AccountPage extends StatelessWidget {
         message: module.emptyMessage,
       ),
       AccountStatus.restoring => const _Restoring(),
-      AccountStatus.signedOut => _SignedOut(account: account, siteKey: siteKey),
-      AccountStatus.needsAccount => _NeedsAccount(
-        account: account,
-        siteKey: siteKey,
+      AccountStatus.signedOut => _WithAstronaut(
+        child: _SignedOut(account: account, siteKey: siteKey),
+      ),
+      AccountStatus.needsAccount => _WithAstronaut(
+        child: _NeedsAccount(account: account, siteKey: siteKey),
       ),
       AccountStatus.signedIn => _SignedIn(account: account),
     };
@@ -544,6 +546,74 @@ class BackupCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The sign-in layout: the form beside a window onto space where the RAKIA
+/// astronaut watches the pointer. Side by side on wide windows, stacked on
+/// narrow ones with a smaller astronaut.
+class _WithAstronaut extends StatelessWidget {
+  const _WithAstronaut({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    Widget copy(bool wide) => Column(
+      children: [
+        Text(
+          'Welcome aboard',
+          textAlign: TextAlign.center,
+          style: (wide ? t.headlineSmall : t.titleLarge)?.copyWith(
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: RakiaSpacing.sm),
+        Text(
+          'Your health record goes where you go. Sign in to back it up; '
+          'everything else works on this device without an account.',
+          textAlign: TextAlign.center,
+          style: t.bodyMedium?.copyWith(
+            color: Colors.white.withValues(alpha: 0.82),
+          ),
+        ),
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, box) {
+        final wide = box.maxWidth >= 840;
+        if (!wide) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              MissionWindow(
+                key: const Key('login-astronaut'),
+                astronautWidth: box.maxWidth < 420 ? 150 : 180,
+                padding: const EdgeInsets.all(RakiaSpacing.lg),
+                child: copy(false),
+              ),
+              const SizedBox(height: RakiaSpacing.xl),
+              child,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 5,
+              child: MissionWindow(
+                key: const Key('login-astronaut'),
+                astronautWidth: 240,
+                child: copy(true),
+              ),
+            ),
+            const SizedBox(width: RakiaSpacing.xl),
+            Expanded(flex: 6, child: child),
+          ],
+        );
+      },
     );
   }
 }

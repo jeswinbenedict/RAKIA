@@ -7,6 +7,7 @@ import 'account/account_api.dart';
 import 'account/account_controller.dart';
 import 'account/firebase_auth_client.dart';
 import 'app_settings.dart';
+import 'components/astronaut/pointer_tracker.dart';
 import 'config/build_config.dart';
 import 'core/analytics_core.dart';
 import 'design/theme.dart';
@@ -199,6 +200,8 @@ class _RakiaAppState extends State<RakiaApp> {
                           themeMode: _settings.themeMode,
                           themeAnimationDuration: Duration.zero,
                           routerConfig: _router,
+                          builder: (context, child) =>
+                              PointerTracker(child: child ?? const SizedBox()),
                         ),
                       ),
                     ),

@@ -39,6 +39,12 @@ Deliberately not taken: reference 3's magenta-to-violet gradient on active contr
 
 **Accessibility comes first.** Neumorphism's known weakness is low contrast, because elements barely differ from the background. RAKIA keeps every text colour at WCAG AA (4.5:1) on both the surface and the inset well. Controls keep a visible edge where shadow alone would be too faint: a faint outline on secondary buttons, a 3:1 border on inputs, and a 2 px accent focus ring everywhere. Status is never shown by colour alone. `test/design_tokens_test.dart` checks all of this in both themes, and the accessibility tests check tap targets and text contrast on every page.
 
+### 2.0 The RAKIA astronaut
+
+The character on the sign-in page and the Mission overview (`app/lib/components/astronaut/`) is an original drawing in code, in a soft clay style inspired by the Spline Community scene "100 followers" by heyvlad (CC BY 4.0): round matte head, large white eyes with dark pupils, heavy brows, and violet rim light. RAKIA does not embed that scene. The character wears a white NASA-inspired spacesuit: bubble helmet with a visor reflection, blue neck ring, chest control panel, a commander's red arm stripe, a name tag, and RAKIA's own mission patch. It carries no NASA insignia, whose use is restricted.
+
+Its head turns slightly, and its eyes follow the mouse or the last touch anywhere in the app (`PointerTracker` only observes pointer events and never handles them). Motion uses frame-rate-independent smoothing and stops when it settles, and the eyes travel less vertically than horizontally. The character blinks every few seconds. Under reduced motion the eyes follow without easing and there is no blinking. It is decorative and hidden from screen readers.
+
 ### 2.1 Tokens
 
 | Role | Light ("Ground") | Dark ("Mission") |
