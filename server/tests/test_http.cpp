@@ -520,8 +520,9 @@ TEST("POST /v1/sync/batches: sign-in required; hashes verified before the store 
   r = c.Post("/v1/sync/batches", bearer, tampered.dump(), "application/json");
   CHECK_EQ(r->status, 400);
   CHECK_EQ(body(r)["error"]["code"], "hash_mismatch");
-  // The refusal does not echo health values.
-  CHECK(r->body.find("95") == std::string::npos);
+  // The refusal does not echo health values. (Only the message is checked:
+  // the random request id in the body may contain any digits.)
+  CHECK(body(r)["error"]["message"].get<std::string>().find("95") == std::string::npos);
   CHECK(store.batches.empty());
 
   r = c.Post("/v1/sync/batches", bearer, good.dump(), "application/json");
