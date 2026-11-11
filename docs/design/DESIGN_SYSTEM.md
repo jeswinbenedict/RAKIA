@@ -39,6 +39,15 @@ Deliberately not taken: reference 3's magenta-to-violet gradient on active contr
 
 **Accessibility comes first.** Neumorphism's known weakness is low contrast, because elements barely differ from the background. RAKIA keeps every text colour at WCAG AA (4.5:1) on both the surface and the inset well. Controls keep a visible edge where shadow alone would be too faint: a faint outline on secondary buttons, a 3:1 border on inputs, and a 2 px accent focus ring everywhere. Status is never shown by colour alone. `test/design_tokens_test.dart` checks all of this in both themes, and the accessibility tests check tap targets and text contrast on every page.
 
+### 2.0 The RAKIA crew
+
+The sign-in page and the Mission overview show a 3D group of cartoon astronauts (`app/web/crew/crew.js`, mounted by `app/lib/components/crew/`). They are original characters built from three.js primitives, in the clay style of the Spline Community scene "100 followers" by heyvlad (CC BY 4.0). That scene is not embedded. Each character has its own skin tone and expression and wears a NASA-inspired spacesuit with RAKIA's own mission patches, not NASA insignia, whose use is restricted.
+
+- **Interaction:** heads turn part of the way toward the pointer (mouse, pen or the last touch, anywhere on the page) and the eyes do the rest, within natural limits: head yaw up to 0.3 rad and pitch up to 0.18 rad; eyes up to 0.5 and 0.35 more. Motion is exponentially smoothed.
+- **Life:** breathing and blinking on separate clocks. Under reduced motion the eyes follow without easing, and there is no breathing or blinking.
+- **Performance:** device-pixel ratio capped at 2; one 1024 px soft shadow map; rendering pauses off screen and in hidden tabs; everything is disposed on unmount.
+- **Hosting and fallback:** three.js is served from the app's own origin. A still deep-space panel appears while loading, without WebGL, and on native builds.
+
 ### 2.1 Tokens
 
 | Role | Light ("Ground") | Dark ("Mission") |

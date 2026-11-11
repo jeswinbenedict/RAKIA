@@ -68,8 +68,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The runner image ships clang-tidy; use it, so an Ubuntu mirror outage
+      # cannot block CI. Install from apt only if the image ever lacks it.
       - name: Install clang-tidy
-        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+        run: |
+          if ! command -v clang-tidy >/dev/null; then
+            for v in 18 17 16; do
+              if command -v "clang-tidy-$v" >/dev/null; then
+                sudo ln -sf "$(command -v "clang-tidy-$v")" /usr/local/bin/clang-tidy
+                break
+              fi
+            done
+          fi
+          if ! command -v clang-tidy >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y clang-tidy
+          fi
+          clang-tidy --version
       - name: Configure
         run: cmake -S core -B build -DCMAKE_C_COMPILER=clang -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - name: Run clang-tidy

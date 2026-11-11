@@ -41,6 +41,7 @@ void main() {
   ) async {
     final opener = fileStore('restart');
     await pumpRakia(tester, size: const Size(1440, 1000), storeOpener: opener);
+    await tester.ensureVisible(find.byKey(const Key('start-simulation')));
     await tester.tap(find.byKey(const Key('start-simulation')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('simulation-banner')), findsOneWidget);
@@ -90,6 +91,7 @@ void main() {
         encryption: const StoreEncryption.cipher('chacha20'),
       ),
     );
+    await tester.ensureVisible(find.byKey(const Key('start-simulation')));
     await tester.tap(find.byKey(const Key('start-simulation')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Data management').first);
@@ -131,6 +133,7 @@ void main() {
       storeOpener: () async => throw const FileSystemException('disk full'),
     );
     expect(find.textContaining('Local storage is unavailable'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('start-simulation')));
     await tester.tap(find.byKey(const Key('start-simulation')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('simulation-banner')), findsOneWidget);

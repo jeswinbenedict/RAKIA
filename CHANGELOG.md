@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- The RAKIA crew: a 3D group of cartoon astronauts on the sign-in page and the Mission overview.
+  - Sixteen original characters, built from three.js primitives, stand in three staggered rows behind a mission console under deep-space purple and navy light, with blue and violet rims and soft shadows. The clay style is inspired by the CC BY 4.0 Spline scene "100 followers" by heyvlad, credited in About.
+  - Each has its own skin tone and expression (frowns, smiles, a grin, sleepy lids, a wink, glasses). Each wears a NASA-inspired spacesuit: suit fabric, seams, shoulders and gloves, a backpack, a blue neck ring, a chest control box with glowing lights, a commander's red stripe on some, a glass bubble helmet with a rim, and RAKIA's own mission patches. There are no NASA insignia.
+  - Every head turns, and every pair of eyes follows the mouse or the last touch anywhere on the page, within natural limits (the eyes do the rest of the turn). Motion is smoothed. The crew breathes and blinks on separate clocks, and under reduced motion it follows without easing, breathing or blinking. Rendering pauses when the scene is off screen or the tab is hidden, and every GPU resource is released when the page closes.
+  - three.js r170 (MIT) is served from the app's own origin (`app/web/crew/vendor`, checksum recorded), so the Content-Security-Policy is unchanged. There's a loading state, and a still panel shows without WebGL or on native builds.
+  - Sign-in page, after the owner's reference layout: the crew fills the large left area and the card stands on the right, or the crew sits above the card on phones. The card has "Welcome back", email and password fields with icons, a show/hide password toggle, "Forgot password?", a full-width Sign in, and "New to RAKIA? Create an account". Account creation with Turnstile, password reset and verification behave as before. Google sign-in is not offered: it needs a Google OAuth client the app does not have yet.
+  - The Mission overview opens with a greeting card showing three of the crew, a time-of-day greeting, and one honest line from the astronaut's record and the live space weather.
+  - The earlier 2D astronaut is removed.
+  - 6 new widget tests: both layouts, the password toggle, the links, the greeting, and the fallback. The WebGL scene was checked in Chrome with real mouse movement.
 - Neumorphic ("soft UI") redesign across the whole app, after the four Figma Community kits the owner chose (docs/design/DESIGN_SYSTEM.md section 2):
   - One soft surface per theme, cool grey in light and deep slate in dark. Elements are made of the background and separated by paired light and dark shadows, not by fills or borders.
   - Raised cards, metric tiles, status chips and buttons. Inset input fields, progress tracks, icon wells, note callouts, the alert response area, and the selected navigation item, which is pressed into the sidebar.
