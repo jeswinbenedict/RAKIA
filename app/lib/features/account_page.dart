@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../account/account_controller.dart';
 import '../account/turnstile_field.dart';
 import '../analytics/day_format.dart';
-import '../components/astronaut/mission_window.dart';
+import '../components/crew/crew_scene.dart';
 import '../components/empty_state.dart';
 import '../components/surface_card.dart';
 import '../config/build_config.dart';
 import '../design/colors.dart';
+import '../design/neumorphism.dart';
 import '../design/tokens.dart';
 import '../environment/space_weather.dart' show formatAge;
 import '../navigation/modules.dart';
@@ -35,10 +36,10 @@ class AccountPage extends StatelessWidget {
         message: module.emptyMessage,
       ),
       AccountStatus.restoring => const _Restoring(),
-      AccountStatus.signedOut => _WithAstronaut(
+      AccountStatus.signedOut => _WithCrew(
         child: _SignedOut(account: account, siteKey: siteKey),
       ),
-      AccountStatus.needsAccount => _WithAstronaut(
+      AccountStatus.needsAccount => _WithCrew(
         child: _NeedsAccount(account: account, siteKey: siteKey),
       ),
       AccountStatus.signedIn => _SignedIn(account: account),
@@ -145,6 +146,7 @@ class _SignedOutState extends State<_SignedOut> {
   _Mode _mode = _Mode.signIn;
   String? _turnstile;
   String? _sent;
+  bool _obscure = true;
 
   @override
   void dispose() {
@@ -180,39 +182,75 @@ class _SignedOutState extends State<_SignedOut> {
   Widget build(BuildContext context) {
     final a = widget.account;
     final t = Theme.of(context).textTheme;
+    final c = RakiaColors.of(context);
     final canCreate = widget.siteKey.isNotEmpty && turnstileSupported;
     final ready = switch (_mode) {
       _Mode.signIn => true,
       _Mode.create => _turnstile != null,
       _Mode.reset => true,
     };
-    final title = switch (_mode) {
-      _Mode.signIn => 'Sign in',
-      _Mode.create => 'Create your account',
-      _Mode.reset => 'Reset your password',
+    final (title, lead) = switch (_mode) {
+      _Mode.signIn => (
+        'Welcome back',
+        'Sign in to back up your health record and see your mission roles.',
+      ),
+      _Mode.create => (
+        'Create your account',
+        'One account for your record on the web, Android and iOS.',
+      ),
+      _Mode.reset => (
+        'Reset your password',
+        'Enter your email and we will send you a link to choose a new one.',
+      ),
     };
-    return SurfaceCard(
+    void go(_Mode m) => setState(() {
+      _mode = m;
+      _turnstile = null;
+      _sent = null;
+    });
+
+    Widget link(String key, String label, _Mode to) => TextButton(
+      key: Key(key),
+      onPressed: () => go(to),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: RakiaSpacing.sm),
+      ),
+      child: Text(label),
+    );
+
+    return NeuSurface(
       key: const Key('account-signed-out'),
-      title: title,
-      subtitle: 'Email and password',
-      leadingIcon: Icons.person_outline,
+      radius: RakiaRadii.lg,
+      padding: const EdgeInsets.all(RakiaSpacing.xxl),
       child: AutofillGroup(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
+            Semantics(header: true, child: Text(title, style: t.headlineSmall)),
+            const SizedBox(height: RakiaSpacing.sm),
+            Text(lead, style: t.bodyMedium?.copyWith(color: c.textSecondary)),
+            const SizedBox(height: RakiaSpacing.xl),
             TextField(
               key: const Key('account-email'),
               controller: _email,
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(labelText: 'Email'),
+              textInputAction: _mode == _Mode.reset
+                  ? TextInputAction.done
+                  : TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                hintText: 'you@example.com',
+                prefixIcon: Icon(Icons.mail_outline, size: 20),
+              ),
             ),
             if (_mode != _Mode.reset) ...[
-              const SizedBox(height: RakiaSpacing.md),
+              const SizedBox(height: RakiaSpacing.lg),
               TextField(
                 key: const Key('account-password'),
                 controller: _password,
-                obscureText: true,
+                obscureText: _obscure,
                 autofillHints: [
                   _mode == _Mode.create
                       ? AutofillHints.newPassword
@@ -223,10 +261,31 @@ class _SignedOutState extends State<_SignedOut> {
                   helperText: _mode == _Mode.create
                       ? 'At least 8 characters'
                       : null,
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  suffixIcon: IconButton(
+                    key: const Key('account-password-visibility'),
+                    tooltip: _obscure ? 'Show password' : 'Hide password',
+                    icon: Icon(
+                      _obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 20,
+                    ),
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                  ),
                 ),
                 onSubmitted: (_) => a.busy || !ready ? null : _submit(),
               ),
             ],
+            if (_mode == _Mode.signIn)
+              Align(
+                alignment: Alignment.centerRight,
+                child: link(
+                  'account-mode-reset',
+                  'Forgot password?',
+                  _Mode.reset,
+                ),
+              ),
             if (_mode == _Mode.create) ...[
               const SizedBox(height: RakiaSpacing.lg),
               if (canCreate)
@@ -242,13 +301,18 @@ class _SignedOutState extends State<_SignedOut> {
                   style: t.bodyMedium,
                 ),
             ],
-            if (_mode == _Mode.create && !canCreate)
-              const SizedBox.shrink()
-            else ...[
-              const SizedBox(height: RakiaSpacing.lg),
+            if (!(_mode == _Mode.create && !canCreate)) ...[
+              SizedBox(
+                height: _mode == _Mode.signIn
+                    ? RakiaSpacing.sm
+                    : RakiaSpacing.xl,
+              ),
               FilledButton(
                 key: const Key('account-submit'),
                 onPressed: a.busy || !ready ? null : _submit,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
                 child: Text(switch (_mode) {
                   _Mode.signIn => a.busy ? 'Signing in' : 'Sign in',
                   _Mode.create => a.busy ? 'Creating' : 'Create account',
@@ -261,31 +325,23 @@ class _SignedOutState extends State<_SignedOut> {
               const SizedBox(height: RakiaSpacing.md),
               Text(key: const Key('account-reset-sent'), s),
             ],
+            const SizedBox(height: RakiaSpacing.xl),
+            Divider(color: c.borderSubtle),
             const SizedBox(height: RakiaSpacing.md),
             Wrap(
-              spacing: RakiaSpacing.sm,
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                if (_mode != _Mode.signIn)
-                  TextButton(
-                    key: const Key('account-mode-signin'),
-                    onPressed: () => setState(() => _mode = _Mode.signIn),
-                    child: const Text('I have an account'),
-                  ),
-                if (_mode != _Mode.create)
-                  TextButton(
-                    key: const Key('account-mode-create'),
-                    onPressed: () => setState(() {
-                      _mode = _Mode.create;
-                      _turnstile = null;
-                    }),
-                    child: const Text('Create an account'),
-                  ),
-                if (_mode != _Mode.reset)
-                  TextButton(
-                    key: const Key('account-mode-reset'),
-                    onPressed: () => setState(() => _mode = _Mode.reset),
-                    child: const Text('Forgot password'),
-                  ),
+                Text(
+                  _mode == _Mode.signIn
+                      ? 'New to RAKIA?'
+                      : 'Already have an account?',
+                  style: t.bodyMedium?.copyWith(color: c.textSecondary),
+                ),
+                if (_mode == _Mode.signIn)
+                  link('account-mode-create', 'Create an account', _Mode.create)
+                else
+                  link('account-mode-signin', 'Sign in', _Mode.signIn),
               ],
             ),
           ],
@@ -550,67 +606,51 @@ class BackupCard extends StatelessWidget {
   }
 }
 
-/// The sign-in layout: the form beside a window onto space where the RAKIA
-/// astronaut watches the pointer. Side by side on wide windows, stacked on
-/// narrow ones with a smaller astronaut.
-class _WithAstronaut extends StatelessWidget {
-  const _WithAstronaut({required this.child});
+/// The sign-in layout, after the owner's reference: the 3D crew fills the
+/// large left area, the sign-in card stands on the right. On narrow windows
+/// the crew sits above the card, shorter but uncropped.
+class _WithCrew extends StatelessWidget {
+  const _WithCrew({required this.child});
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    Widget copy(bool wide) => Column(
-      children: [
-        Text(
-          'Welcome aboard',
-          textAlign: TextAlign.center,
-          style: (wide ? t.headlineSmall : t.titleLarge)?.copyWith(
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: RakiaSpacing.sm),
-        Text(
-          'Your health record goes where you go. Sign in to back it up; '
-          'everything else works on this device without an account.',
-          textAlign: TextAlign.center,
-          style: t.bodyMedium?.copyWith(
-            color: Colors.white.withValues(alpha: 0.82),
-          ),
-        ),
-      ],
-    );
+    final screen = MediaQuery.sizeOf(context);
     return LayoutBuilder(
       builder: (context, box) {
-        final wide = box.maxWidth >= 840;
+        final wide = box.maxWidth >= 760;
+        Widget crew(double height) => SizedBox(
+          key: const Key('login-crew'),
+          height: height,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(RakiaRadii.lg),
+            child: const CrewScene(),
+          ),
+        );
         if (!wide) {
+          final h = (box.maxWidth * 0.78).clamp(260.0, 420.0);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              MissionWindow(
-                key: const Key('login-astronaut'),
-                astronautWidth: box.maxWidth < 420 ? 150 : 180,
-                padding: const EdgeInsets.all(RakiaSpacing.lg),
-                child: copy(false),
-              ),
+              crew(h),
               const SizedBox(height: RakiaSpacing.xl),
               child,
             ],
           );
         }
+        final h = (screen.height - 220).clamp(520.0, 760.0);
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Expanded(flex: 7, child: crew(h)),
+            const SizedBox(width: RakiaSpacing.xxl),
             Expanded(
               flex: 5,
-              child: MissionWindow(
-                key: const Key('login-astronaut'),
-                astronautWidth: 240,
-                child: copy(true),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: child,
               ),
             ),
-            const SizedBox(width: RakiaSpacing.xl),
-            Expanded(flex: 6, child: child),
           ],
         );
       },

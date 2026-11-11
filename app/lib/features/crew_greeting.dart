@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../account/account_controller.dart';
-import '../components/astronaut/mission_window.dart';
+import '../components/crew/crew_scene.dart';
 import '../design/colors.dart';
 import '../design/neumorphism.dart';
 import '../design/tokens.dart';
@@ -74,10 +74,11 @@ class CrewGreetingCard extends StatelessWidget {
           ],
         );
         final window = SizedBox(
-          width: compact ? 112 : 140,
-          child: MissionWindow(
-            astronautWidth: compact ? 84 : 104,
-            padding: const EdgeInsets.all(RakiaSpacing.sm + 2),
+          width: compact ? 150 : 200,
+          height: compact ? 112 : 132,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(RakiaRadii.md),
+            child: const CrewScene(compact: true),
           ),
         );
         return NeuSurface(
